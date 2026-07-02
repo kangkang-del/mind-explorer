@@ -445,7 +445,7 @@ blockquote {
 /* Responsive */
 @media (max-width: 768px) {
     .hero h1 { font-size: 1.8rem; }
-    .nav-links { display: none; }
+    /* nav-links 的移动端样式已统一在底部手机端适配区域处理 */
     .card-grid { grid-template-columns: 1fr; }
     .dashboard { grid-template-columns: repeat(2, 1fr); }
     .flashcard { min-height: 200px; }
@@ -949,19 +949,133 @@ blockquote {
 .login-prompt .login-btn:hover{transform:translateY(-3px);box-shadow:0 8px 20px rgba(99,102,241,.4)}
 
 /* ===== 手机端适配 ===== */
+
+/* 汉堡菜单按钮 */
+.nav-toggle{display:none;background:none;border:none;font-size:1.5rem;cursor:pointer;padding:4px 8px;color:var(--text);line-height:1}
+
+/* 手机端整体导航栏重构 */
 @media(max-width:768px){
-    .nav-container{flex-wrap:wrap;padding:12px 16px}
-    .nav-links{width:100%;display:flex;justify-content:space-around;margin-top:8px;gap:0}
-    .nav-link{padding:8px 12px;font-size:.85rem}
-    .nav-user-area{margin-left:0;width:100%;justify-content:center;margin-top:8px}
-    .nav-user{width:100%;justify-content:center;flex-wrap:wrap;gap:4px}
-    .nav-username{font-size:.8rem;max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-    .nav-points{font-size:.7rem;padding:2px 6px}
-    .nav-dropdown{right:auto;left:50%;transform:translateX(-50%);min-width:160px}
+    .navbar{position:relative}
+    .nav-container{
+        flex-wrap:nowrap;
+        padding:10px 16px;
+        height:auto;
+        min-height:52px
+    }
+    .nav-brand{font-size:1.15rem;flex-shrink:0}
+
+    /* 显示汉堡按钮 */
+    .nav-toggle{display:block;margin-left:auto;flex-shrink:0}
+
+    /* 导航链接默认隐藏，展开时显示 */
+    .nav-links{
+        display:none;
+        width:100%;
+        flex-direction:column;
+        gap:0;
+        margin-top:8px;
+        padding-top:8px;
+        border-top:1px solid var(--border);
+        order:3
+    }
+    .nav-links.active{display:flex}
+    .nav-link{
+        padding:12px 16px;
+        font-size:.95rem;
+        border-radius:8px;
+        text-align:center
+    }
+    .nav-link:hover{background:#f8fafc}
+
+    /* 用户区域独立一行 */
+    .nav-user-area{
+        margin-left:0;
+        margin-top:8px;
+        width:100%;
+        justify-content:center;
+        order:2;
+        padding-bottom:4px
+    }
+    .nav-login-btn{
+        width:100%;
+        max-width:220px;
+        padding:10px 24px;
+        font-size:1rem;
+        text-align:center
+    }
+    .nav-user{
+        width:100%;
+        justify-content:center;
+        flex-wrap:wrap;
+        gap:6px
+    }
+    .nav-avatar{width:28px;height:28px}
+    .nav-username{font-size:.85rem;max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .nav-points{font-size:.75rem;padding:3px 8px}
+    .nav-arrow{display:none}  /* 手机端隐藏箭头，用点击整行触发下拉 */
+
+    /* 下拉菜单居中 */
+    .nav-dropdown{
+        right:auto;
+        left:50%;
+        transform:translateX(-50%);
+        min-width:180px;
+        margin-top:4px
+    }
+
+    /* 内容区适配 */
+    .hero{padding:36px 16px;border-radius:12px}
+    .hero h1{font-size:1.6rem}
+    .hero p{font-size:.95rem}
+    .hero-sub{font-size:.8rem}
+    .hero-buttons{flex-direction:column;align-items:center;gap:10px}
+    .btn-large{padding:12px 32px;font-size:1rem;width:100%;max-width:280px;text-align:center}
+
+    .section-cards{grid-template-columns:1fr}
+    .section-card{padding:24px 18px}
+    .section-icon{font-size:2.4rem}
+    .section-card h2{font-size:1.15rem}
+    .section-card p{font-size:.82rem}
+
+    .dashboard{grid-template-columns:repeat(2,1fr);gap:10px}
+    .stat-card{padding:16px 10px}
+    .stat-value{font-size:1.5rem}
+    .stat-label{font-size:.78rem}
+
+    .card-grid{grid-template-columns:1fr}
+    .category-grid{grid-template-columns:repeat(2,1fr)}
+
+    .quick-links{grid-template-columns:repeat(2,1fr)}
+    .quick-link{padding:18px 14px}
+    .ql-icon{font-size:1.5rem}
+
+    .container{padding:20px 14px}
+
     .user-stats{flex-direction:column;gap:16px}
-    .user-page{padding:20px 12px}
-    .user-content-section{padding:20px 16px}
-    .upload-type-btn{padding:10px 16px;font-size:.85rem}
-    .leaderboard-table{font-size:.85rem}
-    .leaderboard-table th,.leaderboard-table td{padding:8px 10px}
+    .user-page{padding:20px 14px}
+    .user-content-section{padding:18px 14px}
+
+    .upload-type-btn{padding:10px 14px;font-size:.85rem}
+
+    .leaderboard-table{font-size:.8rem;display:block;overflow-x:auto}
+    .leaderboard-table th,.leaderboard-table td{padding:8px 8px}
+
+    .health-topic-grid{grid-template-columns:repeat(2,1fr)}
+    .coping-grid{grid-template-columns:1fr}
+
+    .tip-box{padding:16px;font-size:.88rem;line-height:1.7}
+    .footer{padding:16px;font-size:.78rem}
+
+    /* 问答表单 */
+    .qa-form{flex-direction:column}
+    .qa-input{width:100%}
+
+    /* 测验结果 */
+    .result-actions{flex-direction:column;align-items:center}
+
+    /* 视频搜索按钮 */
+    .video-search-links{justify-content:center}
+
+    /* 贡献表单 */
+    .contribute-form{padding:20px 16px}
 }
