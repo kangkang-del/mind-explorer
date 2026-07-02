@@ -11,3 +11,14 @@
   from = "/*"
   to = "/index.html"
   status = 200
+
+# HTML 文件不缓存，确保用户总是看到最新版本
+[[headers]]
+  for = "/*.html"
+  [headers.values]
+    Cache-Control = "no-cache, must-revalidate"
+
+[[headers]]
+  for = "/card/*.html"
+  [headers.values]
+    Cache-Control = "no-cache, must-revalidate"
