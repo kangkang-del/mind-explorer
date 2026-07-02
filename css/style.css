@@ -947,3 +947,21 @@ blockquote {
 .login-prompt p{font-size:1.1rem;color:var(--text-light);margin-bottom:32px}
 .login-prompt .login-btn{display:inline-block;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;padding:16px 48px;border-radius:12px;text-decoration:none;font-size:1.1rem;font-weight:600;transition:all .3s}
 .login-prompt .login-btn:hover{transform:translateY(-3px);box-shadow:0 8px 20px rgba(99,102,241,.4)}
+
+/* ===== 手机端适配 ===== */
+@media(max-width:768px){
+    .nav-container{flex-wrap:wrap;padding:12px 16px}
+    .nav-links{width:100%;display:flex;justify-content:space-around;margin-top:8px;gap:0}
+    .nav-link{padding:8px 12px;font-size:.85rem}
+    .nav-user-area{margin-left:0;width:100%;justify-content:center;margin-top:8px}
+    .nav-user{width:100%;justify-content:center;flex-wrap:wrap;gap:4px}
+    .nav-username{font-size:.8rem;max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .nav-points{font-size:.7rem;padding:2px 6px}
+    .nav-dropdown{right:auto;left:50%;transform:translateX(-50%);min-width:160px}
+    .user-stats{flex-direction:column;gap:16px}
+    .user-page{padding:20px 12px}
+    .user-content-section{padding:20px 16px}
+    .upload-type-btn{padding:10px 16px;font-size:.85rem}
+    .leaderboard-table{font-size:.85rem}
+    .leaderboard-table th,.leaderboard-table td{padding:8px 10px}
+}
