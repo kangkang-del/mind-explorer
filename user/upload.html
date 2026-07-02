@@ -48,7 +48,7 @@
             <h2>📝 发布文章</h2>
             <form class="upload-form" id="article-form">
                 <label>文章标题</label>
-                <input type="text" id="article-title" placeholder="输入标题..." required>
+                <input type="text" id="article-title" placeholder="输入标题..." required maxlength="100">
                 
                 <label>所属分类</label>
                 <select id="article-category">
@@ -61,8 +61,9 @@
                 <label>文章内容</label>
                 <textarea id="article-content" placeholder="分享你的想法..." required></textarea>
                 
-                <button type="submit" class="upload-submit">🚀 发布文章（+5 积分）</button>
+                <button type="submit" class="upload-submit" id="article-submit">🚀 发布文章（+5 积分）</button>
             </form>
+            <div id="article-result" class="upload-result" style="display:none;"></div>
         </div>
 
         <!-- 图片上传表单 -->
@@ -71,14 +72,15 @@
             <div class="upload-area" id="image-upload-area">
                 <div class="upload-icon">📁</div>
                 <p>点击或拖拽图片到这里</p>
-                <p style="font-size:.85rem;margin-top:8px;">支持 JPG、PNG、GIF，最大 5MB</p>
+                <p style="font-size:.85rem;margin-top:8px;">支持 JPG、PNG、GIF，会自动压缩</p>
                 <input type="file" id="image-input" accept="image/*" style="display:none;">
             </div>
             <form class="upload-form" id="image-form">
                 <label>图片描述</label>
                 <input type="text" id="image-desc" placeholder="描述这张图片...">
-                <button type="submit" class="upload-submit">🚀 上传图片（+10 积分）</button>
+                <button type="submit" class="upload-submit" id="image-submit">🚀 上传图片（+10 积分）</button>
             </form>
+            <div id="image-result" class="upload-result" style="display:none;"></div>
         </div>
 
         <!-- 链接分享表单 -->
@@ -94,8 +96,9 @@
                 <label>描述</label>
                 <textarea id="link-desc" placeholder="简单描述这个链接的内容..." style="min-height:80px;"></textarea>
                 
-                <button type="submit" class="upload-submit">🚀 分享链接（+3 积分）</button>
+                <button type="submit" class="upload-submit" id="link-submit">🚀 分享链接（+3 积分）</button>
             </form>
+            <div id="link-result" class="upload-result" style="display:none;"></div>
         </div>
     </div>
 </main>
@@ -104,6 +107,11 @@
 .upload-type-btn{padding:12px 24px;border:2px solid var(--border);background:#fff;color:var(--text);border-radius:10px;font-size:1rem;cursor:pointer;font-weight:600;transition:all .3s}
 .upload-type-btn:hover{border-color:var(--primary);color:var(--primary)}
 .upload-type-btn.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+.upload-result{margin-top:16px;padding:16px 20px;border-radius:12px;font-size:.95rem;line-height:1.7}
+.upload-result.success{background:#f0fdf4;border:1px solid #bbf7d0;color:#15803d}
+.upload-result.error{background:#fef2f2;border:1px solid #fecaca;color:#991b1b}
+.upload-result a{color:var(--primary);font-weight:600}
+.upload-submit:disabled{opacity:.5;cursor:wait;transform:none}
 </style>
 
 <script>
@@ -117,6 +125,51 @@ function switchUploadType(type) {
     document.getElementById('form-link').style.display = type === 'link' ? 'block' : 'none';
 }
 
+// 图片压缩：用 Canvas 缩小并转为 JPEG base64
+function compressImage(file, maxWidth, quality) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const img = new Image();
+            img.onload = () => {
+                let w = img.width, h = img.height;
+                if (w > maxWidth) { h = (h * maxWidth) / w; w = maxWidth; }
+                const canvas = document.createElement('canvas');
+                canvas.width = w; canvas.height = h;
+                canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+                const dataUrl = canvas.toDataURL('image/jpeg', quality);
+                resolve(dataUrl.split(',')[1]); // 去掉 data:image/jpeg;base64, 前缀
+            };
+            img.onerror = reject;
+            img.src = e.target.result;
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+    });
+}
+
+// 显示结果
+function showResult(elementId, success, message, linkUrl, linkText) {
+    const el = document.getElementById(elementId);
+    el.style.display = 'block';
+    el.className = 'upload-result ' + (success ? 'success' : 'error');
+    let html = success ? '✅ ' + message : '❌ ' + message;
+    if (linkUrl) html += ` <a href="${linkUrl}" target="_blank">${linkText || '查看'}</a>`;
+    el.innerHTML = html;
+}
+
+// 设置按钮状态
+function setBtnState(btnId, loading, originalText) {
+    const btn = document.getElementById(btnId);
+    if (loading) {
+        btn.disabled = true;
+        btn.textContent = '⏳ 提交中...';
+    } else {
+        btn.disabled = false;
+        btn.textContent = originalText;
+    }
+}
+
 // 检查登录状态
 document.addEventListener('DOMContentLoaded', () => {
     const user = Auth.getUser();
@@ -128,45 +181,146 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('login-prompt').style.display = 'none';
     document.getElementById('upload-content').style.display = 'block';
 
-    // 图片上传区域点击
+    // 图片上传区域交互
     const uploadArea = document.getElementById('image-upload-area');
     const imageInput = document.getElementById('image-input');
+    let selectedImage = null;
+
     uploadArea.addEventListener('click', () => imageInput.click());
-    imageInput.addEventListener('change', (e) => {
-        if (e.target.files[0]) {
-            uploadArea.innerHTML = `<div class="upload-icon">✅</div><p>已选择：${e.target.files[0].name}</p>`;
+    uploadArea.addEventListener('dragover', (e) => { e.preventDefault(); uploadArea.classList.add('dragover'); });
+    uploadArea.addEventListener('dragleave', () => uploadArea.classList.remove('dragover'));
+    uploadArea.addEventListener('drop', (e) => {
+        e.preventDefault();
+        uploadArea.classList.remove('dragover');
+        if (e.dataTransfer.files[0]) {
+            imageInput.files = e.dataTransfer.files;
+            imageInput.dispatchEvent(new Event('change'));
         }
     });
 
-    // 文章表单提交
+    imageInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            if (file.size > 10 * 1024 * 1024) {
+                alert('图片不能超过 10MB');
+                imageInput.value = '';
+                return;
+            }
+            selectedImage = file;
+            uploadArea.innerHTML = `<div class="upload-icon">✅</div><p>已选择：${file.name}</p><p style="font-size:.85rem;margin-top:4px">${(file.size/1024).toFixed(0)} KB</p>`;
+        }
+    });
+
+    // ===== 文章表单提交 =====
     document.getElementById('article-form').addEventListener('submit', async (e) => {
         e.preventDefault();
-        const title = document.getElementById('article-title').value;
-        const content = document.getElementById('article-content').value;
+        const title = document.getElementById('article-title').value.trim();
+        const content = document.getElementById('article-content').value.trim();
         const category = document.getElementById('article-category').value;
-        
-        // 这里调用 GitHub API 创建 Issue
-        // 暂时用模拟方式
-        alert('文章发布成功！+5 积分');
-        await Auth.addPoints(5);
-        document.getElementById('article-form').reset();
+
+        setBtnState('article-submit', true);
+        document.getElementById('article-result').style.display = 'none';
+
+        try {
+            const res = await fetch('/.netlify/functions/upload-content', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ type: 'article', title, content, category })
+            });
+            const data = await res.json();
+
+            if (res.ok && data.success) {
+                showResult('article-result', true, `文章发布成功！获得 +5 积分（当前积分：${data.points}）`, data.issueUrl, '在 GitHub 查看');
+                document.getElementById('article-form').reset();
+                // 更新导航栏积分
+                const pointsEl = document.getElementById('nav-points');
+                if (pointsEl) pointsEl.textContent = `⭐ ${data.points}`;
+            } else {
+                showResult('article-result', false, data.error || '发布失败，请重试');
+            }
+        } catch (err) {
+            showResult('article-result', false, '网络错误，请重试');
+        } finally {
+            setBtnState('article-submit', false, '🚀 发布文章（+5 积分）');
+        }
     });
 
-    // 图片表单提交
+    // ===== 图片表单提交 =====
     document.getElementById('image-form').addEventListener('submit', async (e) => {
         e.preventDefault();
-        alert('图片上传成功！+10 积分');
-        await Auth.addPoints(10);
-        document.getElementById('image-form').reset();
-        uploadArea.innerHTML = `<div class="upload-icon">📁</div><p>点击或拖拽图片到这里</p>`;
+        if (!selectedImage) {
+            alert('请先选择图片');
+            return;
+        }
+
+        setBtnState('image-submit', true);
+        document.getElementById('image-result').style.display = 'none';
+
+        try {
+            // 压缩图片
+            const base64 = await compressImage(selectedImage, 1200, 0.8);
+            const description = document.getElementById('image-desc').value.trim();
+
+            const res = await fetch('/.netlify/functions/upload-content', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    type: 'image',
+                    description,
+                    image: base64,
+                    filename: selectedImage.name
+                })
+            });
+            const data = await res.json();
+
+            if (res.ok && data.success) {
+                showResult('image-result', true, `图片上传成功！获得 +10 积分（当前积分：${data.points}）`, data.issueUrl, '在 GitHub 查看');
+                document.getElementById('image-form').reset();
+                selectedImage = null;
+                uploadArea.innerHTML = `<div class="upload-icon">📁</div><p>点击或拖拽图片到这里</p>`;
+                const pointsEl = document.getElementById('nav-points');
+                if (pointsEl) pointsEl.textContent = `⭐ ${data.points}`;
+            } else {
+                showResult('image-result', false, data.error || '上传失败，请重试');
+            }
+        } catch (err) {
+            showResult('image-result', false, err.message || '图片处理失败，请重试');
+        } finally {
+            setBtnState('image-submit', false, '🚀 上传图片（+10 积分）');
+        }
     });
 
-    // 链接表单提交
+    // ===== 链接表单提交 =====
     document.getElementById('link-form').addEventListener('submit', async (e) => {
         e.preventDefault();
-        alert('链接分享成功！+3 积分');
-        await Auth.addPoints(3);
-        document.getElementById('link-form').reset();
+        const title = document.getElementById('link-title').value.trim();
+        const url = document.getElementById('link-url').value.trim();
+        const description = document.getElementById('link-desc').value.trim();
+
+        setBtnState('link-submit', true);
+        document.getElementById('link-result').style.display = 'none';
+
+        try {
+            const res = await fetch('/.netlify/functions/upload-content', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ type: 'link', title, url, description })
+            });
+            const data = await res.json();
+
+            if (res.ok && data.success) {
+                showResult('link-result', true, `链接分享成功！获得 +3 积分（当前积分：${data.points}）`, data.issueUrl, '在 GitHub 查看');
+                document.getElementById('link-form').reset();
+                const pointsEl = document.getElementById('nav-points');
+                if (pointsEl) pointsEl.textContent = `⭐ ${data.points}`;
+            } else {
+                showResult('link-result', false, data.error || '分享失败，请重试');
+            }
+        } catch (err) {
+            showResult('link-result', false, '网络错误，请重试');
+        } finally {
+            setBtnState('link-submit', false, '🚀 分享链接（+3 积分）');
+        }
     });
 });
 </script>

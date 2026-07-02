@@ -1078,4 +1078,87 @@ blockquote {
 
     /* 贡献表单 */
     .contribute-form{padding:20px 16px}
+
+    /* 卡片互动区 */
+    .interact-section{padding:16px 12px}
+    .like-button{padding:10px 20px;font-size:.9rem}
+    .comment-form{flex-direction:column;gap:8px}
+    .comment-form-avatar{display:none}
+    .comment-form-body{width:100%}
+    .comment-item{padding:12px 8px}
+    .comment-avatar{width:32px;height:32px}
+    .comment-author{font-size:.85rem}
+    .comment-text{font-size:.85rem}
 }
+
+/* ===== 卡片互动区（点赞 + 评论） ===== */
+.card-interact-section{margin-top:32px}
+
+.interact-section{max-width:100%}
+
+/* 点赞 */
+.like-section{text-align:center;margin-bottom:32px;padding-bottom:24px;border-bottom:1px solid var(--border)}
+.like-button{
+    display:inline-flex;align-items:center;gap:8px;
+    background:#fff;border:2px solid var(--border);
+    padding:12px 28px;border-radius:30px;
+    font-size:1rem;font-weight:600;color:var(--text);
+    cursor:pointer;transition:all .3s;
+}
+.like-button:hover{border-color:var(--danger);background:#fef2f2}
+.like-button.liked{background:#fef2f2;border-color:var(--danger);color:var(--danger)}
+.like-button:disabled{opacity:.6;cursor:wait}
+.like-icon{font-size:1.2rem}
+.like-count{background:var(--border);padding:2px 12px;border-radius:12px;font-size:.9rem;font-weight:700}
+.like-button.liked .like-count{background:#fecaca;color:var(--danger)}
+
+/* 评论区 */
+.comments-section{margin-top:8px}
+.comments-title{font-size:1.15rem;color:var(--text);margin-bottom:20px}
+
+/* 评论输入 */
+.comment-form{display:flex;gap:12px;margin-bottom:24px}
+.comment-form-avatar{width:40px;height:40px;border-radius:50%;flex-shrink:0;border:2px solid var(--border)}
+.comment-form-body{flex:1}
+.comment-input{
+    width:100%;padding:12px 16px;border:2px solid var(--border);
+    border-radius:12px;font-size:.95rem;font-family:inherit;
+    resize:vertical;min-height:80px;transition:border-color .2s;
+}
+.comment-input:focus{outline:none;border-color:var(--primary)}
+.comment-form-footer{display:flex;justify-content:space-between;align-items:center;margin-top:8px}
+.char-count{font-size:.8rem;color:var(--text-light)}
+.comment-submit{
+    background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;
+    border:none;padding:8px 24px;border-radius:8px;
+    font-size:.9rem;font-weight:600;cursor:pointer;transition:all .3s;
+}
+.comment-submit:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(99,102,241,.3)}
+.comment-submit:disabled{opacity:.5;cursor:wait;transform:none}
+
+/* 评论列表 */
+.comment-list{display:flex;flex-direction:column;gap:4px}
+.comment-item{display:flex;gap:12px;padding:16px 0;border-bottom:1px solid var(--border)}
+.comment-item:last-child{border-bottom:none}
+.comment-avatar{width:36px;height:36px;border-radius:50%;flex-shrink:0;border:2px solid var(--border)}
+.comment-body{flex:1}
+.comment-meta{display:flex;align-items:center;gap:8px;margin-bottom:4px}
+.comment-author{font-weight:600;color:var(--text);font-size:.9rem}
+.comment-time{font-size:.8rem;color:var(--text-light)}
+.comment-text{font-size:.95rem;color:var(--text);line-height:1.6;word-wrap:break-word}
+
+.comment-empty{text-align:center;padding:32px;color:var(--text-light);font-size:.9rem}
+
+/* 登录提示 */
+.interact-login-prompt{text-align:center;padding:24px;background:#f8fafc;border-radius:12px;margin-bottom:24px}
+.interact-login-link{
+    display:inline-block;background:linear-gradient(135deg,#6366f1,#8b5cf6);
+    color:#fff;padding:10px 32px;border-radius:10px;
+    text-decoration:none;font-weight:600;transition:all .3s;
+}
+.interact-login-link:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(99,102,241,.3)}
+
+/* 加载/错误状态 */
+.interact-loading{text-align:center;padding:24px;color:var(--text-light)}
+.interact-error{text-align:center;padding:24px;color:var(--danger)}
+.interact-error a{color:var(--primary);cursor:pointer}
