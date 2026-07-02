@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>积分排行 — 心灵探索</title>
+<link rel="stylesheet" href="/css/style.css">
+<script src="/js/auth.js"></script>
+</head>
+<body>
+<nav class="navbar">
+    <div class="nav-container">
+        <a href="/" class="nav-brand">🧠 心灵探索</a>
+        <div class="nav-links">
+            <a href="/" class="nav-link">首页</a>
+            <a href="/study/" class="nav-link">知识</a>
+            <a href="/health/" class="nav-link">心理健康</a>
+            <a href="/theorists/" class="nav-link">心理学家</a>
+        </div>
+    </div>
+</nav>
+
+<main class="user-page">
+    <div class="login-prompt" id="login-prompt">
+        <h1>🔑 请先登录</h1>
+        <p>登录后才能查看积分排行</p>
+        <a href="#" class="login-btn" onclick="Auth.login()">使用 GitHub 登录</a>
+    </div>
+
+    <div id="points-content" style="display:none;">
+        <div class="user-header">
+            <h1>⭐ 贡献积分排行</h1>
+            <p>上传内容、分享知识，获得积分！</p>
+        </div>
+
+        <!-- 积分规则说明 -->
+        <div class="user-content-section">
+            <h2>📋 积分规则</h2>
+            <table style="width:100%;border-collapse:collapse;">
+                <tr style="background:#f8fafc;">
+                    <th style="padding:12px;text-align:left;border-bottom:2px solid var(--border);">行为</th>
+                    <th style="padding:12px;text-align:right;border-bottom:2px solid var(--border);">获得积分</th>
+                </tr>
+                <tr>
+                    <td style="padding:12px;border-bottom:1px solid var(--border);">📝 发布文章</td>
+                    <td style="padding:12px;border-bottom:1px solid var(--border);text-align:right;font-weight:700;color:var(--primary);">+5 分</td>
+                </tr>
+                <tr>
+                    <td style="padding:12px;border-bottom:1px solid var(--border);">🖼️ 上传图片/文件</td>
+                    <td style="padding:12px;border-bottom:1px solid var(--border);text-align:right;font-weight:700;color:var(--primary);">+10 分</td>
+                </tr>
+                <tr>
+                    <td style="padding:12px;border-bottom:1px solid var(--border);">🔗 分享链接</td>
+                    <td style="padding:12px;border-bottom:1px solid var(--border);text-align:right;font-weight:700;color:var(--primary);">+3 分</td>
+                </tr>
+                <tr>
+                    <td style="padding:12px;border-bottom:1px solid var(--border);">❤️ 内容被点赞/认同</td>
+                    <td style="padding:12px;border-bottom:1px solid var(--border);text-align:right;font-weight:700;color:#d97706;">+2 分</td>
+                </tr>
+                <tr>
+                    <td style="padding:12px;">📖 每日签到</td>
+                    <td style="padding:12px;text-align:right;font-weight:700;color:var(--primary);">+1 分</td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- 我的积分 -->
+        <div class="user-content-section" style="text-align:center;background:linear-gradient(135deg,#fef3c7,#fde68a);">
+            <h2>我的积分</h2>
+            <div style="font-size:4rem;font-weight:700;color:#d97706;" id="my-points">--</div>
+            <p style="color:#92400e;">继续努力，成为心理学知识贡献达人！</p>
+        </div>
+
+        <!-- 排行榜 -->
+        <div class="user-content-section">
+            <h2>🏆 排行榜</h2>
+            <table class="leaderboard-table" id="leaderboard-table">
+                <thead>
+                    <tr>
+                        <th>排名</th>
+                        <th>用户</th>
+                        <th style="text-align:right;">积分</th>
+                    </tr>
+                </thead>
+                <tbody id="leaderboard-body">
+                    <tr>
+                        <td colspan="3" style="text-align:center;color:var(--text-light);padding:40px;">
+                            加载中...
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</main>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const user = Auth.getUser();
+    if (!user) {
+        document.getElementById('login-prompt').style.display = 'block';
+        document.getElementById('points-content').style.display = 'none';
+        return;
+    }
+    document.getElementById('login-prompt').style.display = 'none';
+    document.getElementById('points-content').style.display = 'block';
+
+    // 显示我的积分
+    Auth.fetchPoints().then(() => {
+        const pointsEl = document.getElementById('nav-points');
+        if (pointsEl) {
+            const points = parseInt(pointsEl.textContent.replace('⭐ ', '')) || 0;
+            document.getElementById('my-points').textContent = points;
+        }
+    });
+
+    // 加载排行榜（模拟数据，实际应从 GitHub API 获取）
+    loadLeaderboard();
+});
+
+// 加载排行榜
+async function loadLeaderboard() {
+    // 实际应从 GitHub API 获取所有用户的积分 Issue
+    // 这里先用模拟数据展示效果
+    const mockData = [
+        { rank: 1, name: '心理学爱好者', username: 'user1', avatar: 'https://github.com/identicons/user1.png', points: 128 },
+        { rank: 2, name: 'Mind Explorer', username: 'user2', avatar: 'https://github.com/identicons/user2.png', points: 95 },
+        { rank: 3, name: '知识分享者', username: 'user3', avatar: 'https://github.com/identicons/user3.png', points: 73 },
+        { rank: 4, name: '心理咨询师', username: 'user4', avatar: 'https://github.com/identicons/user4.png', points: 56 },
+        { rank: 5, name: '学习者', username: 'user5', avatar: 'https://github.com/identicons/user5.png', points: 42 },
+    ];
+
+    const tbody = document.getElementById('leaderboard-body');
+    tbody.innerHTML = '';
+
+    mockData.forEach((u, i) => {
+        const rankClass = i < 3 ? `top${i+1}` : '';
+        tbody.innerHTML += `
+            <tr>
+                <td class="leaderboard-rank ${rankClass}">#${u.rank}</td>
+                <td>
+                    <img class="leaderboard-avatar" src="${u.avatar}" alt="${u.name}">
+                    <span class="leaderboard-name">${u.name}</span>
+                </td>
+                <td class="leaderboard-points" style="text-align:right;">${u.points} 分</td>
+            </tr>
+        `;
+    });
+
+    // 添加当前用户（如果在榜外）
+    const currentUser = Auth.getUser();
+    if (currentUser) {
+        tbody.innerHTML += `
+            <tr style="background:#fef3c7;">
+                <td class="leaderboard-rank">--</td>
+                <td>
+                    <img class="leaderboard-avatar" src="${currentUser.avatar}" alt="${currentUser.name}">
+                    <span class="leaderboard-name">${currentUser.name}（我）</span>
+                </td>
+                <td class="leaderboard-points" style="text-align:right;">加载中...</td>
+            </tr>
+        `;
+    }
+}
+</script>
+</body>
+</html>

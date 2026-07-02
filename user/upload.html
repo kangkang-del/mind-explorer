@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>上传内容 — 心灵探索</title>
+<link rel="stylesheet" href="/css/style.css">
+<script src="/js/auth.js"></script>
+</head>
+<body>
+<nav class="navbar">
+    <div class="nav-container">
+        <a href="/" class="nav-brand">🧠 心灵探索</a>
+        <div class="nav-links">
+            <a href="/" class="nav-link">首页</a>
+            <a href="/study/" class="nav-link">知识</a>
+            <a href="/health/" class="nav-link">心理健康</a>
+            <a href="/theorists/" class="nav-link">心理学家</a>
+        </div>
+    </div>
+</nav>
+
+<main class="user-page">
+    <div class="login-prompt" id="login-prompt">
+        <h1>🔑 请先登录</h1>
+        <p>登录后才能上传内容</p>
+        <a href="#" class="login-btn" onclick="Auth.login()">使用 GitHub 登录</a>
+    </div>
+
+    <div id="upload-content" style="display:none;">
+        <div class="user-header">
+            <h1>📤 上传内容</h1>
+            <p>分享你的心理学知识、心得、经验，获得贡献积分！</p>
+        </div>
+
+        <div class="user-content-section">
+            <h2>选择上传类型</h2>
+            <div style="display:flex;gap:16px;margin-bottom:24px;flex-wrap:wrap;">
+                <button class="upload-type-btn active" onclick="switchUploadType('article')" id="btn-article">📝 写文章</button>
+                <button class="upload-type-btn" onclick="switchUploadType('image')" id="btn-image">🖼️ 传图片</button>
+                <button class="upload-type-btn" onclick="switchUploadType('link')" id="btn-link">🔗 分享链接</button>
+            </div>
+        </div>
+
+        <!-- 文章表单 -->
+        <div class="user-content-section" id="form-article">
+            <h2>📝 发布文章</h2>
+            <form class="upload-form" id="article-form">
+                <label>文章标题</label>
+                <input type="text" id="article-title" placeholder="输入标题..." required>
+                
+                <label>所属分类</label>
+                <select id="article-category">
+                    <option value="knowledge">心理学知识</option>
+                    <option value="experience">个人经验</option>
+                    <option value="book-review">书籍推荐</option>
+                    <option value="question">提问讨论</option>
+                </select>
+                
+                <label>文章内容</label>
+                <textarea id="article-content" placeholder="分享你的想法..." required></textarea>
+                
+                <button type="submit" class="upload-submit">🚀 发布文章（+5 积分）</button>
+            </form>
+        </div>
+
+        <!-- 图片上传表单 -->
+        <div class="user-content-section" id="form-image" style="display:none;">
+            <h2>🖼️ 上传图片</h2>
+            <div class="upload-area" id="image-upload-area">
+                <div class="upload-icon">📁</div>
+                <p>点击或拖拽图片到这里</p>
+                <p style="font-size:.85rem;margin-top:8px;">支持 JPG、PNG、GIF，最大 5MB</p>
+                <input type="file" id="image-input" accept="image/*" style="display:none;">
+            </div>
+            <form class="upload-form" id="image-form">
+                <label>图片描述</label>
+                <input type="text" id="image-desc" placeholder="描述这张图片...">
+                <button type="submit" class="upload-submit">🚀 上传图片（+10 积分）</button>
+            </form>
+        </div>
+
+        <!-- 链接分享表单 -->
+        <div class="user-content-section" id="form-link" style="display:none;">
+            <h2>🔗 分享链接</h2>
+            <form class="upload-form" id="link-form">
+                <label>链接标题</label>
+                <input type="text" id="link-title" placeholder="输入标题..." required>
+                
+                <label>链接地址</label>
+                <input type="url" id="link-url" placeholder="https://..." required>
+                
+                <label>描述</label>
+                <textarea id="link-desc" placeholder="简单描述这个链接的内容..." style="min-height:80px;"></textarea>
+                
+                <button type="submit" class="upload-submit">🚀 分享链接（+3 积分）</button>
+            </form>
+        </div>
+    </div>
+</main>
+
+<style>
+.upload-type-btn{padding:12px 24px;border:2px solid var(--border);background:#fff;color:var(--text);border-radius:10px;font-size:1rem;cursor:pointer;font-weight:600;transition:all .3s}
+.upload-type-btn:hover{border-color:var(--primary);color:var(--primary)}
+.upload-type-btn.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+</style>
+
+<script>
+// 切换上传类型
+function switchUploadType(type) {
+    document.querySelectorAll('.upload-type-btn').forEach(btn => btn.classList.remove('active'));
+    document.getElementById('btn-' + type).classList.add('active');
+    
+    document.getElementById('form-article').style.display = type === 'article' ? 'block' : 'none';
+    document.getElementById('form-image').style.display = type === 'image' ? 'block' : 'none';
+    document.getElementById('form-link').style.display = type === 'link' ? 'block' : 'none';
+}
+
+// 检查登录状态
+document.addEventListener('DOMContentLoaded', () => {
+    const user = Auth.getUser();
+    if (!user) {
+        document.getElementById('login-prompt').style.display = 'block';
+        document.getElementById('upload-content').style.display = 'none';
+        return;
+    }
+    document.getElementById('login-prompt').style.display = 'none';
+    document.getElementById('upload-content').style.display = 'block';
+
+    // 图片上传区域点击
+    const uploadArea = document.getElementById('image-upload-area');
+    const imageInput = document.getElementById('image-input');
+    uploadArea.addEventListener('click', () => imageInput.click());
+    imageInput.addEventListener('change', (e) => {
+        if (e.target.files[0]) {
+            uploadArea.innerHTML = `<div class="upload-icon">✅</div><p>已选择：${e.target.files[0].name}</p>`;
+        }
+    });
+
+    // 文章表单提交
+    document.getElementById('article-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const title = document.getElementById('article-title').value;
+        const content = document.getElementById('article-content').value;
+        const category = document.getElementById('article-category').value;
+        
+        // 这里调用 GitHub API 创建 Issue
+        // 暂时用模拟方式
+        alert('文章发布成功！+5 积分');
+        await Auth.addPoints(5);
+        document.getElementById('article-form').reset();
+    });
+
+    // 图片表单提交
+    document.getElementById('image-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        alert('图片上传成功！+10 积分');
+        await Auth.addPoints(10);
+        document.getElementById('image-form').reset();
+        uploadArea.innerHTML = `<div class="upload-icon">📁</div><p>点击或拖拽图片到这里</p>`;
+    });
+
+    // 链接表单提交
+    document.getElementById('link-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        alert('链接分享成功！+3 积分');
+        await Auth.addPoints(3);
+        document.getElementById('link-form').reset();
+    });
+});
+</script>
+</body>
+</html>
