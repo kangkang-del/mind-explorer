@@ -2,14 +2,10 @@
   publish = "."
   functions = "netlify/functions"
 
+# API 请求代理到 Netlify Functions
 [[redirects]]
   from = "/api/*"
   to = "/.netlify/functions/:splat"
-  status = 200
-
-[[redirects]]
-  from = "/*"
-  to = "/index.html"
   status = 200
 
 # HTML 文件不缓存，确保用户总是看到最新版本
@@ -18,7 +14,13 @@
   [headers.values]
     Cache-Control = "no-cache, must-revalidate"
 
+# JS/CSS 文件缓存 7 天（加了版本号，更新时会变）
 [[headers]]
-  for = "/card/*.html"
+  for = "/*.js"
   [headers.values]
-    Cache-Control = "no-cache, must-revalidate"
+    Cache-Control = "public, max-age=604800"
+
+[[headers]]
+  for = "/*.css"
+  [headers.values]
+    Cache-Control = "public, max-age=604800"

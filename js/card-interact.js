@@ -1,13 +1,39 @@
 /**
  * 心灵探索 - 卡片互动（点赞 + 评论 + 审核）
  * 依赖 auth.js 的 Auth 对象
+ * 版本: v2.1（强制刷新）
  */
+(function() {
+  // 检查 Auth 是否可用
+  if (typeof Auth === 'undefined' || typeof Auth.getUser !== 'function') {
+    console.error('MindExplorer: Auth not loaded, reloading scripts...');
+    // 移除可能存在的旧脚本
+    document.querySelectorAll('script[src*="auth.js"], script[src*="card-interact.js"]').forEach(s => s.remove());
+    // 重新加载 auth.js
+    var s1 = document.createElement('script');
+    s1.src = '/js/auth.js?v=' + Date.now();
+    s1.onload = function() {
+      var s2 = document.createElement('script');
+      s2.src = '/js/card-interact.js?v=' + Date.now();
+      document.body.appendChild(s2);
+    };
+    document.body.appendChild(s1);
+    return;
+  }
+})();
+
 const CardInteract = {
   cardId: null,
   liked: false,
   isAdmin: false,
 
   init() {
+    // 依赖检查
+    if (typeof Auth === 'undefined') {
+      console.error('MindExplorer: Auth not available');
+      return;
+    }
+
     const match = window.location.pathname.match(/\/card\/(\d+)\.html/);
     if (!match) return;
     this.cardId = match[1];
