@@ -1,10 +1,13 @@
-// Netlify Function: 卡片互动（点赞 + 评论）
+// Netlify Function: 卡片互动（点赞 + 评论 + 审核）
 // 点赞使用 GitHub Reactions API (heart)
 // 评论使用 GitHub Issue Comments API
+// 审核机制：评论加 [PENDING] 前缀，管理员审核通过后移除
 
 const repoOwner = process.env.GITHUB_REPO_OWNER || 'kangkang-del';
 const repoName = process.env.GITHUB_REPO_NAME || 'mind-explorer';
 const repoToken = process.env.GITHUB_REPO_TOKEN || '';
+
+const PENDING_PREFIX = '[PENDING]\n';
 
 // 从 cookie 解析用户信息
 function parseUser(event) {
@@ -16,6 +19,11 @@ function parseUser(event) {
   } catch (e) {
     return null;
   }
+}
+
+// 判断是否是管理员（仓库拥有者）
+function isAdmin(user) {
+  return user && user.username === repoOwner;
 }
 
 // GitHub API 请求封装
@@ -30,8 +38,7 @@ async function gh(url, method, token, body) {
     headers['Content-Type'] = 'application/json';
     options.body = JSON.stringify(body);
   }
-  const res = await fetch(url, options);
-  return res;
+  return await fetch(url, options);
 }
 
 // 查找卡片的 Issue（标题格式：[CARD] {cardId}）
@@ -40,7 +47,6 @@ async function findCardIssue(cardId, token) {
   const res = await gh(searchUrl, 'GET', token);
   const data = await res.json();
   if (data.total_count > 0) {
-    // 精确匹配标题，避免 [CARD] 1 匹配到 [CARD] 10
     return data.items.find(i => i.title === `[CARD] ${cardId}`) || null;
   }
   return null;
@@ -86,7 +92,7 @@ async function deleteReaction(issueNumber, reactionId, token) {
 // 获取 Issue 评论
 async function getComments(issueNumber, token) {
   const res = await gh(
-    `https://api.github.com/repos/${repoOwner}/${repoName}/issues/${issueNumber}/comments?per_page=50`,
+    `https://api.github.com/repos/${repoOwner}/${repoName}/issues/${issueNumber}/comments?per_page=100`,
     'GET', token
   );
   if (!res.ok) return [];
@@ -102,19 +108,43 @@ async function addComment(issueNumber, body, token) {
   );
 }
 
-// 格式化评论列表
-function formatComments(comments) {
-  return comments.map(c => ({
-    id: c.id,
-    author: c.user?.login || '匿名用户',
-    avatar: c.user?.avatar_url || '',
-    content: c.body,
-    created_at: c.created_at
-  }));
+// 编辑评论（管理员用 repoToken）
+async function editComment(commentId, body, token) {
+  await gh(
+    `https://api.github.com/repos/${repoOwner}/${repoName}/issues/comments/${commentId}`,
+    'PATCH', token,
+    { body }
+  );
+}
+
+// 删除评论（管理员用 repoToken）
+async function deleteCommentApi(commentId, token) {
+  await gh(
+    `https://api.github.com/repos/${repoOwner}/${repoName}/issues/comments/${commentId}`,
+    'DELETE', token
+  );
+}
+
+// 格式化评论列表（过滤待审核，管理员可见全部）
+function formatComments(comments, admin) {
+  return comments
+    .map(c => {
+      const isPending = c.body?.startsWith(PENDING_PREFIX);
+      // 非管理员只返回已审核评论
+      if (!admin && isPending) return null;
+      return {
+        id: c.id,
+        author: c.user?.login || '匿名用户',
+        avatar: c.user?.avatar_url || '',
+        content: isPending ? c.body.slice(PENDING_PREFIX.length) : c.body,
+        created_at: c.created_at,
+        status: isPending ? 'pending' : 'approved'
+      };
+    })
+    .filter(Boolean);
 }
 
 exports.handler = async (event) => {
-  // CORS 预检
   if (event.httpMethod === 'OPTIONS') {
     return { statusCode: 200, body: '' };
   }
@@ -125,14 +155,14 @@ exports.handler = async (event) => {
   }
 
   const user = parseUser(event);
+  const admin = isAdmin(user);
   const token = user?.token || repoToken;
 
-  // 没有任何 token 时返回空数据
   if (!token) {
     return {
       statusCode: 200,
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ likes: 0, comments: [], liked: false })
+      body: JSON.stringify({ likes: 0, comments: [], liked: false, isAdmin: false })
     };
   }
 
@@ -144,7 +174,7 @@ exports.handler = async (event) => {
         return {
           statusCode: 200,
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ likes: 0, comments: [], liked: false })
+          body: JSON.stringify({ likes: 0, comments: [], liked: false, isAdmin: admin })
         };
       }
 
@@ -159,13 +189,14 @@ exports.handler = async (event) => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           likes: hearts.length,
-          comments: formatComments(comments),
-          liked
+          comments: formatComments(comments, admin),
+          liked,
+          isAdmin: admin
         })
       };
     }
 
-    // ===== POST: 点赞/取消点赞/评论 =====
+    // ===== POST: 点赞/取消点赞/评论/审核 =====
     if (event.httpMethod === 'POST') {
       if (!user) {
         return { statusCode: 401, body: JSON.stringify({ error: '请先登录' }) };
@@ -212,7 +243,7 @@ exports.handler = async (event) => {
         };
       }
 
-      // 发表评论
+      // 发表评论（加 [PENDING] 前缀等待审核）
       if (action === 'comment') {
         const content = (body.content || '').trim();
         if (!content) {
@@ -221,12 +252,53 @@ exports.handler = async (event) => {
         if (content.length > 2000) {
           return { statusCode: 400, body: JSON.stringify({ error: '评论不能超过2000字' }) };
         }
-        await addComment(issue.number, content, user.token);
+        // 管理员评论无需审核
+        const commentBody = admin ? content : PENDING_PREFIX + content;
+        await addComment(issue.number, commentBody, user.token);
         const comments = await getComments(issue.number, user.token);
         return {
           statusCode: 200,
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ comments: formatComments(comments) })
+          body: JSON.stringify({
+            comments: formatComments(comments, admin),
+            pending: !admin
+          })
+        };
+      }
+
+      // ===== 管理员操作 =====
+
+      // 审核通过评论（移除 [PENDING] 前缀）
+      if (action === 'approve-comment') {
+        if (!admin) return { statusCode: 403, body: JSON.stringify({ error: '无权限' }) };
+        if (!repoToken) return { statusCode: 500, body: JSON.stringify({ error: '服务器未配置 GITHUB_REPO_TOKEN' }) };
+        const commentId = body.commentId;
+        // 获取评论原文
+        const commentRes = await gh(`https://api.github.com/repos/${repoOwner}/${repoName}/issues/comments/${commentId}`, 'GET', repoToken);
+        const commentData = await commentRes.json();
+        const originalBody = commentData.body || '';
+        // 移除 [PENDING] 前缀
+        const newBody = originalBody.startsWith(PENDING_PREFIX) ? originalBody.slice(PENDING_PREFIX.length) : originalBody;
+        await editComment(commentId, newBody, repoToken);
+        const comments = await getComments(issue.number, token);
+        return {
+          statusCode: 200,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ comments: formatComments(comments, true) })
+        };
+      }
+
+      // 删除评论
+      if (action === 'delete-comment') {
+        if (!admin) return { statusCode: 403, body: JSON.stringify({ error: '无权限' }) };
+        if (!repoToken) return { statusCode: 500, body: JSON.stringify({ error: '服务器未配置 GITHUB_REPO_TOKEN' }) };
+        const commentId = body.commentId;
+        await deleteCommentApi(commentId, repoToken);
+        const comments = await getComments(issue.number, token);
+        return {
+          statusCode: 200,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ comments: formatComments(comments, true) })
         };
       }
 

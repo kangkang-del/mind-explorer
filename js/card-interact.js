@@ -1,13 +1,13 @@
 /**
- * 心灵探索 - 卡片互动（点赞 + 评论）
+ * 心灵探索 - 卡片互动（点赞 + 评论 + 审核）
  * 依赖 auth.js 的 Auth 对象
  */
 const CardInteract = {
   cardId: null,
   liked: false,
+  isAdmin: false,
 
   init() {
-    // 从 URL 提取卡片 ID（如 /card/75.html → 75）
     const match = window.location.pathname.match(/\/card\/(\d+)\.html/);
     if (!match) return;
     this.cardId = match[1];
@@ -19,13 +19,13 @@ const CardInteract = {
     this.load();
   },
 
-  // 加载互动数据
   async load() {
     try {
       const res = await fetch(`/.netlify/functions/card-interactions?card=${this.cardId}`);
       if (res.ok) {
         const data = await res.json();
         this.liked = data.liked;
+        this.isAdmin = data.isAdmin;
         this.render(data);
       } else {
         this.renderError();
@@ -35,7 +35,6 @@ const CardInteract = {
     }
   },
 
-  // 渲染互动区
   render(data) {
     const user = Auth.getUser();
     const container = document.getElementById('card-interact');
@@ -46,7 +45,7 @@ const CardInteract = {
     // === 点赞按钮 ===
     html += `
       <div class="like-section">
-        <button class="like-button ${this.liked ? 'liked' : ''}" onclick="CardInteract.toggleLike()" ${!user ? 'data-need-login="1"' : ''}>
+        <button class="like-button ${this.liked ? 'liked' : ''}" onclick="CardInteract.toggleLike()">
           <span class="like-icon">${this.liked ? '❤️' : '🤍'}</span>
           <span class="like-text">${this.liked ? '已认同' : '认同'}</span>
           <span class="like-count">${data.likes || 0}</span>
@@ -57,6 +56,11 @@ const CardInteract = {
     // === 评论区 ===
     html += '<div class="comments-section">';
     html += '<h3 class="comments-title">💬 评论</h3>';
+
+    // 管理员审核面板入口提示
+    if (this.isAdmin) {
+      html += '<div class="admin-hint">🛡️ 管理员模式 · <a href="/admin/review.html">前往审核中心</a></div>';
+    }
 
     // 评论输入框
     if (user) {
@@ -84,15 +88,28 @@ const CardInteract = {
     if (data.comments && data.comments.length > 0) {
       html += '<div class="comment-list">';
       data.comments.forEach(c => {
+        const isPending = c.status === 'pending';
         html += `
-          <div class="comment-item">
+          <div class="comment-item ${isPending ? 'comment-pending' : ''}" id="comment-${c.id}">
             <img src="${c.avatar}" class="comment-avatar" alt="${c.author}" loading="lazy">
             <div class="comment-body">
               <div class="comment-meta">
                 <span class="comment-author">${this.escapeHtml(c.author)}</span>
+                ${isPending ? '<span class="comment-status-tag">⏳ 待审核</span>' : ''}
                 <span class="comment-time">${this.formatTime(c.created_at)}</span>
               </div>
               <div class="comment-text">${this.escapeHtml(c.content)}</div>
+              ${isPending && this.isAdmin ? `
+                <div class="comment-admin-actions">
+                  <button class="comment-approve-btn" onclick="CardInteract.approveComment(${c.id})">✅ 通过</button>
+                  <button class="comment-delete-btn" onclick="CardInteract.deleteComment(${c.id})">🗑️ 删除</button>
+                </div>
+              ` : ''}
+              ${!isPending && this.isAdmin ? `
+                <div class="comment-admin-actions">
+                  <button class="comment-delete-btn" onclick="CardInteract.deleteComment(${c.id})">🗑️ 删除</button>
+                </div>
+              ` : ''}
             </div>
           </div>
         `;
@@ -102,8 +119,8 @@ const CardInteract = {
       html += '<div class="comment-empty">还没有评论，来抢沙发吧！</div>';
     }
 
-    html += '</div>'; // comments-section
-    html += '</div>'; // interact-section
+    html += '</div>';
+    html += '</div>';
 
     container.innerHTML = html;
 
@@ -142,7 +159,6 @@ const CardInteract = {
         const data = await res.json();
         this.liked = data.liked;
 
-        // 更新按钮 UI
         if (button) {
           const icon = button.querySelector('.like-icon');
           const text = button.querySelector('.like-text');
@@ -152,7 +168,6 @@ const CardInteract = {
             button.classList.add('liked');
             if (icon) icon.textContent = '❤️';
             if (text) text.textContent = '已认同';
-            // 点赞获得 +1 积分
             await Auth.addPoints(1);
           } else {
             button.classList.remove('liked');
@@ -197,9 +212,16 @@ const CardInteract = {
       });
 
       if (res.ok) {
+        const data = await res.json();
         input.value = '';
         const count = document.getElementById('char-count');
         if (count) count.textContent = '0/2000';
+
+        // 非管理员显示待审核提示
+        if (data.pending) {
+          this.showPendingNotice();
+        }
+
         // 重新加载评论
         this.load();
       } else {
@@ -213,6 +235,65 @@ const CardInteract = {
         submitBtn.disabled = false;
         submitBtn.textContent = '发表评论';
       }
+    }
+  },
+
+  // 显示待审核提示
+  showPendingNotice() {
+    const existing = document.getElementById('pending-notice');
+    if (existing) existing.remove();
+
+    const notice = document.createElement('div');
+    notice.id = 'pending-notice';
+    notice.className = 'pending-notice';
+    notice.innerHTML = '⏳ 你的评论已提交，等待管理员审核后将在页面显示';
+    const form = document.querySelector('.comment-form');
+    if (form) form.parentNode.insertBefore(notice, form.nextSibling);
+
+    setTimeout(() => notice.remove(), 5000);
+  },
+
+  // 管理员审核通过评论
+  async approveComment(commentId) {
+    try {
+      const res = await fetch('/.netlify/functions/card-interactions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ card: this.cardId, action: 'approve-comment', commentId })
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        this.render({ comments: data.comments, likes: document.querySelector('.like-count')?.textContent || 0, liked: this.liked, isAdmin: true });
+      } else {
+        const err = await res.json().catch(() => ({}));
+        alert(err.error || '操作失败');
+      }
+    } catch (e) {
+      alert('网络错误');
+    }
+  },
+
+  // 管理员删除评论
+  async deleteComment(commentId) {
+    if (!confirm('确定删除这条评论？')) return;
+
+    try {
+      const res = await fetch('/.netlify/functions/card-interactions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ card: this.cardId, action: 'delete-comment', commentId })
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        this.render({ comments: data.comments, likes: document.querySelector('.like-count')?.textContent || 0, liked: this.liked, isAdmin: true });
+      } else {
+        const err = await res.json().catch(() => ({}));
+        alert(err.error || '操作失败');
+      }
+    } catch (e) {
+      alert('网络错误');
     }
   },
 
@@ -230,7 +311,6 @@ const CardInteract = {
     return new Date(isoString).toLocaleDateString('zh-CN');
   },
 
-  // HTML 转义
   escapeHtml(text) {
     if (!text) return '';
     const div = document.createElement('div');
@@ -238,7 +318,6 @@ const CardInteract = {
     return div.innerHTML;
   },
 
-  // 渲染错误
   renderError() {
     const container = document.getElementById('card-interact');
     if (container) {
@@ -247,7 +326,6 @@ const CardInteract = {
   }
 };
 
-// 页面加载时初始化
 document.addEventListener('DOMContentLoaded', () => {
   CardInteract.init();
 });

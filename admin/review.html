@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>审核管理 — 心灵探索</title>
+<link rel="stylesheet" href="/css/style.css">
+<script src="/js/auth.js"></script>
+</head>
+<body>
+<nav class="navbar">
+    <div class="nav-container">
+        <a href="/" class="nav-brand">🧠 心灵探索</a>
+        <button class="nav-toggle" onclick="document.querySelector('.nav-links').classList.toggle('active')" aria-label="菜单">☰</button>
+        <div class="nav-links">
+            <a href="/" class="nav-link">首页</a>
+            <a href="/study/" class="nav-link">知识</a>
+            <a href="/health/" class="nav-link">心理健康</a>
+            <a href="/theorists/" class="nav-link">心理学家</a>
+        </div>
+    </div>
+</nav>
+
+<main class="user-page">
+    <!-- 非管理员提示 -->
+    <div class="login-prompt" id="access-denied" style="display:none;">
+        <h1>⛔ 无访问权限</h1>
+        <p>此页面仅管理员可访问</p>
+        <a href="/" class="login-btn" style="display:inline-block;background:var(--primary);color:#fff;padding:12px 32px;border-radius:10px;text-decoration:none;">返回首页</a>
+    </div>
+
+    <!-- 管理员面板 -->
+    <div id="admin-content" style="display:none;">
+        <div class="user-header">
+            <h1>🛡️ 审核管理</h1>
+            <p>审核用户上传的内容和评论</p>
+        </div>
+
+        <!-- 待审核上传 -->
+        <div class="user-content-section">
+            <h2>📋 待审核上传 <span id="pending-count" class="admin-badge">0</span></h2>
+            <div id="pending-uploads">
+                <div class="admin-loading">加载中...</div>
+            </div>
+            <div id="no-pending" style="display:none;text-align:center;padding:40px;color:var(--text-light);">
+                ✅ 没有待审核的内容
+            </div>
+        </div>
+
+        <!-- 说明 -->
+        <div class="user-content-section">
+            <h2>📌 审核说明</h2>
+            <div style="line-height:1.8;color:var(--text-light);font-size:.9rem;">
+                <p>• <strong>用户上传</strong>（文章/图片/链接）提交后标记为「待审核」，审核通过后公开展示</p>
+                <p>• <strong>用户评论</strong>提交后标记为「待审核」，需在知识卡片页面审核</p>
+                <p>• 管理员（仓库拥有者 <strong>kangkang-del</strong>）的评论和上传无需审核</p>
+                <p>• 审核通过的上传：移除 [PENDING] 标记，添加 approved 标签</p>
+                <p>• 拒绝的上传：关闭 Issue 并添加拒绝说明</p>
+                <p>• 评论审核：前往任意知识卡片页面，待审核评论会显示「✅通过 / 🗑️删除」按钮</p>
+            </div>
+        </div>
+    </div>
+</main>
+
+<footer class="footer">
+    <p>用科学理解心灵，以知识温暖生活。© 2025 心理学知识学习系统</p>
+</footer>
+
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+    const user = Auth.getUser();
+    
+    // 检查管理员权限
+    if (!user || user.username !== 'kangkang-del') {
+        document.getElementById('access-denied').style.display = 'block';
+        document.getElementById('admin-content').style.display = 'none';
+        return;
+    }
+
+    document.getElementById('access-denied').style.display = 'none';
+    document.getElementById('admin-content').style.display = 'block';
+
+    // 加载待审核上传
+    await loadPendingUploads();
+});
+
+async function loadPendingUploads() {
+    const container = document.getElementById('pending-uploads');
+    const noPending = document.getElementById('no-pending');
+    const countBadge = document.getElementById('pending-count');
+
+    try {
+        const res = await fetch('/.netlify/functions/admin-review');
+        if (!res.ok) {
+            container.innerHTML = '<div class="admin-error">加载失败，请刷新重试</div>';
+            return;
+        }
+        const data = await res.json();
+        
+        countBadge.textContent = data.pendingCount;
+
+        if (data.pendingCount === 0) {
+            container.style.display = 'none';
+            noPending.style.display = 'block';
+            return;
+        }
+
+        container.style.display = 'block';
+        noPending.style.display = 'none';
+
+        let html = '';
+        data.uploads.forEach(item => {
+            const typeLabel = { article: '📝 文章', image: '🖼️ 图片', link: '🔗 链接' }[item.type] || item.type;
+            const time = new Date(item.created_at).toLocaleString('zh-CN');
+            
+            html += `
+                <div class="admin-review-item" id="item-${item.number}">
+                    <div class="review-item-header">
+                        <span class="review-type-badge">${typeLabel}</span>
+                        <span class="review-item-title">${escapeHtml(item.title)}</span>
+                        <span class="review-item-time">${time}</span>
+                    </div>
+                    <div class="review-item-author">
+                        <img src="${item.avatar}" class="review-avatar" alt="${item.author}" loading="lazy">
+                        <span>${escapeHtml(item.author_name || item.author)}</span>
+                    </div>
+                    <div class="review-item-content">
+            `;
+            
+            if (item.type === 'article') {
+                html += `<div class="review-text">${escapeHtml(item.content.substring(0, 500))}${item.content.length > 500 ? '...' : ''}</div>`;
+            } else if (item.type === 'link') {
+                html += `<div class="review-text">URL: <a href="${escapeHtml(item.url)}" target="_blank">${escapeHtml(item.url)}</a></div>`;
+                if (item.description) html += `<div class="review-text">${escapeHtml(item.description)}</div>`;
+            } else if (item.type === 'image') {
+                html += `<div class="review-image-wrap"><img src="${item.image_url}" class="review-image" alt="${escapeHtml(item.description)}" loading="lazy"></div>`;
+                if (item.description) html += `<div class="review-text">${escapeHtml(item.description)}</div>`;
+            }
+
+            html += `
+                    </div>
+                    <div class="review-actions">
+                        <button class="btn-approve" onclick="approveUpload(${item.number})">✅ 审核通过</button>
+                        <button class="btn-reject" onclick="rejectUpload(${item.number})">❌ 拒绝</button>
+                        <a href="${item.issueUrl}" target="_blank" class="btn-view-github">在 GitHub 查看</a>
+                    </div>
+                </div>
+            `;
+        });
+
+        container.innerHTML = html;
+    } catch (e) {
+        container.innerHTML = '<div class="admin-error">网络错误，请刷新重试</div>';
+    }
+}
+
+async function approveUpload(issueNumber) {
+    if (!confirm('确定审核通过？')) return;
+    
+    const item = document.getElementById(`item-${issueNumber}`);
+    if (item) item.style.opacity = '0.5';
+
+    try {
+        const res = await fetch('/.netlify/functions/admin-review', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'approve', issueNumber })
+        });
+        const data = await res.json();
+        
+        if (data.success) {
+            if (item) {
+                item.innerHTML = '<div class="review-done">✅ 已审核通过</div>';
+                setTimeout(() => item.remove(), 2000);
+            }
+            // 更新计数
+            const badge = document.getElementById('pending-count');
+            badge.textContent = Math.max(0, parseInt(badge.textContent) - 1);
+            checkEmpty();
+        } else {
+            alert(data.error || '操作失败');
+            if (item) item.style.opacity = '1';
+        }
+    } catch (e) {
+        alert('网络错误');
+        if (item) item.style.opacity = '1';
+    }
+}
+
+async function rejectUpload(issueNumber) {
+    if (!confirm('确定拒绝此上传？')) return;
+    
+    const item = document.getElementById(`item-${issueNumber}`);
+    if (item) item.style.opacity = '0.5';
+
+    try {
+        const res = await fetch('/.netlify/functions/admin-review', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'reject', issueNumber })
+        });
+        const data = await res.json();
+        
+        if (data.success) {
+            if (item) {
+                item.innerHTML = '<div class="review-done rejected">❌ 已拒绝</div>';
+                setTimeout(() => item.remove(), 2000);
+            }
+            const badge = document.getElementById('pending-count');
+            badge.textContent = Math.max(0, parseInt(badge.textContent) - 1);
+            checkEmpty();
+        } else {
+            alert(data.error || '操作失败');
+            if (item) item.style.opacity = '1';
+        }
+    } catch (e) {
+        alert('网络错误');
+        if (item) item.style.opacity = '1';
+    }
+}
+
+function checkEmpty() {
+    const badge = document.getElementById('pending-count');
+    if (parseInt(badge.textContent) === 0) {
+        document.getElementById('pending-uploads').style.display = 'none';
+        document.getElementById('no-pending').style.display = 'block';
+    }
+}
+
+function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+</script>
+
+<style>
+.admin-badge{background:var(--warning);color:#fff;padding:2px 12px;border-radius:12px;font-size:.85rem;margin-left:8px}
+.admin-loading,.admin-error{text-align:center;padding:40px;color:var(--text-light)}
+.admin-error{color:var(--danger)}
+
+.admin-review-item{
+    background:#fff;border:1px solid var(--border);border-left:4px solid var(--warning);
+    border-radius:12px;padding:20px;margin-bottom:16px;transition:opacity .3s;
+}
+.review-item-header{display:flex;align-items:center;gap:12px;margin-bottom:12px;flex-wrap:wrap}
+.review-type-badge{padding:4px 12px;background:#fef3c7;color:#92400e;border-radius:8px;font-size:.8rem;font-weight:600}
+.review-item-title{font-weight:600;color:var(--text);font-size:1rem;flex:1}
+.review-item-time{font-size:.8rem;color:var(--text-light)}
+.review-item-author{display:flex;align-items:center;gap:8px;margin-bottom:12px;font-size:.9rem;color:var(--text-light)}
+.review-avatar{width:28px;height:28px;border-radius:50%;border:1px solid var(--border)}
+.review-item-content{background:#f8fafc;border-radius:8px;padding:16px;margin-bottom:16px}
+.review-text{color:var(--text);font-size:.9rem;line-height:1.7;word-wrap:break-word;margin-bottom:8px}
+.review-text a{color:var(--primary)}
+.review-image-wrap{text-align:center;margin-bottom:8px}
+.review-image{max-width:100%;max-height:300px;border-radius:8px}
+.review-actions{display:flex;gap:12px;flex-wrap:wrap}
+.btn-approve{background:var(--success);color:#fff;border:none;padding:8px 20px;border-radius:8px;cursor:pointer;font-weight:600;transition:all .3s}
+.btn-approve:hover{filter:brightness(1.1)}
+.btn-reject{background:var(--danger);color:#fff;border:none;padding:8px 20px;border-radius:8px;cursor:pointer;font-weight:600;transition:all .3s}
+.btn-reject:hover{filter:brightness(1.1)}
+.btn-view-github{background:#f8fafc;color:var(--text-light);border:1px solid var(--border);padding:8px 20px;border-radius:8px;text-decoration:none;font-size:.9rem;transition:all .3s}
+.btn-view-github:hover{border-color:var(--primary);color:var(--primary)}
+.review-done{text-align:center;padding:20px;color:var(--success);font-weight:600}
+.review-done.rejected{color:var(--danger)}
+
+@media(max-width:768px){
+    .review-item-header{flex-direction:column;align-items:flex-start;gap:4px}
+    .review-actions{flex-direction:column}
+    .btn-approve,.btn-reject,.btn-view-github{text-align:center;width:100%}
+}
+</style>
+</body>
+</html>

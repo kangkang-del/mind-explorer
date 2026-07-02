@@ -230,7 +230,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = await res.json();
 
             if (res.ok && data.success) {
-                showResult('article-result', true, `文章发布成功！获得 +5 积分（当前积分：${data.points}）`, data.issueUrl, '在 GitHub 查看');
+                showResult('article-result', true, data.pending ? `文章已提交，等待管理员审核后公开。获得 +5 积分（当前积分：${data.points}）` : `文章发布成功！获得 +5 积分（当前积分：${data.points}）`, data.issueUrl, '在 GitHub 查看');
                 document.getElementById('article-form').reset();
                 // 更新导航栏积分
                 const pointsEl = document.getElementById('nav-points');
@@ -274,7 +274,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = await res.json();
 
             if (res.ok && data.success) {
-                showResult('image-result', true, `图片上传成功！获得 +10 积分（当前积分：${data.points}）`, data.issueUrl, '在 GitHub 查看');
+                showResult('image-result', true, data.pending ? `图片已提交，等待管理员审核后公开。获得 +10 积分（当前积分：${data.points}）` : `图片上传成功！获得 +10 积分（当前积分：${data.points}）`, data.issueUrl, '在 GitHub 查看');
                 document.getElementById('image-form').reset();
                 selectedImage = null;
                 uploadArea.innerHTML = `<div class="upload-icon">📁</div><p>点击或拖拽图片到这里</p>`;
@@ -309,7 +309,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = await res.json();
 
             if (res.ok && data.success) {
-                showResult('link-result', true, `链接分享成功！获得 +3 积分（当前积分：${data.points}）`, data.issueUrl, '在 GitHub 查看');
+                showResult('link-result', true, data.pending ? `链接已提交，等待管理员审核后公开。获得 +3 积分（当前积分：${data.points}）` : `链接分享成功！获得 +3 积分（当前积分：${data.points}）`, data.issueUrl, '在 GitHub 查看');
                 document.getElementById('link-form').reset();
                 const pointsEl = document.getElementById('nav-points');
                 if (pointsEl) pointsEl.textContent = `⭐ ${data.points}`;

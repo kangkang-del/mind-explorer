@@ -26,6 +26,12 @@ const Auth = {
     return this.getUser();
   },
 
+  // 判断是否是管理员（仓库拥有者）
+  isAdmin() {
+    const user = this.getUser();
+    return user && user.username === 'kangkang-del';
+  },
+
   // 登录（跳转到 Netlify Function）
   login() {
     window.location.href = '/.netlify/functions/auth-login';
@@ -63,6 +69,7 @@ const Auth = {
           <a href="/user/profile.html" class="dropdown-item">📋 我的主页</a>
           <a href="/user/upload.html" class="dropdown-item">📤 上传内容</a>
           <a href="/user/points.html" class="dropdown-item">⭐ 我的积分</a>
+          ${user.username === 'kangkang-del' ? '<div class="dropdown-divider"></div><a href="/admin/review.html" class="dropdown-item">🛡️ 审核管理</a>' : ''}
           <div class="dropdown-divider"></div>
           <a href="#" class="dropdown-item" onclick="Auth.logout(); return false;">🚪 退出登录</a>
         </div>

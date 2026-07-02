@@ -6,6 +6,11 @@ const repoOwner = process.env.GITHUB_REPO_OWNER || 'kangkang-del';
 const repoName = process.env.GITHUB_REPO_NAME || 'mind-explorer';
 const repoToken = process.env.GITHUB_REPO_TOKEN || '';
 
+// 判断是否是管理员（仓库拥有者）
+function isAdmin(user) {
+  return user && user.username === repoOwner;
+}
+
 // 从 cookie 解析用户信息
 function parseUser(event) {
   const cookies = event.headers.cookie || '';
@@ -125,6 +130,9 @@ exports.handler = async (event) => {
     const body = JSON.parse(event.body || '{}');
     const type = body.type;
     const now = new Date().toISOString();
+    const admin = isAdmin(user);
+    const pendingTag = admin ? '' : '[PENDING]';
+    const pendingLabel = admin ? [] : ['pending'];
 
     // 公共元数据
     const meta = `author: ${user.username}\navatar: ${user.avatar}\nauthor_name: ${user.name || user.username}\ncreated_at: ${now}\n`;
@@ -143,7 +151,7 @@ exports.handler = async (event) => {
       }
 
       const issueBody = `${meta}type: article\ntitle: ${title}\ncategory: ${category}\n\n---\n\n${content}`;
-      const issue = await createUploadIssue(`[UPLOAD][article] ${title}`, issueBody, ['user-upload', 'article'], user.token);
+      const issue = await createUploadIssue(`[UPLOAD]${pendingTag}[article] ${title}`, issueBody, ['user-upload', 'article', ...pendingLabel], user.token);
 
       if (!issue.html_url) {
         return { statusCode: 500, body: JSON.stringify({ error: '创建失败，请重试' }) };
@@ -154,7 +162,7 @@ exports.handler = async (event) => {
       return {
         statusCode: 200,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ success: true, issueUrl: issue.html_url, points })
+        body: JSON.stringify({ success: true, issueUrl: issue.html_url, points, pending: !admin })
       };
     }
 
@@ -169,7 +177,7 @@ exports.handler = async (event) => {
       }
 
       const issueBody = `${meta}type: link\ntitle: ${title}\nurl: ${url}\ndescription: ${description}`;
-      const issue = await createUploadIssue(`[UPLOAD][link] ${title}`, issueBody, ['user-upload', 'link'], user.token);
+      const issue = await createUploadIssue(`[UPLOAD]${pendingTag}[link] ${title}`, issueBody, ['user-upload', 'link', ...pendingLabel], user.token);
 
       if (!issue.html_url) {
         return { statusCode: 500, body: JSON.stringify({ error: '创建失败，请重试' }) };
@@ -180,7 +188,7 @@ exports.handler = async (event) => {
       return {
         statusCode: 200,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ success: true, issueUrl: issue.html_url, points })
+        body: JSON.stringify({ success: true, issueUrl: issue.html_url, points, pending: !admin })
       };
     }
 
@@ -199,9 +207,9 @@ exports.handler = async (event) => {
 
       const issueBody = `${meta}type: image\ndescription: ${description || filename}\nimage_url: ${imageUrl}`;
       const issue = await createUploadIssue(
-        `[UPLOAD][image] ${description || filename}`,
+        `[UPLOAD]${pendingTag}[image] ${description || filename}`,
         issueBody,
-        ['user-upload', 'image'],
+        ['user-upload', 'image', ...pendingLabel],
         user.token
       );
 
@@ -214,7 +222,7 @@ exports.handler = async (event) => {
       return {
         statusCode: 200,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ success: true, issueUrl: issue.html_url, imageUrl, points })
+        body: JSON.stringify({ success: true, issueUrl: issue.html_url, imageUrl, points, pending: !admin })
       };
     }
 

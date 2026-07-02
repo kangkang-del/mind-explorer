@@ -1162,3 +1162,34 @@ blockquote {
 .interact-loading{text-align:center;padding:24px;color:var(--text-light)}
 .interact-error{text-align:center;padding:24px;color:var(--danger)}
 .interact-error a{color:var(--primary);cursor:pointer}
+
+/* ===== 审核相关样式 ===== */
+
+/* 管理员提示 */
+.admin-hint{background:#eef2ff;border-radius:8px;padding:8px 16px;margin-bottom:16px;font-size:.85rem;color:var(--primary)}
+.admin-hint a{font-weight:600;text-decoration:underline}
+
+/* 待审核评论 */
+.comment-pending{background:#fffbeb;border-left:3px solid var(--warning);border-radius:0 8px 8px 0;padding-left:12px}
+.comment-status-tag{background:#fef3c7;color:#92400e;padding:1px 8px;border-radius:8px;font-size:.75rem;font-weight:600}
+
+/* 评论管理员操作按钮 */
+.comment-admin-actions{display:flex;gap:8px;margin-top:8px}
+.comment-approve-btn{
+    background:var(--success);color:#fff;border:none;
+    padding:4px 14px;border-radius:6px;font-size:.8rem;cursor:pointer;font-weight:600;transition:all .2s;
+}
+.comment-approve-btn:hover{filter:brightness(1.1)}
+.comment-delete-btn{
+    background:var(--danger);color:#fff;border:none;
+    padding:4px 14px;border-radius:6px;font-size:.8rem;cursor:pointer;font-weight:600;transition:all .2s;
+}
+.comment-delete-btn:hover{filter:brightness(1.1)}
+
+/* 待审核提示（用户提交评论后） */
+.pending-notice{
+    background:#fef3c7;border:1px solid #fde68a;color:#92400e;
+    padding:12px 20px;border-radius:10px;margin-bottom:16px;
+    font-size:.9rem;text-align:center;animation:fadeIn .3s ease;
+}
+@keyframes fadeIn{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
