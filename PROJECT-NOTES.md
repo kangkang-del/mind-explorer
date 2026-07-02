@@ -93,10 +93,11 @@ mind-explorer/
 ├── study/                  # 知识学习页面
 ├── health/                 # 心理健康科普页面
 ├── theorists/              # 心理学家页面
-├── card/                   # 知识卡片详情（1-96.html，含点赞+评论）
+├── card/                   # 知识卡片详情（1-96.html，含点赞+评论+审核）
+├── admin/review.html       # 管理员审核面板
 ├── user/                   # 用户系统页面
 │   ├── profile.html        # 个人主页
-│   ├── upload.html         # 内容上传（✅ 真实提交）
+│   ├── upload.html         # 内容上传（✅ 真实提交，含审核流程）
 │   └── points.html         # 积分排行（⚠️ 排行榜仍为模拟数据）
 └── USER-SYSTEM-GUIDE.md    # 用户系统部署指南
 ```
@@ -113,6 +114,12 @@ mind-explorer/
 - [x] **知识卡片点赞**（❤️ 认同按钮，GitHub Reactions API，点赞者+1积分）
 - [x] **知识卡片评论**（GitHub Issue Comments API，支持头像/时间/字数统计）
 - [x] **真实上传功能**（文章/链接创建GitHub Issue，图片通过Contents API上传到仓库）
+- [x] **管理员审核系统**（评论和上传需管理员审核后公开，管理员可删除评论、审核通过/拒绝上传）
+  - 管理员 = 仓库拥有者 `kangkang-del`（无需额外配置）
+  - 评论审核：用户评论标记 `[PENDING]` 前缀，管理员审核通过后移除
+  - 上传审核：上传Issue标记 `[PENDING]` + `pending` 标签，审核通过后改为 `approved`
+  - 审核面板：`/admin/review.html`
+  - 卡片页面：管理员可见内联审核按钮（✅通过 / 🗑️删除）
 
 ## 🚧 待完成的功能
 
