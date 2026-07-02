@@ -60,13 +60,14 @@
 - **回调地址（必须完全匹配）**: `https://keen-buttercream-697396.netlify.app/.netlify/functions/auth-callback`
 - **权限范围**: `read:user, public_repo`
 
-### Netlify 环境变量（4个，缺一不可）
+### Netlify 环境变量（5个）
 | 变量名 | 说明 | 设置位置 |
 |--------|------|----------|
 | `GITHUB_CLIENT_ID` | GitHub OAuth App 的 Client ID | Netlify → Site settings → Environment variables |
 | `GITHUB_CLIENT_SECRET` | GitHub OAuth App 的 Client Secret | 同上 |
 | `GITHUB_REPO_OWNER` | 仓库拥有者：`kangkang-del` | 同上 |
 | `GITHUB_REPO_NAME` | 仓库名：`mind-explorer` | 同上 |
+| `GITHUB_REPO_TOKEN` | 仓库拥有者的 PAT（用于图片上传到仓库） | 同上 |
 
 ### Git 远程地址格式
 ```
@@ -81,15 +82,22 @@ mind-explorer/
 ├── netlify.toml            # Netlify 部署配置
 ├── css/style.css           # 全局样式（含手机端适配 + 用户系统样式）
 ├── js/auth.js              # 用户认证核心逻辑
-├── netlify/functions/      # 4个服务端函数
+├── js/card-interact.js     # 卡片点赞+评论前端逻辑
+├── netlify/functions/      # 6个服务端函数
+│   ├── auth-login.js       # OAuth 登录入口
+│   ├── auth-callback.js    # OAuth 回调处理
+│   ├── auth-logout.js      # 登出
+│   ├── user-points.js      # 积分读写
+│   ├── card-interactions.js # 卡片点赞+评论（Reactions+Comments API）
+│   └── upload-content.js   # 真实上传（Issue+Contents API）
 ├── study/                  # 知识学习页面
 ├── health/                 # 心理健康科普页面
 ├── theorists/              # 心理学家页面
-├── card/                   # 知识卡片详情（1-96.html）
+├── card/                   # 知识卡片详情（1-96.html，含点赞+评论）
 ├── user/                   # 用户系统页面
 │   ├── profile.html        # 个人主页
-│   ├── upload.html         # 内容上传（⚠️ 当前为模拟提交）
-│   └── points.html         # 积分排行（⚠️ 当前为模拟数据）
+│   ├── upload.html         # 内容上传（✅ 真实提交）
+│   └── points.html         # 积分排行（⚠️ 排行榜仍为模拟数据）
 └── USER-SYSTEM-GUIDE.md    # 用户系统部署指南
 ```
 
@@ -102,19 +110,17 @@ mind-explorer/
 - [x] 积分系统基础架构（基于 GitHub Issues 存储）
 - [x] 手机端响应式布局（汉堡菜单 + 全面移动端适配）
 - [x] Netlify 自动部署（GitHub push 触发）
+- [x] **知识卡片点赞**（❤️ 认同按钮，GitHub Reactions API，点赞者+1积分）
+- [x] **知识卡片评论**（GitHub Issue Comments API，支持头像/时间/字数统计）
+- [x] **真实上传功能**（文章/链接创建GitHub Issue，图片通过Contents API上传到仓库）
 
 ## 🚧 待完成的功能
 
 ### 高优先级
-- [ ] **上传功能真实化** — 当前 `upload.html` 只是弹窗+加积分，没有真正提交内容到仓库
-  - 文章类：创建 GitHub Issue 或提交 Markdown 到仓库
-  - 图片类：需要图床或 GitHub 仓库存储
-  - 链接类：相对简单，存入 GitHub Issue 即可
-- [ ] **排行榜真实化** — 当前 `points.html` 使用硬编码的模拟数据，需改为从 GitHub Issues 读取
+- [ ] **排行榜真实化** — 当前 `points.html` 使用硬编码的模拟数据，需改为从 GitHub Issues 读取所有 `[POINTS]` Issue
 
 ### 中优先级
-- [ ] **点赞/评论功能** — 为知识卡片添加互动功能
-- [ ] **用户主页完善** — 显示用户的贡献历史
+- [ ] **用户主页完善** — 显示用户的上传历史和评论记录（profile.html 已预留 DOM 钩子）
 - [ ] **搜索功能** — 全站知识卡片搜索
 
 ### 低优先级
