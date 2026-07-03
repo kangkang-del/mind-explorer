@@ -170,7 +170,7 @@ async function formatPostItem(item, token, currentUsername) {
       category: meta.category || 'knowledge',
       description: meta.description || meta.title || '',
       content: meta.content || meta.description || '',
-      image_url: meta.image_url || '',
+      image_url: meta.image_b64 ? `data:image/jpeg;base64,${meta.image_b64}` : (meta.image_url || ''),
       url: meta.url || '',
       issue_url: item.html_url,
       comments_count: comments.length,
