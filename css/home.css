@@ -10,8 +10,8 @@
     --home-card:         #FFFDF9;     /* 极暖米白卡片 */
     --home-text:         #4A4A4A;     /* 主文字 */
     --home-text-sub:     #8E908B;     /* 辅助文字 */
-    --home-accent:       #A3B5BF;     /* 雾霾蓝（装饰/分割线/按钮） */
-    --home-accent-hover: #8A9CA8;     /* 雾霾蓝悬停加深 */
+    --home-accent:       #7BAE9A;     /* 雾霾蓝（装饰/分割线/按钮） */
+    --home-accent-hover: #6A9A87;     /* 雾霾蓝悬停加深 */
     --home-white:        #FFFFFF;     /* 纯白（按钮文字） */
 
     /* ---- 质感 ---- */
@@ -59,7 +59,7 @@ body {
     background: var(--home-glass-bg);
     backdrop-filter: var(--home-blur);
     -webkit-backdrop-filter: var(--home-blur);
-    border-bottom: 1px solid rgba(163, 181, 191, 0.2);
+    border-bottom: 1px solid rgba(123, 174, 154, 0.2);
 }
 
 .nav-container {
@@ -88,18 +88,18 @@ body {
 /* ==================== 首页导航栏治愈系微调 ==================== */
 .navbar {
     background: var(--home-card);
-    border-bottom-color: rgba(163, 181, 191, 0.18);
+    border-bottom-color: rgba(123, 174, 154, 0.18);
 }
 .nav-brand { color: var(--home-text); font-weight: 700; }
 .nav-link { color: var(--home-text-sub); }
 .nav-link:hover {
-    background: rgba(163, 181, 191, 0.12);
+    background: rgba(123, 174, 154, 0.12);
     color: var(--home-text);
 }
 .nav-link.active {
     color: var(--home-accent-hover);
     font-weight: 600;
-    background: rgba(163, 181, 191, 0.12);
+    background: rgba(123, 174, 154, 0.12);
 }
 
 
@@ -149,13 +149,13 @@ body {
     border-radius: 30px;
     letter-spacing: 0.08em;
     transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
-    box-shadow: 0 4px 16px rgba(163, 181, 191, 0.3);
+    box-shadow: 0 4px 16px rgba(123, 174, 154, 0.3);
 }
 
 .hero-btn:hover {
     background-color: var(--home-accent-hover);
     transform: translateY(-2px);
-    box-shadow: 0 6px 22px rgba(163, 181, 191, 0.4);
+    box-shadow: 0 6px 22px rgba(123, 174, 154, 0.4);
 }
 
 .hero-btn:active {
@@ -218,7 +218,7 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    background: rgba(163, 181, 191, 0.1);
+    background: rgba(123, 174, 154, 0.1);
     border-radius: 14px;
 }
 
@@ -263,7 +263,7 @@ body {
     color: var(--home-text-sub);
     font-size: 0.82rem;
     letter-spacing: 0.03em;
-    border-top: 1px solid rgba(163, 181, 191, 0.18);
+    border-top: 1px solid rgba(123, 174, 154, 0.18);
 }
 
 
@@ -393,7 +393,7 @@ body {
     background: var(--home-glass-bg);
     backdrop-filter: var(--home-blur);
     -webkit-backdrop-filter: var(--home-blur);
-    border: 1px solid rgba(163, 181, 191, 0.2);
+    border: 1px solid rgba(123, 174, 154, 0.2);
     border-radius: 16px;
     box-shadow: 0 8px 32px rgba(166, 165, 160, 0.18);
     animation: mistPopIn 0.3s ease;
@@ -415,7 +415,7 @@ body {
 .mist-opt {
     flex: 1;
     padding: 7px 4px;
-    border: 1px solid rgba(163, 181, 191, 0.2);
+    border: 1px solid rgba(123, 174, 154, 0.2);
     border-radius: 10px;
     background: rgba(255, 253, 249, 0.6);
     color: var(--home-text-sub);
@@ -424,25 +424,13 @@ body {
     transition: all 0.2s;
 }
 .mist-opt:hover {
-    background: rgba(163, 181, 191, 0.15);
+    background: rgba(123, 174, 154, 0.15);
     color: var(--home-text);
     border-color: var(--home-accent);
 }
 @keyframes mistPopIn {
     from { opacity: 0; transform: translateY(8px) scale(0.95); }
     to   { opacity: 1; transform: translateY(0) scale(1); }
-}
-/* 羽毛反馈 */
-.mist-feather {
-    position: fixed;
-    z-index: 802;
-    pointer-events: none;
-    font-size: 1.2rem;
-    animation: mistFloatUp 2s ease-out forwards;
-}
-@keyframes mistFloatUp {
-    0%   { opacity: 1; transform: translateY(0) rotate(0deg); }
-    100% { opacity: 0; transform: translateY(-60px) rotate(20deg); }
 }
 /* 移动端弹窗（PC端隐藏） */
 .mist-sheet-overlay {
@@ -473,7 +461,7 @@ body {
     width: 36px; height: 4px;
     margin: 0 auto 12px;
     border-radius: 2px;
-    background: rgba(163, 181, 191, 0.3);
+    background: rgba(123, 174, 154, 0.3);
 }
 .mist-sheet-title {
     margin: 0 0 14px;
@@ -492,7 +480,7 @@ body {
     align-items: center;
     gap: 4px;
     padding: 10px 16px;
-    border: 1px solid rgba(163, 181, 191, 0.2);
+    border: 1px solid rgba(123, 174, 154, 0.2);
     border-radius: 14px;
     background: rgba(255, 253, 249, 0.6);
     color: var(--home-text-sub);
@@ -501,7 +489,7 @@ body {
     transition: all 0.2s;
 }
 .mist-sheet-opt:hover {
-    background: rgba(163, 181, 191, 0.15);
+    background: rgba(123, 174, 154, 0.15);
     color: var(--home-text);
 }
 .mso-emoji { font-size: 1.3rem; }
@@ -530,11 +518,11 @@ body {
         rgba(255,253,249,0.42) 45%,
         rgba(238,235,228,0.38) 100%);
     backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
-    border: 1.5px solid rgba(163,181,191,0.28);
+    border: 1.5px solid rgba(123,174,154,0.28);
     box-shadow:
-        0 4px 30px rgba(163,181,191,0.26),
+        0 4px 30px rgba(123,174,154,0.26),
         0 1px 2px rgba(160,170,180,0.12),
-        inset 0 0 22px rgba(163,181,191,0.05),
+        inset 0 0 22px rgba(123,174,154,0.05),
         inset 0 -5px 14px rgba(200,212,222,0.07);
     display: flex; align-items: center; justify-content: center;
     cursor: pointer; overflow: hidden;
@@ -547,9 +535,9 @@ body {
 }
 .mist-widget.hovered {
     box-shadow:
-        0 8px 38px rgba(163,181,191,0.40),
-        0 2px 6px  rgba(163,181,191,0.18),
-        inset 0 0 22px rgba(163,181,191,0.10);
+        0 8px 38px rgba(123,174,154,0.40),
+        0 2px 6px  rgba(123,174,154,0.18),
+        inset 0 0 22px rgba(123,174,154,0.10);
 }
 
 /* 顶部弧光 */
