@@ -394,7 +394,7 @@ body {
 .mist-popover {
     display: none;
     position: fixed;
-    z-index: 801;
+    z-index: 951;
     bottom: 115px;
     right: 28px;
     width: 240px;
@@ -431,7 +431,7 @@ body {
 
 /* ---- 玻璃球本体 ---- */
 .mist-widget {
-    position: fixed; z-index: 800;
+    position: fixed; z-index: 950;
     right: 28px; bottom: 28px;
     width: 74px; height: 74px;
     border-radius: 50%;
