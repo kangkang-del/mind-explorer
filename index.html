@@ -115,32 +115,9 @@
     <span class="mist-hint">点击与我呼吸同步</span>
 </div>
 
-<!-- PC端：点击展开的情绪小卡片 -->
+<!-- PC端：点击展开的迷思短句 -->
 <div class="mist-popover" id="mistPopover">
     <p class="mist-quote" id="mistQuote">此刻，允许自己只是存在。</p>
-    <div class="mist-options">
-        <button class="mist-opt" data-mood="calm">平静</button>
-        <button class="mist-opt" data-mood="anxious">焦虑</button>
-        <button class="mist-opt" data-mood="strength">需要力量</button>
-    </div>
-</div>
-
-<!-- 移动端：底部滑出面板 -->
-<div class="mist-sheet-overlay" id="mistSheetOverlay"></div>
-<div class="mist-sheet" id="mistSheet">
-    <div class="mist-sheet-handle" id="mistSheetHandle"></div>
-    <p class="mist-sheet-title">此刻的你，感觉如何？</p>
-    <div class="mist-sheet-opts">
-        <button class="mist-sheet-opt" data-mood="calm">
-            <span class="mso-emoji">🌊</span><span>平静</span>
-        </button>
-        <button class="mist-sheet-opt" data-mood="anxious">
-            <span class="mso-emoji">🍃</span><span>焦虑</span>
-        </button>
-        <button class="mist-sheet-opt" data-mood="strength">
-            <span class="mso-emoji">🔥</span><span>需要力量</span>
-        </button>
-    </div>
 </div>
 
 
@@ -162,9 +139,6 @@
     const widget   = document.getElementById('mistWidget');
     const popover  = document.getElementById('mistPopover');
     const quoteEl  = document.getElementById('mistQuote');
-    const sheet    = document.getElementById('mistSheet');
-    const sheetOverlay = document.getElementById('mistSheetOverlay');
-    const sheetHandle  = document.getElementById('mistSheetHandle');
 
     if (!widget) return;   // 安全守卫
 
@@ -266,9 +240,10 @@
     /* ===========================================================
        PC 端交互
     =========================================================== */
-    if (!isMobile) {
+    // 统一交互：点击显示迷思短句（PC + 移动端共用）
 
-        // --- 悬停：暂停呼吸 + 放大 + 显示提示 ---
+    // --- 悬停：暂停呼吸 + 放大 + 显示提示（仅PC端有鼠标事件）---
+    if (!isMobile) {
         let hoverTimer = null;
         widget.addEventListener('mouseenter', () => {
             widget.style.animationPlayState = 'paused';
@@ -285,88 +260,27 @@
             widget.querySelector('.mist-hint')?.classList.remove('visible');
             // 如果弹窗开着且鼠标离开，不自动关闭（用户可能移到卡片上操作）
         });
+    }  // end PC hover
 
-        // --- 点击：展开/收起小卡片 ---
-        let popoverOpen = false;
+    // --- 点击：展开/收起迷思短句（PC + 移动端共用）---
+    let popoverOpen = false;
 
-        widget.addEventListener('click', (e) => {
-            e.stopPropagation();
-            if (hasMoved) { hasMoved = false; return; }  // 拖拽后不触发点击
-            if (popoverOpen) return;   // 已展开则忽略重复点击（通过收起按钮关闭）
-            popoverOpen = true;
-            quoteEl.textContent = pick(quotes);
-            popover.classList.add('show');
-        });
+    widget.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (hasMoved) { hasMoved = false; return; }  // 拖拽后不触发点击
+        if (popoverOpen) { popoverOpen = false; popover.classList.remove('show'); return; }
+        popoverOpen = true;
+        quoteEl.textContent = pick(quotes);
+        popover.classList.add('show');
+    });
 
-        // 点击选项 → 收起卡片 + 羽毛反馈
-        popover.querySelectorAll('.mist-opt').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                popoverOpen = false;
-                popover.classList.remove('show');
-            });
-        });
-
-        // 点页面其他区域也关闭
-        document.addEventListener('click', (e) => {
-            if (popoverOpen && !popover.contains(e.target)) {
-                popoverOpen = false;
-                popover.classList.remove('show');
-            }
-        });
-    }
-
-
-    /* ===========================================================
-       移动端交互 — 底部滑出面板
-    =========================================================== */
-    else {
-        let sheetOpen = false;
-
-        widget.addEventListener('click', (e) => {
-            e.stopPropagation();
-            if (hasMoved) { hasMoved = false; return; }  // 拖拽后不触发点击
-            if (sheetOpen) return;
-            openSheet();
-        });
-
-        function openSheet() {
-            sheetOpen = true;
-            sheet.classList.add('up');
-            sheetOverlay.classList.add('visible');
-            document.body.style.overflow = 'hidden';   // 阻止滚动穿透
-            wake();                                    // 触碰即唤醒
+    // 点页面其他区域也关闭
+    document.addEventListener('click', (e) => {
+        if (popoverOpen && !popover.contains(e.target) && !widget.contains(e.target)) {
+            popoverOpen = false;
+            popover.classList.remove('show');
         }
-
-        function closeSheet() {
-            sheetOpen = false;
-            sheet.classList.remove('up');
-            sheetOverlay.classList.remove('visible');
-            document.body.style.overflow = '';
-        }
-
-        // 点击遮罩层关闭
-        sheetOverlay.addEventListener('click', closeSheet);
-
-        // 下拉手势线关闭（touchmove 向下 > 30px）
-        let touchStartY = 0;
-        sheetHandle.addEventListener('touchstart', (e) => {
-            touchStartY = e.touches[0].clientY;
-        }, { passive: true });
-
-        sheetHandle.addEventListener('touchmove', (e) => {
-            const dy = e.touches[0].clientY - touchStartY;
-            if (dy > 30) closeSheet();
-        }, { passive: true });
-
-        // 选项点击
-        sheet.querySelectorAll('.mist-sheet-opt').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                closeSheet();
-            });
-        });
-    }
+    });
 
 
     /* ===========================================================

@@ -400,107 +400,20 @@ body {
 }
 .mist-popover.show { display: block; }
 .mist-quote {
-    margin: 0 0 14px;
+    margin: 0;
     font-size: 0.92rem;
     line-height: 1.6;
     color: var(--home-text);
     text-align: center;
     font-style: italic;
 }
-.mist-options {
-    display: flex;
-    gap: 6px;
-    justify-content: center;
-}
-.mist-opt {
-    flex: 1;
-    padding: 7px 4px;
-    border: 1px solid rgba(123, 174, 154, 0.2);
-    border-radius: 10px;
-    background: rgba(255, 253, 249, 0.6);
-    color: var(--home-text-sub);
-    font-size: 0.78rem;
-    cursor: pointer;
-    transition: all 0.2s;
-}
-.mist-opt:hover {
-    background: rgba(123, 174, 154, 0.15);
-    color: var(--home-text);
-    border-color: var(--home-accent);
-}
 @keyframes mistPopIn {
     from { opacity: 0; transform: translateY(8px) scale(0.95); }
     to   { opacity: 1; transform: translateY(0) scale(1); }
 }
-/* 移动端弹窗（PC端隐藏） */
-.mist-sheet-overlay {
-    display: none;
-    position: fixed;
-    z-index: 800;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.3);
-}
-.mist-sheet-overlay.visible { display: block; }
-.mist-sheet {
-    display: none;
-    position: fixed;
-    z-index: 801;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    padding: 12px 20px calc(20px + env(safe-area-inset-bottom, 0px));
-    background: var(--home-glass-bg);
-    backdrop-filter: var(--home-blur);
-    -webkit-backdrop-filter: var(--home-blur);
-    border-radius: 20px 20px 0 0;
-    box-shadow: 0 -4px 24px rgba(166, 165, 160, 0.15);
-    animation: mistSheetUp 0.3s ease;
-}
-.mist-sheet.up { display: block; }
-.mist-sheet-handle {
-    width: 36px; height: 4px;
-    margin: 0 auto 12px;
-    border-radius: 2px;
-    background: rgba(123, 174, 154, 0.3);
-}
-.mist-sheet-title {
-    margin: 0 0 14px;
-    font-size: 0.95rem;
-    color: var(--home-text);
-    text-align: center;
-}
-.mist-sheet-opts {
-    display: flex;
-    gap: 10px;
-    justify-content: center;
-}
-.mist-sheet-opt {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 4px;
-    padding: 10px 16px;
-    border: 1px solid rgba(123, 174, 154, 0.2);
-    border-radius: 14px;
-    background: rgba(255, 253, 249, 0.6);
-    color: var(--home-text-sub);
-    font-size: 0.8rem;
-    cursor: pointer;
-    transition: all 0.2s;
-}
-.mist-sheet-opt:hover {
-    background: rgba(123, 174, 154, 0.15);
-    color: var(--home-text);
-}
-.mso-emoji { font-size: 1.3rem; }
-@keyframes mistSheetUp {
-    from { transform: translateY(100%); }
-    to   { transform: translateY(0); }
-}
 /* 拖拽光标 */
 .mist-widget { cursor: grab; }
-.mist-widget.dragging { cursor: grabbing; transition: none; } /* PC端弹窗在移动端隐藏 */
-}
+.mist-widget.dragging { cursor: grabbing; transition: none; }
 
 
 /* ===================================================
@@ -720,3 +633,4 @@ body {
     50%     { opacity:.4;  transform:translateY(-10px) scale(.85); }
     75%     { opacity:.65; transform:translateY(-4px) scale(1.05); }
 }
+} /* end @media (max-width: 768px) */
