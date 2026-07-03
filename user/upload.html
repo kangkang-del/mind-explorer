@@ -31,7 +31,7 @@
     <div id="upload-content" style="display:none;">
         <div class="user-header">
             <h1>📤 上传内容</h1>
-            <p>分享你的心理学知识、心得、经验，获得贡献积分！</p>
+            <p>分享你的心理学知识、心得、经验，获得贡献值！</p>
         </div>
 
         <div class="user-content-section">
@@ -61,7 +61,7 @@
                 <label>文章内容</label>
                 <textarea id="article-content" placeholder="分享你的想法..." required></textarea>
                 
-                <button type="submit" class="upload-submit" id="article-submit">🚀 发布文章（+5 积分）</button>
+                <button type="submit" class="upload-submit" id="article-submit">🚀 发布文章（+5 贡献值）</button>
             </form>
             <div id="article-result" class="upload-result" style="display:none;"></div>
         </div>
@@ -78,7 +78,7 @@
             <form class="upload-form" id="image-form">
                 <label>图片描述</label>
                 <input type="text" id="image-desc" placeholder="描述这张图片...">
-                <button type="submit" class="upload-submit" id="image-submit">🚀 上传图片（+10 积分）</button>
+                <button type="submit" class="upload-submit" id="image-submit">🚀 上传图片（+5 贡献值）</button>
             </form>
             <div id="image-result" class="upload-result" style="display:none;"></div>
         </div>
@@ -96,7 +96,7 @@
                 <label>描述</label>
                 <textarea id="link-desc" placeholder="简单描述这个链接的内容..." style="min-height:80px;"></textarea>
                 
-                <button type="submit" class="upload-submit" id="link-submit">🚀 分享链接（+3 积分）</button>
+                <button type="submit" class="upload-submit" id="link-submit">🚀 分享链接（+5 贡献值）</button>
             </form>
             <div id="link-result" class="upload-result" style="display:none;"></div>
         </div>
@@ -230,7 +230,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = await res.json();
 
             if (res.ok && data.success) {
-                showResult('article-result', true, data.pending ? `文章已提交，等待管理员审核后公开。获得 +5 积分（当前积分：${data.points}）` : `文章发布成功！获得 +5 积分（当前积分：${data.points}）`, data.issueUrl, '在 GitHub 查看');
+                showResult('article-result', true, data.pending ? `文章已提交，等待管理员审核后公开。获得 +5 贡献值（当前贡献值：${data.points}）` : `文章发布成功！获得 +5 贡献值（当前贡献值：${data.points}）`, data.issueUrl, '在 GitHub 查看');
                 document.getElementById('article-form').reset();
                 // 更新导航栏积分
                 const pointsEl = document.getElementById('nav-points');
@@ -241,7 +241,7 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (err) {
             showResult('article-result', false, '网络错误，请重试');
         } finally {
-            setBtnState('article-submit', false, '🚀 发布文章（+5 积分）');
+            setBtnState('article-submit', false, '🚀 发布文章（+5 贡献值）');
         }
     });
 
@@ -274,7 +274,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = await res.json();
 
             if (res.ok && data.success) {
-                showResult('image-result', true, data.pending ? `图片已提交，等待管理员审核后公开。获得 +10 积分（当前积分：${data.points}）` : `图片上传成功！获得 +10 积分（当前积分：${data.points}）`, data.issueUrl, '在 GitHub 查看');
+                showResult('image-result', true, data.pending ? `图片已提交，等待管理员审核后公开。获得 +5 贡献值（当前贡献值：${data.points}）` : `图片上传成功！获得 +5 贡献值（当前贡献值：${data.points}）`, data.issueUrl, '在 GitHub 查看');
                 document.getElementById('image-form').reset();
                 selectedImage = null;
                 uploadArea.innerHTML = `<div class="upload-icon">📁</div><p>点击或拖拽图片到这里</p>`;
@@ -286,7 +286,7 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (err) {
             showResult('image-result', false, err.message || '图片处理失败，请重试');
         } finally {
-            setBtnState('image-submit', false, '🚀 上传图片（+10 积分）');
+            setBtnState('image-submit', false, '🚀 上传图片（+5 贡献值）');
         }
     });
 
@@ -309,7 +309,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = await res.json();
 
             if (res.ok && data.success) {
-                showResult('link-result', true, data.pending ? `链接已提交，等待管理员审核后公开。获得 +3 积分（当前积分：${data.points}）` : `链接分享成功！获得 +3 积分（当前积分：${data.points}）`, data.issueUrl, '在 GitHub 查看');
+                showResult('link-result', true, data.pending ? `链接已提交，等待管理员审核后公开。获得 +5 贡献值（当前贡献值：${data.points}）` : `链接分享成功！获得 +5 贡献值（当前贡献值：${data.points}）`, data.issueUrl, '在 GitHub 查看');
                 document.getElementById('link-form').reset();
                 const pointsEl = document.getElementById('nav-points');
                 if (pointsEl) pointsEl.textContent = `⭐ ${data.points}`;
@@ -319,7 +319,7 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (err) {
             showResult('link-result', false, '网络错误，请重试');
         } finally {
-            setBtnState('link-submit', false, '🚀 分享链接（+3 积分）');
+            setBtnState('link-submit', false, '🚀 分享链接（+5 贡献值）');
         }
     });
 });

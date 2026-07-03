@@ -1,12 +1,12 @@
 /**
  * 心灵探索 - 卡片互动（点赞 + 评论 + 审核）
  * 依赖 auth.js 的 Auth 对象
- * 版本: v2.1（强制刷新）
+ * 版本: v2.3（修复类型和备用图片问题）
  */
 (function() {
   // 检查 Auth 是否可用
   if (typeof Auth === 'undefined' || typeof Auth.getUser !== 'function') {
-    console.error('MindExplorer: Auth not loaded, reloading scripts...');
+    console.log('MindExplorer: Auth not loaded, reloading scripts...');
     // 移除可能存在的旧脚本
     document.querySelectorAll('script[src*="auth.js"], script[src*="card-interact.js"]').forEach(s => s.remove());
     // 重新加载 auth.js
@@ -16,6 +16,9 @@
       var s2 = document.createElement('script');
       s2.src = '/js/card-interact.js?v=' + Date.now();
       document.body.appendChild(s2);
+    };
+    s1.onerror = function() {
+      console.error('MindExplorer: Failed to load auth.js');
     };
     document.body.appendChild(s1);
     return;
@@ -35,11 +38,18 @@ const CardInteract = {
     }
 
     const match = window.location.pathname.match(/\/card\/(\d+)\.html/);
-    if (!match) return;
+    if (!match) {
+      console.log('MindExplorer: Not a card page');
+      return;
+    }
     this.cardId = match[1];
+    console.log('MindExplorer: Initializing for card', this.cardId);
 
     const container = document.getElementById('card-interact');
-    if (!container) return;
+    if (!container) {
+      console.error('MindExplorer: Container not found');
+      return;
+    }
 
     container.innerHTML = '<div class="interact-loading">💬 加载中...</div>';
     this.load();
@@ -47,16 +57,23 @@ const CardInteract = {
 
   async load() {
     try {
+      console.log('MindExplorer: Fetching data for card', this.cardId);
       const res = await fetch(`/.netlify/functions/card-interactions?card=${this.cardId}`);
-      if (res.ok) {
-        const data = await res.json();
-        this.liked = data.liked;
-        this.isAdmin = data.isAdmin;
-        this.render(data);
-      } else {
+      
+      if (!res.ok) {
+        console.error('MindExplorer: API returned error', res.status);
         this.renderError();
+        return;
       }
+      
+      const data = await res.json();
+      console.log('MindExplorer: Received data', data);
+      
+      this.liked = data.liked || false;
+      this.isAdmin = data.isAdmin || false;
+      this.render(data);
     } catch (e) {
+      console.error('MindExplorer: Load error', e);
       this.renderError();
     }
   },
@@ -71,10 +88,10 @@ const CardInteract = {
     // === 点赞按钮 ===
     html += `
       <div class="like-section">
-        <button class="like-button ${this.liked ? 'liked' : ''}" onclick="CardInteract.toggleLike()">
+        <button class="like-button ${this.liked ? 'liked' : ''}" id="like-btn" onclick="CardInteract.toggleLike()">
           <span class="like-icon">${this.liked ? '❤️' : '🤍'}</span>
           <span class="like-text">${this.liked ? '已认同' : '认同'}</span>
-          <span class="like-count">${data.likes || 0}</span>
+          <span class="like-count" id="like-count">${data.likes || 0}</span>
         </button>
       </div>
     `;
@@ -92,12 +109,12 @@ const CardInteract = {
     if (user) {
       html += `
         <div class="comment-form">
-          <img src="${user.avatar}" class="comment-form-avatar" alt="${user.name}">
+          <img src="${user.avatar}" class="comment-form-avatar" alt="${user.name}" onerror="this.style.display='none'">
           <div class="comment-form-body">
             <textarea class="comment-input" id="comment-input" placeholder="写下你的想法..." rows="3" maxlength="2000"></textarea>
             <div class="comment-form-footer">
               <span class="char-count" id="char-count">0/2000</span>
-              <button class="comment-submit" onclick="CardInteract.submitComment()">发表评论</button>
+              <button class="comment-submit" id="comment-submit-btn" onclick="CardInteract.submitComment()">发表评论</button>
             </div>
           </div>
         </div>
@@ -111,13 +128,16 @@ const CardInteract = {
     }
 
     // 评论列表
-    if (data.comments && data.comments.length > 0) {
+    const comments = data.comments || [];
+    if (comments.length > 0) {
       html += '<div class="comment-list">';
-      data.comments.forEach(c => {
+      comments.forEach(c => {
         const isPending = c.status === 'pending';
+        // 使用字符串形式的 ID 确保 onclick 传递正确
+        const commentId = c.idStr || String(c.id);
         html += `
-          <div class="comment-item ${isPending ? 'comment-pending' : ''}" id="comment-${c.id}">
-            <img src="${c.avatar}" class="comment-avatar" alt="${c.author}" loading="lazy">
+          <div class="comment-item ${isPending ? 'comment-pending' : ''}" id="comment-${commentId}">
+            <img src="${c.avatar}" class="comment-avatar" alt="${c.author}" loading="lazy" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2280%22>👤</text></svg>'">
             <div class="comment-body">
               <div class="comment-meta">
                 <span class="comment-author">${this.escapeHtml(c.author)}</span>
@@ -127,13 +147,13 @@ const CardInteract = {
               <div class="comment-text">${this.escapeHtml(c.content)}</div>
               ${isPending && this.isAdmin ? `
                 <div class="comment-admin-actions">
-                  <button class="comment-approve-btn" onclick="CardInteract.approveComment(${c.id})">✅ 通过</button>
-                  <button class="comment-delete-btn" onclick="CardInteract.deleteComment(${c.id})">🗑️ 删除</button>
+                  <button class="comment-approve-btn" onclick="CardInteract.approveComment('${commentId}')">✅ 通过</button>
+                  <button class="comment-delete-btn" onclick="CardInteract.deleteComment('${commentId}')">🗑️ 删除</button>
                 </div>
               ` : ''}
               ${!isPending && this.isAdmin ? `
                 <div class="comment-admin-actions">
-                  <button class="comment-delete-btn" onclick="CardInteract.deleteComment(${c.id})">🗑️ 删除</button>
+                  <button class="comment-delete-btn" onclick="CardInteract.deleteComment('${commentId}')">🗑️ 删除</button>
                 </div>
               ` : ''}
             </div>
@@ -170,41 +190,50 @@ const CardInteract = {
       return;
     }
 
-    const button = document.querySelector('.like-button');
+    const button = document.getElementById('like-btn');
     if (button) button.disabled = true;
 
     try {
       const action = this.liked ? 'unlike' : 'like';
+      console.log('MindExplorer: Toggle like', action);
+
       const res = await fetch('/.netlify/functions/card-interactions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ card: this.cardId, action })
       });
 
-      if (res.ok) {
-        const data = await res.json();
-        this.liked = data.liked;
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        alert(err.error || '操作失败，请重试');
+        return;
+      }
 
-        if (button) {
-          const icon = button.querySelector('.like-icon');
-          const text = button.querySelector('.like-text');
-          const count = button.querySelector('.like-count');
+      const data = await res.json();
+      console.log('MindExplorer: Like result', data);
+      
+      this.liked = data.liked;
 
-          if (this.liked) {
-            button.classList.add('liked');
-            if (icon) icon.textContent = '❤️';
-            if (text) text.textContent = '已认同';
-            await Auth.addPoints(1);
-          } else {
-            button.classList.remove('liked');
-            if (icon) icon.textContent = '🤍';
-            if (text) text.textContent = '认同';
-          }
-          if (count) count.textContent = data.likes;
+      if (button) {
+        const icon = button.querySelector('.like-icon');
+        const text = button.querySelector('.like-text');
+        const count = button.querySelector('.like-count');
+
+        if (this.liked) {
+          button.classList.add('liked');
+          if (icon) icon.textContent = '❤️';
+          if (text) text.textContent = '已认同';
+          // 注意：贡献值由后端 card-interactions 统一增加（+0.1），前端不再重复添加
+        } else {
+          button.classList.remove('liked');
+          if (icon) icon.textContent = '🤍';
+          if (text) text.textContent = '认同';
         }
+        if (count) count.textContent = data.likes || 0;
       }
     } catch (e) {
-      console.error('点赞失败:', e);
+      console.error('MindExplorer: Like error', e);
+      alert('网络错误，请重试');
     } finally {
       if (button) button.disabled = false;
     }
@@ -220,11 +249,12 @@ const CardInteract = {
 
     const content = input.value.trim();
     if (!content) {
+      alert('请输入评论内容');
       input.focus();
       return;
     }
 
-    const submitBtn = document.querySelector('.comment-submit');
+    const submitBtn = document.getElementById('comment-submit-btn');
     if (submitBtn) {
       submitBtn.disabled = true;
       submitBtn.textContent = '发表中...';
@@ -237,24 +267,26 @@ const CardInteract = {
         body: JSON.stringify({ card: this.cardId, action: 'comment', content })
       });
 
-      if (res.ok) {
-        const data = await res.json();
-        input.value = '';
-        const count = document.getElementById('char-count');
-        if (count) count.textContent = '0/2000';
-
-        // 非管理员显示待审核提示
-        if (data.pending) {
-          this.showPendingNotice();
-        }
-
-        // 重新加载评论
-        this.load();
-      } else {
+      if (!res.ok) {
         const err = await res.json().catch(() => ({}));
         alert(err.error || '评论失败，请重试');
+        return;
       }
+
+      const data = await res.json();
+      input.value = '';
+      const count = document.getElementById('char-count');
+      if (count) count.textContent = '0/2000';
+
+      // 非管理员显示待审核提示
+      if (data.pending) {
+        this.showPendingNotice();
+      }
+
+      // 重新加载评论
+      await this.load();
     } catch (e) {
+      console.error('MindExplorer: Comment error', e);
       alert('网络错误，请重试');
     } finally {
       if (submitBtn) {
@@ -279,7 +311,7 @@ const CardInteract = {
     setTimeout(() => notice.remove(), 5000);
   },
 
-  // 管理员审核通过评论
+  // 管理员审核通过评论（参数使用字符串）
   async approveComment(commentId) {
     try {
       const res = await fetch('/.netlify/functions/card-interactions', {
@@ -288,19 +320,21 @@ const CardInteract = {
         body: JSON.stringify({ card: this.cardId, action: 'approve-comment', commentId })
       });
 
-      if (res.ok) {
-        const data = await res.json();
-        this.render({ comments: data.comments, likes: document.querySelector('.like-count')?.textContent || 0, liked: this.liked, isAdmin: true });
-      } else {
+      if (!res.ok) {
         const err = await res.json().catch(() => ({}));
         alert(err.error || '操作失败');
+        return;
       }
+
+      // 重新加载
+      await this.load();
     } catch (e) {
+      console.error('MindExplorer: Approve error', e);
       alert('网络错误');
     }
   },
 
-  // 管理员删除评论
+  // 管理员删除评论（参数使用字符串）
   async deleteComment(commentId) {
     if (!confirm('确定删除这条评论？')) return;
 
@@ -311,14 +345,16 @@ const CardInteract = {
         body: JSON.stringify({ card: this.cardId, action: 'delete-comment', commentId })
       });
 
-      if (res.ok) {
-        const data = await res.json();
-        this.render({ comments: data.comments, likes: document.querySelector('.like-count')?.textContent || 0, liked: this.liked, isAdmin: true });
-      } else {
+      if (!res.ok) {
         const err = await res.json().catch(() => ({}));
         alert(err.error || '操作失败');
+        return;
       }
+
+      // 重新加载
+      await this.load();
     } catch (e) {
+      console.error('MindExplorer: Delete error', e);
       alert('网络错误');
     }
   },
@@ -347,11 +383,14 @@ const CardInteract = {
   renderError() {
     const container = document.getElementById('card-interact');
     if (container) {
-      container.innerHTML = '<div class="interact-error">加载失败，<a href="javascript:CardInteract.load()">点击重试</a></div>';
+      container.innerHTML = '<div class="interact-error">加载失败，请 <a href="javascript:location.reload()">刷新页面</a> 或 <a href="javascript:CardInteract.load()">点击重试</a></div>';
     }
   }
 };
 
-document.addEventListener('DOMContentLoaded', () => {
+// 页面加载时初始化
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', () => CardInteract.init());
+} else {
   CardInteract.init();
-});
+}

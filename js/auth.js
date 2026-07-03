@@ -68,7 +68,7 @@ const Auth = {
         <div class="nav-dropdown" id="nav-dropdown">
           <a href="/user/profile.html" class="dropdown-item">📋 我的主页</a>
           <a href="/user/upload.html" class="dropdown-item">📤 上传内容</a>
-          <a href="/user/points.html" class="dropdown-item">⭐ 我的积分</a>
+          <a href="/user/points.html" class="dropdown-item">🏆 贡献榜</a>
           ${user.username === 'kangkang-del' ? '<div class="dropdown-divider"></div><a href="/admin/review.html" class="dropdown-item">🛡️ 审核管理</a>' : ''}
           <div class="dropdown-divider"></div>
           <a href="#" class="dropdown-item" onclick="Auth.logout(); return false;">🚪 退出登录</a>

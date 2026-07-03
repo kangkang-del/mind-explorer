@@ -6,6 +6,26 @@ const repoOwner = process.env.GITHUB_REPO_OWNER || 'kangkang-del';
 const repoName = process.env.GITHUB_REPO_NAME || 'mind-explorer';
 const repoToken = process.env.GITHUB_REPO_TOKEN || '';
 
+// CORS Headers
+const corsHeadersBase = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS'
+};
+
+const corsHeadersJson = {
+  ...corsHeadersBase,
+  'Content-Type': 'application/json'
+};
+
+function corsJsonResponse(body, statusCode = 200) {
+  return {
+    statusCode,
+    headers: corsHeadersJson,
+    body: typeof body === 'string' ? body : JSON.stringify(body)
+  };
+}
+
 // 判断是否是管理员（仓库拥有者）
 function isAdmin(user) {
   return user && user.username === repoOwner;
@@ -80,7 +100,7 @@ async function uploadImageToRepo(filename, base64Content) {
   return data.content?.download_url || `https://raw.githubusercontent.com/${repoOwner}/${repoName}/main/${path}`;
 }
 
-// 给用户增加积分（复用 user-points 逻辑）
+// 给用户增加贡献值（复用逻辑，支持小数）
 async function addPointsToUser(username, token, delta) {
   const searchUrl = `https://api.github.com/search/issues?q=repo:${repoOwner}/${repoName}+title:[POINTS]+${username}+is:issue`;
   const searchRes = await gh(searchUrl, 'GET', token);
@@ -92,11 +112,13 @@ async function addPointsToUser(username, token, delta) {
   if (searchData.total_count > 0) {
     const issue = searchData.items[0];
     issueNumber = issue.number;
-    const bodyMatch = issue.body?.match(/points:\s*(\d+)/);
-    if (bodyMatch) points = parseInt(bodyMatch[1]);
+    // 支持小数贡献值
+    const bodyMatch = issue.body?.match(/points:\s*([\d.]+)/);
+    if (bodyMatch) points = parseFloat(bodyMatch[1]);
   }
 
-  const newPoints = points + delta;
+  // 保留1位小数精度
+  const newPoints = Math.round((points + delta) * 10) / 10;
   const issueBody = `points: ${newPoints}\nusername: ${username}\nlast_update: ${new Date().toISOString()}`;
 
   if (issueNumber) {
@@ -114,16 +136,16 @@ async function addPointsToUser(username, token, delta) {
 
 exports.handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') {
-    return { statusCode: 200, body: '' };
+    return { statusCode: 200, headers: corsHeadersBase, body: '' };
   }
 
   if (event.httpMethod !== 'POST') {
-    return { statusCode: 405, body: JSON.stringify({ error: 'Method not allowed' }) };
+    return corsJsonResponse({ error: 'Method not allowed' }, 405);
   }
 
   const user = parseUser(event);
   if (!user) {
-    return { statusCode: 401, body: JSON.stringify({ error: '请先登录' }) };
+    return corsJsonResponse({ error: '请先登录' }, 401);
   }
 
   try {
@@ -144,26 +166,22 @@ exports.handler = async (event) => {
       const category = body.category || 'knowledge';
 
       if (!title || !content) {
-        return { statusCode: 400, body: JSON.stringify({ error: '标题和内容不能为空' }) };
+        return corsJsonResponse({ error: '标题和内容不能为空' }, 400);
       }
       if (title.length > 100) {
-        return { statusCode: 400, body: JSON.stringify({ error: '标题不能超过100字' }) };
+        return corsJsonResponse({ error: '标题不能超过100字' }, 400);
       }
 
       const issueBody = `${meta}type: article\ntitle: ${title}\ncategory: ${category}\n\n---\n\n${content}`;
       const issue = await createUploadIssue(`[UPLOAD]${pendingTag}[article] ${title}`, issueBody, ['user-upload', 'article', ...pendingLabel], user.token);
 
       if (!issue.html_url) {
-        return { statusCode: 500, body: JSON.stringify({ error: '创建失败，请重试' }) };
+        return corsJsonResponse({ error: '创建失败，请重试' }, 500);
       }
 
       const points = await addPointsToUser(user.username, user.token, 5);
 
-      return {
-        statusCode: 200,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ success: true, issueUrl: issue.html_url, points, pending: !admin })
-      };
+      return corsJsonResponse({ success: true, issueUrl: issue.html_url, points, pending: !admin }, 200);
     }
 
     // ===== 链接上传 =====
@@ -173,23 +191,19 @@ exports.handler = async (event) => {
       const description = (body.description || '').trim();
 
       if (!title || !url) {
-        return { statusCode: 400, body: JSON.stringify({ error: '标题和链接不能为空' }) };
+        return corsJsonResponse({ error: '标题和链接不能为空' }, 400);
       }
 
-      const issueBody = `${meta}type: link\ntitle: ${title}\nurl: ${url}\ndescription: ${description}`;
+      const issueBody = `${meta}type: link\ntitle: ${title}\nurl: ${url}\ndescription: ${description}\n\n---\n`;
       const issue = await createUploadIssue(`[UPLOAD]${pendingTag}[link] ${title}`, issueBody, ['user-upload', 'link', ...pendingLabel], user.token);
 
       if (!issue.html_url) {
-        return { statusCode: 500, body: JSON.stringify({ error: '创建失败，请重试' }) };
+        return corsJsonResponse({ error: '创建失败，请重试' }, 500);
       }
 
-      const points = await addPointsToUser(user.username, user.token, 3);
+      const points = await addPointsToUser(user.username, user.token, 5);
 
-      return {
-        statusCode: 200,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ success: true, issueUrl: issue.html_url, points, pending: !admin })
-      };
+      return corsJsonResponse({ success: true, issueUrl: issue.html_url, points, pending: !admin }, 200);
     }
 
     // ===== 图片上传 =====
@@ -199,13 +213,13 @@ exports.handler = async (event) => {
       const filename = body.filename || 'image.jpg';
 
       if (!imageBase64) {
-        return { statusCode: 400, body: JSON.stringify({ error: '请选择图片' }) };
+        return corsJsonResponse({ error: '请选择图片' }, 400);
       }
 
       // 上传图片文件到仓库
       const imageUrl = await uploadImageToRepo(filename, imageBase64);
 
-      const issueBody = `${meta}type: image\ndescription: ${description || filename}\nimage_url: ${imageUrl}`;
+      const issueBody = `${meta}type: image\ndescription: ${description || filename}\nimage_url: ${imageUrl}\n\n---\n`;
       const issue = await createUploadIssue(
         `[UPLOAD]${pendingTag}[image] ${description || filename}`,
         issueBody,
@@ -214,24 +228,17 @@ exports.handler = async (event) => {
       );
 
       if (!issue.html_url) {
-        return { statusCode: 500, body: JSON.stringify({ error: '创建记录失败，但图片已上传' }) };
+        return corsJsonResponse({ error: '创建记录失败，但图片已上传' }, 500);
       }
 
-      const points = await addPointsToUser(user.username, user.token, 10);
+      const points = await addPointsToUser(user.username, user.token, 5);
 
-      return {
-        statusCode: 200,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ success: true, issueUrl: issue.html_url, imageUrl, points, pending: !admin })
-      };
+      return corsJsonResponse({ success: true, issueUrl: issue.html_url, imageUrl, points, pending: !admin }, 200);
     }
 
-    return { statusCode: 400, body: JSON.stringify({ error: '无效的上传类型' }) };
+    return corsJsonResponse({ error: '无效的上传类型' }, 400);
   } catch (error) {
     console.error('Upload error:', error);
-    return {
-      statusCode: 500,
-      body: JSON.stringify({ error: error.message || '服务器错误' })
-    };
+    return corsJsonResponse({ error: error.message || '服务器错误' }, 500);
   }
 };
