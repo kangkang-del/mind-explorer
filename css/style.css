@@ -1,9 +1,9 @@
 /* 心灵探索 - 心理学知识学习系统 样式 */
 
 :root {
-    --primary: #7BAE9A;       /* 雾霾蓝（治愈系统一，原紫色 #7BAE9A） */
-    --primary-dark: #6A9A87;  /* 雾霾蓝加深（原紫色已替换） */
-    --secondary: #8FC5B0;     /* 柔和青灰（原紫色 #6A9A87） */
+    --primary: #A3B5BF;       /* 雾霾蓝（治愈系统一，原紫色 #A3B5BF） */
+    --primary-dark: #8A9CA8;  /* 雾霾蓝加深（原紫色已替换） */
+    --secondary: #9DBFBF;     /* 柔和青灰（原紫色 #8A9CA8） */
     --bg: #f8fafc;
     --card-bg: #ffffff;
     --text: #1e293b;
@@ -72,7 +72,7 @@ body {
 .nav-link.active {
     color: var(--primary-dark);
     font-weight: 600;
-    background: rgba(123, 174, 154, 0.12);
+    background: rgba(163, 181, 191, 0.12);
 }
 
 /* 容器 */
@@ -86,7 +86,7 @@ body {
 .hero {
     text-align: center;
     padding: 60px 20px;
-    background: linear-gradient(135deg, #7BAE9A 0%, #6A9A87 100%);
+    background: linear-gradient(135deg, #A3B5BF 0%, #8A9CA8 100%);
     border-radius: var(--radius);
     color: white;
     margin-bottom: 40px;
@@ -170,7 +170,7 @@ body {
 
 /* Tip box */
 .tip-box {
-    background: rgba(123,174,154,0.08);
+    background: rgba(163,181,191,0.08);
     border-left: 4px solid var(--primary);
     padding: 20px;
     border-radius: 0 var(--radius) var(--radius) 0;
@@ -248,7 +248,7 @@ body {
 .card-category {
     display: inline-block;
     padding: 2px 10px;
-    background: rgba(123,174,154,0.08);
+    background: rgba(163,181,191,0.08);
     color: var(--primary);
     border-radius: 12px;
     font-size: 0.8rem;
@@ -289,7 +289,7 @@ body {
 
 .hint { color: var(--text-light); font-size: 0.85rem; margin-top: 16px; }
 .answer-content { text-align: left; margin-top: 12px; line-height: 1.8; }
-.card-badge { display: inline-block; padding: 2px 10px; background: rgba(123,174,154,0.08); color: var(--primary); border-radius: 12px; font-size: 0.8rem; }
+.card-badge { display: inline-block; padding: 2px 10px; background: rgba(163,181,191,0.08); color: var(--primary); border-radius: 12px; font-size: 0.8rem; }
 
 /* Rating buttons */
 .rating-buttons { text-align: center; }
@@ -310,7 +310,7 @@ body {
 .rate-0:hover { border-color: var(--danger); background: #fef2f2; }
 .rate-2:hover { border-color: var(--warning); background: #fffbeb; }
 .rate-3:hover { border-color: #3b82f6; background: #eff6ff; }
-.rate-4:hover { border-color: #7BAE9A; background: rgba(123,174,154,0.08); }
+.rate-4:hover { border-color: #A3B5BF; background: rgba(163,181,191,0.08); }
 .rate-5:hover { border-color: var(--success); background: #f0fdf4; }
 
 /* Quiz */
@@ -344,7 +344,7 @@ body {
 .score-circle {
     width: 120px; height: 120px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #7BAE9A, #6A9A87);
+    background: linear-gradient(135deg, #A3B5BF, #8A9CA8);
     display: flex; align-items: center; justify-content: center;
     margin: 20px auto;
 }
@@ -497,7 +497,7 @@ blockquote {
 .section-card p { font-size: 0.9rem; opacity: 0.8; }
 .section-btn { font-weight: 600; margin-top: 8px; }
 
-.section-knowledge { background: linear-gradient(135deg, #7BAE9A, #6A9A87); color: white; }
+.section-knowledge { background: linear-gradient(135deg, #A3B5BF, #8A9CA8); color: white; }
 .section-health { background: linear-gradient(135deg, #ffd6e0, #ffe8d6); color: #6b4a5e; }
 .section-community { background: linear-gradient(135deg, #a7f3d0, #6ee7b7); color: #2d6a4f; }
 
@@ -506,7 +506,7 @@ blockquote {
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    background: rgba(123,174,154,0.08);
+    background: rgba(163,181,191,0.08);
     padding: 6px 14px;
     border-radius: 20px;
     font-size: 0.9rem;
@@ -641,7 +641,7 @@ blockquote {
 }
 .health-topic-card:hover {
     transform: translateY(-3px);
-    box-shadow: 0 8px 20px rgba(123,174,154,0.2);
+    box-shadow: 0 8px 20px rgba(163,181,191,0.2);
 }
 .topic-icon { font-size: 2.5rem; }
 .health-topic-card h3 { font-size: 1.05rem; }
@@ -783,7 +783,7 @@ blockquote {
     transition: all 0.2s;
 }
 .type-option:hover { border-color: var(--primary); }
-.type-option.selected { border-color: var(--primary); background: rgba(123,174,154,0.08); }
+.type-option.selected { border-color: var(--primary); background: rgba(163,181,191,0.08); }
 .type-option input { display: none; }
 
 .contribute-notes {
@@ -801,7 +801,7 @@ blockquote {
 .contribution-stats { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
 .stat-pill {
     padding: 6px 16px;
-    background: rgba(123,174,154,0.08);
+    background: rgba(163,181,191,0.08);
     border-radius: 20px;
     font-size: 0.9rem;
     color: var(--primary);
@@ -854,7 +854,7 @@ blockquote {
 .admin-contribution-item.rejected { border-left-color: #ef4444; }
 
 .item-header { display: flex; gap: 12px; align-items: center; margin-bottom: 8px; }
-.type-badge { padding: 2px 8px; background: rgba(123,174,154,0.08); border-radius: 8px; font-size: 0.8rem; }
+.type-badge { padding: 2px 8px; background: rgba(163,181,191,0.08); border-radius: 8px; font-size: 0.8rem; }
 .status-badge { padding: 2px 8px; border-radius: 8px; font-size: 0.8rem; }
 .status-pending { background: #fef3c7; color: #92400e; }
 .status-approved { background: #d1fae5; color: #065f46; }
@@ -878,10 +878,10 @@ blockquote {
 .section-card:hover{transform:translateY(-4px);box-shadow:var(--shadow-lg)}
 .section-icon{font-size:3rem}.section-card h2{font-size:1.3rem}.section-card p{font-size:.9rem;opacity:.8}
 .section-btn{font-weight:600;margin-top:8px}
-.section-knowledge{background:linear-gradient(135deg,#7BAE9A,#6A9A87);color:#fff}
+.section-knowledge{background:linear-gradient(135deg,#A3B5BF,#8A9CA8);color:#fff}
 .section-health{background:linear-gradient(135deg,#ffd6e0,#ffe8d6);color:#6b4a5e}
 .section-community{background:linear-gradient(135deg,#a7f3d0,#6ee7b7);color:#2d6a4f}
-.proponent-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(123,174,154,0.08);padding:4px 12px;border-radius:16px;font-size:.85rem;color:var(--primary);margin:4px 0}
+.proponent-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(163,181,191,0.08);padding:4px 12px;border-radius:16px;font-size:.85rem;color:var(--primary);margin:4px 0}
 .card-detail-page{max-width:800px;margin:0 auto}
 .card-detail-header h1{font-size:1.8rem;margin:8px 0}
 .card-summary-large{font-size:1.1rem;color:var(--text-light);margin-bottom:24px}
@@ -901,10 +901,10 @@ blockquote {
 
 /* ===== 用户登录系统样式 ===== */
 .nav-user-area{display:flex;align-items:center;margin-left:auto}
-.nav-login-btn{background:linear-gradient(135deg,#7BAE9A,#6A9A87);color:#fff;border:none;padding:8px 18px;border-radius:20px;font-size:.9rem;cursor:pointer;font-weight:600;transition:all .3s}
-.nav-login-btn:hover{transform:scale(1.05);box-shadow:0 4px 12px rgba(123,174,154,0.4)}
+.nav-login-btn{background:linear-gradient(135deg,#A3B5BF,#8A9CA8);color:#fff;border:none;padding:8px 18px;border-radius:20px;font-size:.9rem;cursor:pointer;font-weight:600;transition:all .3s}
+.nav-login-btn:hover{transform:scale(1.05);box-shadow:0 4px 12px rgba(163,181,191,0.4)}
 .nav-user{display:flex;align-items:center;gap:8px;cursor:pointer;padding:4px 12px;border-radius:20px;transition:all .3s;position:relative}
-.nav-user:hover{background:rgba(123,174,154,0.1)}
+.nav-user:hover{background:rgba(163,181,191,0.1)}
 .nav-avatar{width:32px;height:32px;border-radius:50%;border:2px solid var(--primary)}
 .nav-username{font-weight:600;color:var(--text);font-size:.9rem}
 .nav-points{background:#fef3c7;color:#d97706;padding:2px 10px;border-radius:12px;font-size:.8rem;font-weight:700}
@@ -939,8 +939,8 @@ blockquote {
 .upload-form input,.upload-form textarea,.upload-form select{width:100%;padding:12px 16px;border:2px solid var(--border);border-radius:10px;font-size:1rem;margin-bottom:20px;font-family:inherit}
 .upload-form input:focus,.upload-form textarea:focus,.upload-form select:focus{outline:none;border-color:var(--primary)}
 .upload-form textarea{min-height:200px;resize:vertical}
-.upload-submit{background:linear-gradient(135deg,#7BAE9A,#6A9A87);color:#fff;border:none;padding:14px 40px;border-radius:10px;font-size:1rem;font-weight:600;cursor:pointer;transition:all .3s}
-.upload-submit:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(123,174,154,0.4)}
+.upload-submit{background:linear-gradient(135deg,#A3B5BF,#8A9CA8);color:#fff;border:none;padding:14px 40px;border-radius:10px;font-size:1rem;font-weight:600;cursor:pointer;transition:all .3s}
+.upload-submit:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(163,181,191,0.4)}
 .upload-submit:disabled{opacity:.5;cursor:not-allowed;transform:none}
 
 /* 积分排行榜 */
@@ -960,8 +960,8 @@ blockquote {
 .login-prompt{text-align:center;padding:80px 20px}
 .login-prompt h1{font-size:2.5rem;color:var(--primary);margin-bottom:16px}
 .login-prompt p{font-size:1.1rem;color:var(--text-light);margin-bottom:32px}
-.login-prompt .login-btn{display:inline-block;background:linear-gradient(135deg,#7BAE9A,#6A9A87);color:#fff;padding:16px 48px;border-radius:12px;text-decoration:none;font-size:1.1rem;font-weight:600;transition:all .3s}
-.login-prompt .login-btn:hover{transform:translateY(-3px);box-shadow:0 8px 20px rgba(123,174,154,0.4)}
+.login-prompt .login-btn{display:inline-block;background:linear-gradient(135deg,#A3B5BF,#8A9CA8);color:#fff;padding:16px 48px;border-radius:12px;text-decoration:none;font-size:1.1rem;font-weight:600;transition:all .3s}
+.login-prompt .login-btn:hover{transform:translateY(-3px);box-shadow:0 8px 20px rgba(163,181,191,0.4)}
 
 /* ===== 手机端适配 ===== */
 
@@ -1144,11 +1144,11 @@ blockquote {
 .comment-form-footer{display:flex;justify-content:space-between;align-items:center;margin-top:8px}
 .char-count{font-size:.8rem;color:var(--text-light)}
 .comment-submit{
-    background:linear-gradient(135deg,#7BAE9A,#6A9A87);color:#fff;
+    background:linear-gradient(135deg,#A3B5BF,#8A9CA8);color:#fff;
     border:none;padding:8px 24px;border-radius:8px;
     font-size:.9rem;font-weight:600;cursor:pointer;transition:all .3s;
 }
-.comment-submit:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(123,174,154,0.3)}
+.comment-submit:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(163,181,191,0.3)}
 .comment-submit:disabled{opacity:.5;cursor:wait;transform:none}
 
 /* 评论列表 */
@@ -1167,11 +1167,11 @@ blockquote {
 /* 登录提示 */
 .interact-login-prompt{text-align:center;padding:24px;background:#f8fafc;border-radius:12px;margin-bottom:24px}
 .interact-login-link{
-    display:inline-block;background:linear-gradient(135deg,#7BAE9A,#6A9A87);
+    display:inline-block;background:linear-gradient(135deg,#A3B5BF,#8A9CA8);
     color:#fff;padding:10px 32px;border-radius:10px;
     text-decoration:none;font-weight:600;transition:all .3s;
 }
-.interact-login-link:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(123,174,154,0.3)}
+.interact-login-link:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(163,181,191,0.3)}
 
 /* 加载/错误状态 */
 .interact-loading{text-align:center;padding:24px;color:var(--text-light)}
@@ -1181,7 +1181,7 @@ blockquote {
 /* ===== 审核相关样式 ===== */
 
 /* 管理员提示 */
-.admin-hint{background:rgba(123,174,154,0.08);border-radius:8px;padding:8px 16px;margin-bottom:16px;font-size:.85rem;color:var(--primary)}
+.admin-hint{background:rgba(163,181,191,0.08);border-radius:8px;padding:8px 16px;margin-bottom:16px;font-size:.85rem;color:var(--primary)}
 .admin-hint a{font-weight:600;text-decoration:underline}
 
 /* 待审核评论 */
@@ -1267,7 +1267,7 @@ blockquote {
     display: inline-flex; align-items: center; gap: 4px;
     padding: 4px 10px; border-radius: 6px; font-size: 0.78rem; font-weight: 600;
 }
-.post-type-badge.article { background: rgba(123,174,154,0.15); color: #6A9A87; }
+.post-type-badge.article { background: rgba(163,181,191,0.15); color: #8A9CA8; }
 .post-type-badge.image { background: #dbeafe; color: #2563eb; }
 .post-type-badge.link { background: #fce7f3; color: #db2777; }
 .post-type-badge.video { background: #fef3c7; color: #d97706; }
@@ -1347,7 +1347,7 @@ blockquote {
     border-color: var(--primary); color: var(--primary); background: #faf5ff;
 }
 .post-react-btn.reacted {
-    background: rgba(123,174,154,0.15); border-color: #7BAE9A; color: #6A9A87;
+    background: rgba(163,181,191,0.15); border-color: #A3B5BF; color: #8A9CA8;
     font-weight: 600;
 }
 .post-react-btn:disabled, .post-comment-btn:disabled { opacity: 0.5; cursor: wait; }
@@ -1415,7 +1415,7 @@ blockquote {
     font-weight: 600; font-size: 0.92rem; margin: 16px 0;
     transition: all 0.2s;
 }
-.modal-link-btn:hover { background: rgba(123,174,154,0.15); }
+.modal-link-btn:hover { background: rgba(163,181,191,0.15); }
 
 /* 认同和统计 */
 .modal-reactions {
@@ -1434,7 +1434,7 @@ blockquote {
     border-color: var(--primary); color: var(--primary); background: #faf5ff;
 }
 .modal-react-btn.reacted {
-    background: rgba(123,174,154,0.15); border-color: #7BAE9A; color: #6A9A87;
+    background: rgba(163,181,191,0.15); border-color: #A3B5BF; color: #8A9CA8;
     font-weight: 700;
 }
 .modal-stat { font-size: 0.88rem; color: var(--text-light); }
@@ -1486,7 +1486,7 @@ blockquote {
     font-family: inherit; font-size: 0.92rem; resize: vertical;
     outline: none; transition: border-color 0.2s;
 }
-.comment-form textarea:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(123,174,154,0.1); }
+.comment-form textarea:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(163,181,191,0.1); }
 .comment-submit-btn {
     align-self: flex-end; padding: 10px 22px;
     background: var(--primary); color: #fff; border: none;
@@ -1523,7 +1523,7 @@ blockquote {
     color: var(--primary-dark);
 }
 .card-like-btn.liked {
-    background: rgba(123, 174, 154, 0.15);
+    background: rgba(163, 181, 191, 0.15);
     border-color: var(--primary);
     color: var(--primary-dark);
     font-weight: 600;
