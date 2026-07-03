@@ -1,6 +1,24 @@
 // Netlify Function: 管理员审核（上传内容审核 + 评论统计）
 // 仅管理员（仓库拥有者）可用
 
+// 统一 CORS JSON 响应（与其他 Functions 保持一致）
+function corsJsonResponse(body, statusCode = 200) {
+  return {
+    statusCode,
+    headers: {
+      'Content-Type': 'application/json',
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS'
+    },
+    body: JSON.stringify(body)
+  };
+}
+
+function handleOptions() {
+  return corsJsonResponse({ status: 'ok' });
+}
+
 const repoOwner = process.env.GITHUB_REPO_OWNER || 'kangkang-del';
 const repoName = process.env.GITHUB_REPO_NAME || 'mind-explorer';
 const repoToken = process.env.GITHUB_REPO_TOKEN || '';
@@ -81,15 +99,15 @@ function parseUploadIssue(issue) {
 
 exports.handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') {
-    return { statusCode: 200, body: '' };
+    return handleOptions();
   }
 
   const user = parseUser(event);
   if (!user) {
-    return { statusCode: 401, body: JSON.stringify({ error: '请先登录' }) };
+    return corsJsonResponse({ error: '请先登录' }, 401);
   }
   if (!isAdmin(user)) {
-    return { statusCode: 403, body: JSON.stringify({ error: '无管理员权限' }) };
+    return corsJsonResponse({ error: '无管理员权限' }, 403);
   }
 
   const token = repoToken || user.token;
@@ -100,14 +118,10 @@ exports.handler = async (event) => {
       const pendingIssues = await getPendingUploads(token);
       const uploads = pendingIssues.map(parseUploadIssue);
 
-      return {
-        statusCode: 200,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          pendingCount: uploads.length,
-          uploads
-        })
-      };
+      return corsJsonResponse({
+        pendingCount: uploads.length,
+        uploads
+      });
     }
 
     // ===== POST: 审核操作 =====
@@ -117,7 +131,7 @@ exports.handler = async (event) => {
       const issueNumber = body.issueNumber;
 
       if (!issueNumber) {
-        return { statusCode: 400, body: JSON.stringify({ error: '缺少 Issue 编号' }) };
+        return corsJsonResponse({ error: '缺少 Issue 编号' }, 400);
       }
 
       // 审核通过：移除 [PENDING] 标记，移除 pending 标签
@@ -135,11 +149,7 @@ exports.handler = async (event) => {
           labels: ['user-upload', 'approved']
         });
 
-        return {
-          statusCode: 200,
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ success: true, message: '审核通过' })
-        };
+        return corsJsonResponse({ success: true, message: '审核通过' });
       }
 
       // 审核拒绝：关闭 Issue
@@ -153,22 +163,15 @@ exports.handler = async (event) => {
           state: 'closed'
         });
 
-        return {
-          statusCode: 200,
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ success: true, message: '已拒绝' })
-        };
+        return corsJsonResponse({ success: true, message: '已拒绝' });
       }
 
-      return { statusCode: 400, body: JSON.stringify({ error: '无效的操作' }) };
+      return corsJsonResponse({ error: '无效的操作' }, 400);
     }
 
-    return { statusCode: 405, body: JSON.stringify({ error: 'Method not allowed' }) };
+    return corsJsonResponse({ error: 'Method not allowed' }, 405);
   } catch (error) {
     console.error('Admin review error:', error);
-    return {
-      statusCode: 500,
-      body: JSON.stringify({ error: '服务器错误', message: error.message })
-    };
+    return corsJsonResponse({ error: '服务器错误', message: error.message }, 500);
   }
 };

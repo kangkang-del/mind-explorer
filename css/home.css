@@ -83,28 +83,7 @@ body {
     flex-shrink: 0;
 }
 
-/* 桌面端导航链接（>768px 显示） */
-.nav-links-desktop {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.nav-link {
-    padding: 8px 18px;
-    color: var(--home-text-sub);
-    text-decoration: none;
-    font-size: 0.9rem;
-    font-weight: 400;
-    border-radius: 20px;
-    transition: background 0.25s, color 0.25s;
-    letter-spacing: 0.02em;
-}
-
-.nav-link:hover {
-    background: rgba(163, 181, 191, 0.15);
-    color: var(--home-text);
-}
+/* ==================== 首页导航栏治愈系微调 ==================== */
 
 /* ==================== 首页导航栏治愈系微调 ==================== */
 .navbar {

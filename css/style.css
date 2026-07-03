@@ -443,6 +443,16 @@ blockquote {
 .footer { text-align: center; padding: 20px; color: var(--text-light); font-size: 0.85rem; border-top: 1px solid var(--border); margin-top: 60px; }
 
 /* Responsive */
+/* 平板适配（768px - 1024px） */
+@media (min-width: 769px) and (max-width: 1024px) {
+    .card-grid { grid-template-columns: repeat(2, 1fr); }
+    .section-cards { grid-template-columns: repeat(2, 1fr); }
+    .health-topic-grid { grid-template-columns: repeat(2, 1fr); }
+    .coping-grid { grid-template-columns: repeat(2, 1fr); }
+    .dashboard { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* 移动端（<=768px） */
 @media (max-width: 768px) {
     .hero h1 { font-size: 1.8rem; }
     /* nav-links 的移动端样式已统一在底部手机端适配区域处理 */

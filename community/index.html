@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>社区交流 | 心灵探索</title>
+<link rel="stylesheet" href="/css/style.css">
+<script src="/js/auth.js"></script>
+<script src="/js/community.js"></script>
+</head>
+<body>
+
+<!-- 导航栏 -->
+<nav class="navbar">
+    <div class="nav-container">
+        <a href="/" class="nav-brand">心灵探索</a>
+        <button class="nav-toggle" onclick="document.querySelector('.nav-links').classList.toggle('active')" aria-label="菜单">☰</button>
+        <div class="nav-links">
+            <a href="/study/" class="nav-link">开始学习</a>
+            <a href="/health/" class="nav-link">了解心理</a>
+            <a href="/theorists/" class="nav-link">知识学习</a>
+            <a href="/community/" class="nav-link active">社区交流</a>
+        </div>
+    </div>
+</nav>
+
+<main class="container" style="padding: 40px 24px 80px;">
+    <h1 style="font-size: 1.8rem; margin-bottom: 8px; color: var(--text);">💬 社区交流</h1>
+    <p style="color: var(--text-light); margin-bottom: 32px;">浏览用户分享的内容，留下你的认同与评论</p>
+
+    <!-- 社区内容列表（由 community.js 动态加载） -->
+    <div id="community-posts" class="community-posts-grid"></div>
+</main>
+
+<!-- 评论弹窗 -->
+<div class="community-modal-overlay" id="community-modal" style="display:none;">
+    <div class="community-modal">
+        <div class="community-modal-header">
+            <h3>📝 评论</h3>
+            <button class="community-modal-close" onclick="document.getElementById('community-modal').style.display='none'">&times;</button>
+        </div>
+        <div id="comments-list" class="comments-list"></div>
+        <div class="comment-form">
+            <textarea id="comment-input" placeholder="写下你的想法..." rows="3" style="width:100%;padding:12px;border:1px solid var(--border);border-radius:8px;font-size:0.9rem;resize:none;"></textarea>
+            <button onclick="Community.submitComment()" style="margin-top:8px;padding:8px 20px;background:var(--primary);color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:0.9rem;">发布评论</button>
+        </div>
+    </div>
+</div>
+
+<div class="no-comments" style="display:none;"></div>
+
+<footer class="footer">
+    <p>用科学理解心灵，以知识温暖生活。&copy; 2025 心理学知识学习系统</p>
+</footer>
+
+<script>
+// 页面加载后初始化社区模块
+document.addEventListener('DOMContentLoaded', function() {
+    Community.init();
+});
+</script>
+
+</body>
+</html>
