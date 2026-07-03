@@ -170,6 +170,68 @@
 
     const isMobile = window.matchMedia('(max-width: 768px)').matches;
 
+    /* ---------- 拖拽功能 ---------- */
+    let isDragging = false;
+    let dragStartX = 0, dragStartY = 0;
+    let widgetStartX = 0, widgetStartY = 0;
+    let hasMoved = false;
+
+    function getWidgetPos() {
+        const rect = widget.getBoundingClientRect();
+        return { x: rect.left, y: rect.top };
+    }
+
+    function onDragStart(e) {
+        const point = e.touches ? e.touches[0] : e;
+        const pos = getWidgetPos();
+        dragStartX = point.clientX;
+        dragStartY = point.clientY;
+        widgetStartX = pos.x;
+        widgetStartY = pos.y;
+        hasMoved = false;
+        document.addEventListener(e.touches ? 'touchmove' : 'mousemove', onDragMove);
+        document.addEventListener(e.touches ? 'touchend' : 'mouseup', onDragEnd);
+    }
+
+    function onDragMove(e) {
+        const point = e.touches ? e.touches[0] : e;
+        const dx = point.clientX - dragStartX;
+        const dy = point.clientY - dragStartY;
+        if (Math.abs(dx) > 5 || Math.abs(dy) > 5) {
+            if (!isDragging) {
+                isDragging = true;
+                widget.classList.add('dragging');
+                // 切换为 left/top 定位
+                widget.style.right = 'auto';
+                widget.style.bottom = 'auto';
+            }
+        }
+        if (isDragging) {
+            const newX = widgetStartX + dx;
+            const newY = widgetStartY + dy;
+            // 边界限制
+            const maxX = window.innerWidth - widget.offsetWidth - 4;
+            const maxY = window.innerHeight - widget.offsetHeight - 4;
+            widget.style.left = Math.max(4, Math.min(newX, maxX)) + 'px';
+            widget.style.top = Math.max(4, Math.min(newY, maxY)) + 'px';
+            hasMoved = true;
+            if (e.cancelable) e.preventDefault();
+        }
+    }
+
+    function onDragEnd(e) {
+        document.removeEventListener(e.touches ? 'touchmove' : 'mousemove', onDragMove);
+        document.removeEventListener(e.touches ? 'touchend' : 'mouseup', onDragEnd);
+        if (isDragging) {
+            isDragging = false;
+            widget.classList.remove('dragging');
+        }
+    }
+
+    // 绑定拖拽（mousedown/touchstart）
+    widget.addEventListener('mousedown', onDragStart);
+    widget.addEventListener('touchstart', onDragStart, { passive: true });
+
     /* ---------- 心理短句池（随机轮换）---------- */
     const quotes = [
         '此刻，允许自己只是存在。',
@@ -229,6 +291,7 @@
 
         widget.addEventListener('click', (e) => {
             e.stopPropagation();
+            if (hasMoved) { hasMoved = false; return; }  // 拖拽后不触发点击
             if (popoverOpen) return;   // 已展开则忽略重复点击（通过收起按钮关闭）
             popoverOpen = true;
             quoteEl.textContent = pick(quotes);
@@ -263,6 +326,7 @@
 
         widget.addEventListener('click', (e) => {
             e.stopPropagation();
+            if (hasMoved) { hasMoved = false; return; }  // 拖拽后不触发点击
             if (sheetOpen) return;
             openSheet();
         });
