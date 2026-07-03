@@ -1,6 +1,5 @@
 // Netlify Function: 用户上传内容（文章 / 链接 / 图片）
-// 文章和链接：创建 GitHub Issue 存储
-// 图片：通过 Contents API 上传到仓库，再创建 Issue 引用
+// 所有类型均通过 GitHub Issue 存储，不写入仓库文件系统，避免触发 Netlify 重新部署
 
 const repoOwner = process.env.GITHUB_REPO_OWNER || 'kangkang-del';
 const repoName = process.env.GITHUB_REPO_NAME || 'mind-explorer';
@@ -78,27 +77,8 @@ async function createUploadIssue(title, body, labels, token) {
   return await res.json();
 }
 
-// 上传图片文件到仓库（使用仓库拥有者的 Token）
-async function uploadImageToRepo(filename, base64Content) {
-  if (!repoToken) {
-    throw new Error('服务器未配置 GITHUB_REPO_TOKEN，无法上传图片');
-  }
-  const path = `uploads/images/${Date.now()}-${filename.replace(/[^a-zA-Z0-9.\-]/g, '_')}`;
-  const res = await gh(
-    `https://api.github.com/repos/${repoOwner}/${repoName}/contents/${path}`,
-    'PUT', repoToken,
-    {
-      message: `Upload image: ${filename}`,
-      content: base64Content
-    }
-  );
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.message || `图片上传失败 (${res.status})`);
-  }
-  const data = await res.json();
-  return data.content?.download_url || `https://raw.githubusercontent.com/${repoOwner}/${repoName}/main/${path}`;
-}
+// 图片 Base64 大小限制（GitHub Issue body 上限约 1MB，留余量）
+const MAX_IMAGE_SIZE = 512 * 1024; // 512KB
 
 // 给用户增加贡献值（复用逻辑，支持小数）
 async function addPointsToUser(username, token, delta) {
@@ -206,20 +186,30 @@ exports.handler = async (event) => {
       return corsJsonResponse({ success: true, issueUrl: issue.html_url, points, pending: !admin }, 200);
     }
 
-    // ===== 图片上传 =====
+    // ===== 图片上传（Base64 存入 Issue body，不写入仓库文件） =====
     if (type === 'image') {
       const description = (body.description || '').trim();
-      const imageBase64 = body.image;
+      let imageBase64 = body.image;
       const filename = body.filename || 'image.jpg';
 
       if (!imageBase64) {
         return corsJsonResponse({ error: '请选择图片' }, 400);
       }
 
-      // 上传图片文件到仓库
-      const imageUrl = await uploadImageToRepo(filename, imageBase64);
+      // 去掉 data:image/xxx;base64, 前缀（如果有），只保留编码部分
+      const base64Match = imageBase64.match(/^data:image\/([^;]+);base64,(.+)$/);
+      const imageMimeType = base64Match ? base64Match[1] : 'jpeg';
+      const base64Data = base64Match ? base64Match[2] : imageBase64;
 
-      const issueBody = `${meta}type: image\ndescription: ${description || filename}\nimage_url: ${imageUrl}\n\n---\n`;
+      // 检查大小（Base64 原始大小约 4/3 倍于二进制）
+      if (Buffer.byteLength(base64Data, 'base64') > MAX_IMAGE_SIZE) {
+        return corsJsonResponse({ error: `图片过大，请控制在 ${Math.round(MAX_IMAGE_SIZE / 1024)}KB 以内` }, 400);
+      }
+
+      // 直接将 Base64 存入 Issue body，前端用 data URI 渲染，不触发部署
+      const imageUrl = `data:${imageMimeType};base64,${base64Data}`;
+
+      const issueBody = `${meta}type: image\ndescription: ${description || filename}\nfilename: ${filename}\nimage_b64: ${base64Data}\n\n---\n`;
       const issue = await createUploadIssue(
         `[UPLOAD]${pendingTag}[image] ${description || filename}`,
         issueBody,
@@ -228,7 +218,7 @@ exports.handler = async (event) => {
       );
 
       if (!issue.html_url) {
-        return corsJsonResponse({ error: '创建记录失败，但图片已上传' }, 500);
+        return corsJsonResponse({ error: '创建记录失败' }, 500);
       }
 
       const points = await addPointsToUser(user.username, user.token, 5);
