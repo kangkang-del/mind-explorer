@@ -2,7 +2,7 @@
 
 :root {
     --primary: #7BAE9A;       /* 雾霾蓝（治愈系统一，原紫色 #7BAE9A） */
-    --primary-dark: #6A9A87;  /* 雾霾蓝加深（原 #4f46e5） */
+    --primary-dark: #6A9A87;  /* 雾霾蓝加深（原紫色已替换） */
     --secondary: #8FC5B0;     /* 柔和青灰（原紫色 #6A9A87） */
     --bg: #f8fafc;
     --card-bg: #ffffff;
@@ -86,7 +86,7 @@ body {
 .hero {
     text-align: center;
     padding: 60px 20px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #7BAE9A 0%, #6A9A87 100%);
     border-radius: var(--radius);
     color: white;
     margin-bottom: 40px;
@@ -344,7 +344,7 @@ body {
 .score-circle {
     width: 120px; height: 120px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #667eea, #764ba2);
+    background: linear-gradient(135deg, #7BAE9A, #6A9A87);
     display: flex; align-items: center; justify-content: center;
     margin: 20px auto;
 }
@@ -641,7 +641,7 @@ blockquote {
 }
 .health-topic-card:hover {
     transform: translateY(-3px);
-    box-shadow: 0 8px 20px rgba(246,165,192,0.2);
+    box-shadow: 0 8px 20px rgba(123,174,154,0.2);
 }
 .topic-icon { font-size: 2.5rem; }
 .health-topic-card h3 { font-size: 1.05rem; }
@@ -902,9 +902,9 @@ blockquote {
 /* ===== 用户登录系统样式 ===== */
 .nav-user-area{display:flex;align-items:center;margin-left:auto}
 .nav-login-btn{background:linear-gradient(135deg,#7BAE9A,#6A9A87);color:#fff;border:none;padding:8px 18px;border-radius:20px;font-size:.9rem;cursor:pointer;font-weight:600;transition:all .3s}
-.nav-login-btn:hover{transform:scale(1.05);box-shadow:0 4px 12px rgba(99,102,241,.4)}
+.nav-login-btn:hover{transform:scale(1.05);box-shadow:0 4px 12px rgba(123,174,154,0.4)}
 .nav-user{display:flex;align-items:center;gap:8px;cursor:pointer;padding:4px 12px;border-radius:20px;transition:all .3s;position:relative}
-.nav-user:hover{background:rgba(99,102,241,.1)}
+.nav-user:hover{background:rgba(123,174,154,0.1)}
 .nav-avatar{width:32px;height:32px;border-radius:50%;border:2px solid var(--primary)}
 .nav-username{font-weight:600;color:var(--text);font-size:.9rem}
 .nav-points{background:#fef3c7;color:#d97706;padding:2px 10px;border-radius:12px;font-size:.8rem;font-weight:700}
@@ -940,7 +940,7 @@ blockquote {
 .upload-form input:focus,.upload-form textarea:focus,.upload-form select:focus{outline:none;border-color:var(--primary)}
 .upload-form textarea{min-height:200px;resize:vertical}
 .upload-submit{background:linear-gradient(135deg,#7BAE9A,#6A9A87);color:#fff;border:none;padding:14px 40px;border-radius:10px;font-size:1rem;font-weight:600;cursor:pointer;transition:all .3s}
-.upload-submit:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(99,102,241,.4)}
+.upload-submit:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(123,174,154,0.4)}
 .upload-submit:disabled{opacity:.5;cursor:not-allowed;transform:none}
 
 /* 积分排行榜 */
@@ -961,7 +961,7 @@ blockquote {
 .login-prompt h1{font-size:2.5rem;color:var(--primary);margin-bottom:16px}
 .login-prompt p{font-size:1.1rem;color:var(--text-light);margin-bottom:32px}
 .login-prompt .login-btn{display:inline-block;background:linear-gradient(135deg,#7BAE9A,#6A9A87);color:#fff;padding:16px 48px;border-radius:12px;text-decoration:none;font-size:1.1rem;font-weight:600;transition:all .3s}
-.login-prompt .login-btn:hover{transform:translateY(-3px);box-shadow:0 8px 20px rgba(99,102,241,.4)}
+.login-prompt .login-btn:hover{transform:translateY(-3px);box-shadow:0 8px 20px rgba(123,174,154,0.4)}
 
 /* ===== 手机端适配 ===== */
 
@@ -1148,7 +1148,7 @@ blockquote {
     border:none;padding:8px 24px;border-radius:8px;
     font-size:.9rem;font-weight:600;cursor:pointer;transition:all .3s;
 }
-.comment-submit:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(99,102,241,.3)}
+.comment-submit:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(123,174,154,0.3)}
 .comment-submit:disabled{opacity:.5;cursor:wait;transform:none}
 
 /* 评论列表 */
@@ -1171,7 +1171,7 @@ blockquote {
     color:#fff;padding:10px 32px;border-radius:10px;
     text-decoration:none;font-weight:600;transition:all .3s;
 }
-.interact-login-link:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(99,102,241,.3)}
+.interact-login-link:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(123,174,154,0.3)}
 
 /* 加载/错误状态 */
 .interact-loading{text-align:center;padding:24px;color:var(--text-light)}
@@ -1486,7 +1486,7 @@ blockquote {
     font-family: inherit; font-size: 0.92rem; resize: vertical;
     outline: none; transition: border-color 0.2s;
 }
-.comment-form textarea:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(99,102,241,0.1); }
+.comment-form textarea:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(123,174,154,0.1); }
 .comment-submit-btn {
     align-self: flex-end; padding: 10px 22px;
     background: var(--primary); color: #fff; border: none;
