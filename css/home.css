@@ -367,10 +367,19 @@ body {
 
     /* --- 情绪水母挂件（移动端尺寸）--- */
     .mist-widget {
-        width: 46px;
-        height: 46px;
-        right: 18px;
-        bottom: calc(18px + env(safe-area-inset-bottom, 0px));
+        width: 50px;
+        height: 50px;
+        right: 16px;
+        bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+        border-radius: 50%;
+        background: radial-gradient(circle at 30% 22%,
+            rgba(123, 174, 154, 0.35) 0%,
+            rgba(123, 174, 154, 0.22) 55%,
+            rgba(123, 174, 154, 0.10) 100%);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        border: 1px solid rgba(123, 174, 154, 0.25);
+        box-shadow: 0 4px 16px rgba(166, 165, 160, 0.18);
     }
 
     .jellyfish { width: 27px; height: 29px; }
