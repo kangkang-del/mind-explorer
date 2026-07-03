@@ -42,7 +42,7 @@ const Community = {
       container.innerHTML = `
         <div class="community-error">
           <p>😅 社区内容加载失败</p>
-          <button onclick="Community.loadPosts()" style="margin-top:12px;padding:8px 20px;border:none;background:var(--primary);color:#fff;border-radius:8px;cursor:pointer;">重新加载</button>
+          <button onclick="Community.loadPosts()" style="margin-top:12px;padding:8px 20px;border:none;background:var(--primary, #A3B5BF);color:#fff;border-radius:8px;cursor:pointer;">重新加载</button>
         </div>
       `;
     }

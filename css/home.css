@@ -6,6 +6,7 @@
 /* ==================== 设计变量（CSS Custom Properties）==================== */
 :root {
     /* ---- 色彩系统 ---- */
+    --primary:          #A3B5BF;     /* 覆盖 style.css 紫色 → 雾霾蓝（首页统一） */
     --home-bg:           #F7F4EF;     /* 燕麦色背景 */
     --home-card:         #FFFDF9;     /* 极暖米白卡片 */
     --home-text:         #4A4A4A;     /* 主文字 */

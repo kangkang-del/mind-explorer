@@ -45,7 +45,7 @@ const Auth = {
   // 更新页面导航栏的登录状态
   updateNav() {
     const user = this.getUser();
-    const navLinks = document.querySelector('.nav-links');
+    const navLinks = document.querySelector('.nav-links') || document.querySelector('.nav-links-desktop');
     if (!navLinks) return;
 
     // 移除旧的登录/用户区域
