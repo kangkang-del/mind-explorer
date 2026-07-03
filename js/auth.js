@@ -45,7 +45,7 @@ const Auth = {
   // 更新页面导航栏的登录状态
   updateNav() {
     const user = this.getUser();
-    const navLinks = document.querySelector('.nav-links') || document.querySelector('.nav-links-desktop');
+    const navLinks = document.querySelector('.nav-links');
     if (!navLinks) return;
 
     // 移除旧的登录/用户区域
@@ -57,12 +57,11 @@ const Auth = {
     userArea.className = 'nav-user-area';
 
     if (user) {
-      // 已登录：显示用户头像和昵称
       userArea.innerHTML = `
         <div class="nav-user" onclick="Auth.toggleDropdown()">
           <img src="${user.avatar}" alt="${user.name}" class="nav-avatar">
           <span class="nav-username">${user.name}</span>
-          <span class="nav-points" id="nav-points">⭐ --</span>
+          <span class="nav-points" id="nav-points">💫 --</span>
           <span class="nav-arrow">▾</span>
         </div>
         <div class="nav-dropdown" id="nav-dropdown">
@@ -75,17 +74,14 @@ const Auth = {
         </div>
       `;
     } else {
-      // 未登录：显示登录按钮
       userArea.innerHTML = `
-        <button class="nav-login-btn" onclick="Auth.login()">
-          🔑 登录 / 注册
-        </button>
+        <button class="nav-login-btn" onclick="Auth.login()">🔑 登录 / 注册</button>
       `;
     }
 
     navLinks.appendChild(userArea);
 
-    // 登录后获取积分
+    // 登录后获取贡献值
     if (user) {
       this.fetchPoints();
     }
@@ -99,23 +95,21 @@ const Auth = {
     }
   },
 
-  // 获取用户积分
+  // 获取用户贡献值
   async fetchPoints() {
     try {
       const res = await fetch('/.netlify/functions/user-points');
       if (res.ok) {
         const data = await res.json();
         const pointsEl = document.getElementById('nav-points');
-        if (pointsEl) {
-          pointsEl.textContent = `⭐ ${data.points}`;
-        }
+        if (pointsEl) pointsEl.textContent = `💫 ${data.points}`;
       }
     } catch (e) {
-      console.error('获取积分失败：', e);
+      console.error('获取贡献值失败：', e);
     }
   },
 
-  // 增加积分
+  // 增加贡献值
   async addPoints(delta) {
     try {
       const res = await fetch('/.netlify/functions/user-points', {
@@ -126,13 +120,11 @@ const Auth = {
       if (res.ok) {
         const data = await res.json();
         const pointsEl = document.getElementById('nav-points');
-        if (pointsEl) {
-          pointsEl.textContent = `⭐ ${data.points}`;
-        }
+        if (pointsEl) pointsEl.textContent = `💫 ${data.points}`;
         return data.points;
       }
     } catch (e) {
-      console.error('增加积分失败：', e);
+      console.error('增加贡献值失败：', e);
     }
     return null;
   }

@@ -5,8 +5,7 @@
 
 /* ==================== 设计变量（CSS Custom Properties）==================== */
 :root {
-    /* ---- 色彩系统 ---- */
-    --primary:          #A3B5BF;     /* 覆盖 style.css 紫色 → 雾霾蓝（首页统一） */
+    /* ---- 色彩系统（首页专用，--primary/--primary-dark 已在 style.css 统一为雾霾蓝） ---- */
     --home-bg:           #F7F4EF;     /* 燕麦色背景 */
     --home-card:         #FFFDF9;     /* 极暖米白卡片 */
     --home-text:         #4A4A4A;     /* 主文字 */
@@ -107,108 +106,16 @@ body {
     color: var(--home-text);
 }
 
-
-/* ==================== 汉堡按钮 ==================== */
-.nav-toggle {
-    display: none;          /* 桌面端隐藏，移动端通过媒体查询显示 */
-    flex-direction: column;
-    justify-content: center;
-    gap: 5px;
-    width: 36px;
-    height: 36px;
-    background: none;
-    border: none;
-    cursor: pointer;
-    padding: 6px;
-    z-index: 910;
+/* ==================== 首页导航栏治愈系微调 ==================== */
+.navbar {
+    background: var(--home-card);
+    border-bottom-color: rgba(163, 181, 191, 0.18);
 }
-
-.hamburger-line {
-    display: block;
-    width: 22px;
-    height: 1.8px;
-    background-color: var(--home-text);
-    border-radius: 2px;
-    transition: transform 0.3s ease, opacity 0.3s ease;
-    transform-origin: center;
-}
-
-
-/* ==================== 移动端滑出磨砂面板 ==================== */
-.mobile-overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(74, 74, 74, 0.35);
-    z-index: 920;
-    opacity: 0;
-    visibility: hidden;
-    transition: opacity 0.35s ease, visibility 0.35s ease;
-}
-
-.mobile-overlay.show {
-    opacity: 1;
-    visibility: visible;
-}
-
-.mobile-panel {
-    position: fixed;
-    top: 0;
-    right: 0;
-    bottom: 0;
-    width: min(300px, 80vw);
-    background: var(--home-glass-bg);
-    backdrop-filter: var(--home-blur);
-    -webkit-backdrop-filter: var(--home-blur);
-    z-index: 930;
-    transform: translateX(100%);
-    transition: transform 0.4s cubic-bezier(0.32, 0.72, 0, 1);
-    box-shadow: -8px 0 32px rgba(166, 165, 160, 0.15);
-    border-left: 1px solid rgba(163, 181, 191, 0.2);
-}
-
-.mobile-panel.open {
-    transform: translateX(0);
-}
-
-.mobile-panel-inner {
-    display: flex;
-    flex-direction: column;
-    padding: 24px 20px;
-    padding-top: 20px;
-}
-
-.mobile-close {
-    align-self: flex-end;
-    background: none;
-    border: none;
-    font-size: 1.8rem;
-    color: var(--home-text-sub);
-    cursor: pointer;
-    padding: 4px 10px;
-    line-height: 1;
-    margin-bottom: 28px;
-    transition: color 0.2s;
-}
-
-.mobile-close:hover {
-    color: var(--home-text);
-}
-
-.mobile-link {
-    display: block;
-    padding: 14px 16px;
-    color: var(--home-text);
-    text-decoration: none;
-    font-size: 1.05rem;
-    font-weight: 400;
-    border-radius: var(--home-radius);
-    transition: background 0.25s;
-    letter-spacing: 0.03em;
-}
-
-.mobile-link:hover,
-.mobile-link:active {
+.nav-brand { color: var(--home-text); font-weight: 700; }
+.nav-link { color: var(--home-text-sub); }
+.nav-link:hover {
     background: rgba(163, 181, 191, 0.12);
+    color: var(--home-text);
 }
 
 
@@ -402,14 +309,7 @@ body {
         line-height: 1.8;
     }
 
-    /* --- 导航栏 --- */
-    .nav-toggle {
-        display: flex;                /* 显示汉堡按钮 */
-    }
-
-    .nav-links-desktop {
-        display: none;               /* 隐藏桌面链接 */
-    }
+    /* --- 导航栏：由 style.css 统一处理 .nav-links.active 展开逻辑 --- */
 
     /* --- Hero 精简 --- */
     .hero {

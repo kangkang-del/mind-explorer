@@ -1,9 +1,9 @@
 /* 心灵探索 - 心理学知识学习系统 样式 */
 
 :root {
-    --primary: #6366f1;
-    --primary-dark: #4f46e5;
-    --secondary: #8b5cf6;
+    --primary: #A3B5BF;       /* 雾霾蓝（治愈系统一，原紫色 #6366f1） */
+    --primary-dark: #8A9CA8;  /* 雾霾蓝加深（原 #4f46e5） */
+    --secondary: #9DBFBF;     /* 柔和青灰（原紫色 #8b5cf6） */
     --bg: #f8fafc;
     --card-bg: #ffffff;
     --text: #1e293b;

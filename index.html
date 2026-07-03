@@ -7,7 +7,7 @@
 <link rel="stylesheet" href="/css/style.css">
 <link rel="stylesheet" href="/css/home.css">
 <script src="/js/auth.js"></script>
-<!-- [第二部分 JS] 情绪雾点挂件交互 + 汉堡菜单 -->
+<!-- [第二部分 JS] 情绪水母挂件交互 -->
 </head>
 <body>
 
@@ -15,32 +15,12 @@
 <nav class="navbar">
     <div class="nav-container">
         <a href="/" class="nav-brand">心灵探索</a>
-
-        <!-- 桌面端导航链接 -->
-        <div class="nav-links-desktop">
+        <button class="nav-toggle" onclick="document.querySelector('.nav-links').classList.toggle('active')" aria-label="菜单">☰</button>
+        <div class="nav-links">
             <a href="/study/" class="nav-link">开始学习</a>
             <a href="/health/" class="nav-link">了解心理</a>
             <a href="/theorists/" class="nav-link">知识学习</a>
-            <!-- 用户登录区域会由 auth.js 动态插入到这里（需确保选择 .nav-links-desktop 或 .mobile-panel-inner） -->
-        </div>
-
-        <!-- 移动端汉堡按钮 -->
-        <button class="nav-toggle" id="navToggle" aria-label="打开菜单">
-            <span class="hamburger-line"></span>
-            <span class="hamburger-line"></span>
-            <span class="hamburger-line"></span>
-        </button>
-    </div>
-
-    <!-- 移动端滑出磨砂面板 -->
-    <div class="mobile-overlay" id="mobileOverlay"></div>
-    <div class="mobile-panel" id="mobilePanel">
-        <div class="mobile-panel-inner">
-            <button class="mobile-close" id="mobileClose" aria-label="关闭菜单">&times;</button>
-            <a href="/study/" class="mobile-link">开始学习</a>
-            <a href="/health/" class="mobile-link">了解心理</a>
-            <a href="/theorists/" class="mobile-link">知识学习</a>
-            <!-- [第二部分 JS] 移动端用户区域由 auth.js 动态插入 -->
+            <!-- 用户登录区域会由 auth.js 动态注入 -->
         </div>
     </div>
 </nav>
@@ -169,14 +149,7 @@
 </footer>
 
 
-<!-- [第二部分 JS] 以下为预留的交互脚本位置 -->
-<!--
-  需要实现的交互功能：
-  1. 汉堡菜单开关（移动端面板滑出/关闭）
-  2. scroll-snap 轮播指示器
-  3. auth.js 用户区域注入
-  4. 社区内容加载 (community.js)
--->
+<!-- [第二部分 JS] 情绪水母挂件交互逻辑 -->
 <script>
 // ============================================================
 //  情绪雾点挂件 (Mist Widget) — 完整交互逻辑
@@ -387,30 +360,6 @@
     }
 
 
-    /* ===========================================================
-       汉堡菜单开关（导航栏）
-    =========================================================== */
-    (function(){
-        var toggle = document.getElementById('navToggle');
-        var panel  = document.getElementById('mobilePanel');
-        var overlay = document.getElementById('mobileOverlay');
-        var closeBtn = document.getElementById('mobileClose');
-
-        function openMenu() {
-            panel.classList.add('open');
-            overlay.classList.add('show');
-            document.body.style.overflow = 'hidden';
-        }
-        function closeMenu() {
-            panel.classList.remove('open');
-            overlay.classList.remove('show');
-            document.body.style.overflow = '';
-        }
-
-        if(toggle) toggle.addEventListener('click', openMenu);
-        if(closeBtn) closeBtn.addEventListener('click', closeMenu);
-        if(overlay) overlay.addEventListener('click', closeMenu);
-    })();
 
 })();
 </script>

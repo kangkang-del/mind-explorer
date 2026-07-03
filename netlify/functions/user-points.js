@@ -1,6 +1,25 @@
 // Netlify Function: 获取/更新用户贡献值
 // 支持小数贡献值（如 0.1 点赞奖励）
 
+// 统一 CORS JSON 响应（与其他 Functions 保持一致）
+function corsJsonResponse(body, statusCode = 200) {
+  return {
+    statusCode,
+    headers: {
+      'Content-Type': 'application/json',
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS'
+    },
+    body: JSON.stringify(body)
+  };
+}
+
+// 处理 OPTIONS 预检请求
+function handleOptions() {
+  return corsJsonResponse({ status: 'ok' });
+}
+
 // 获取贡献榜数据
 async function fetchLeaderboard(token, repoOwner, repoName) {
   try {
@@ -20,11 +39,7 @@ async function fetchLeaderboard(token, repoOwner, repoName) {
     });
 
     if (!res.ok) {
-      return {
-        statusCode: 200, // 不因为榜单加载失败阻断页面
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ error: '暂时无法加载排行榜', contributors: [] })
-      };
+      return corsJsonResponse({ error: '暂时无法加载排行榜', contributors: [] });
     }
 
     const data = await res.json();
@@ -45,42 +60,31 @@ async function fetchLeaderboard(token, repoOwner, repoName) {
     .filter(c => c.points > 0)
     .sort((a, b) => b.points - a.points);
 
-    return {
-      statusCode: 200,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ contributors })
-    };
+    return corsJsonResponse({ contributors });
   } catch (error) {
-    return {
-      statusCode: 200,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ error: error.message, contributors: [] })
-    };
+    return corsJsonResponse({ error: error.message, contributors: [] });
   }
 }
 
 exports.handler = async (event, context) => {
+  // OPTIONS 预检
+  if (event.httpMethod === 'OPTIONS') {
+    return handleOptions();
+  }
+
   // 从 cookie 获取用户信息
   const cookies = event.headers.cookie || '';
   const userMatch = cookies.match(/me_user=([^;]+)/);
 
   if (!userMatch) {
-    return {
-      statusCode: 401,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ error: 'Not logged in' })
-    };
+    return corsJsonResponse({ error: 'Not logged in' }, 401);
   }
 
   let user;
   try {
     user = JSON.parse(Buffer.from(userMatch[1], 'base64').toString());
   } catch (e) {
-    return {
-      statusCode: 401,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ error: 'Invalid user cookie' })
-    };
+    return corsJsonResponse({ error: 'Invalid user cookie' }, 401);
   }
 
   const token = user.token;
@@ -125,11 +129,7 @@ exports.handler = async (event, context) => {
         return await fetchLeaderboard(token, repoOwner, repoName);
       }
 
-      return {
-        statusCode: 200,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ points, username })
-      };
+      return corsJsonResponse({ points, username });
     }
 
     if (event.httpMethod === 'POST') {
@@ -168,23 +168,11 @@ exports.handler = async (event, context) => {
         });
       }
 
-      return {
-        statusCode: 200,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ points: newPoints, username })
-      };
+      return corsJsonResponse({ points: newPoints, username });
     }
 
-    return {
-      statusCode: 405,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ error: 'Method not allowed' })
-    };
+    return corsJsonResponse({ error: 'Method not allowed' }, 405);
   } catch (error) {
-    return {
-      statusCode: 500,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ error: 'Server error', message: error.message })
-    };
+    return corsJsonResponse({ error: 'Server error', message: error.message }, 500);
   }
 };
