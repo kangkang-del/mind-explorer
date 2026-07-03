@@ -1,0 +1,817 @@
+/* ===================================================
+   心灵探索 (Mind Explorer) — 首页样式
+   设计令牌: 燕麦色暖调 / 雾霾蓝强调 / 毛玻璃质感
+   =================================================== */
+
+/* ==================== 设计变量（CSS Custom Properties）==================== */
+:root {
+    /* ---- 色彩系统 ---- */
+    --home-bg:           #F7F4EF;     /* 燕麦色背景 */
+    --home-card:         #FFFDF9;     /* 极暖米白卡片 */
+    --home-text:         #4A4A4A;     /* 主文字 */
+    --home-text-sub:     #8E908B;     /* 辅助文字 */
+    --home-accent:       #A3B5BF;     /* 雾霾蓝（装饰/分割线/按钮） */
+    --home-accent-hover: #8A9CA8;     /* 雾霾蓝悬停加深 */
+    --home-white:        #FFFFFF;     /* 纯白（按钮文字） */
+
+    /* ---- 质感 ---- */
+    --home-glass-bg:     rgba(255, 253, 249, 0.72);  /* 毛玻璃背景 */
+    --home-blur:         blur(16px);                   /* 模糊半径 */
+    --home-radius:       20px;                         /* 统一圆角 */
+    --home-shadow:       0 8px 24px rgba(166, 165, 160, 0.12);  /* 弥散阴影 */
+
+    /* ---- 字体 ---- */
+    --home-font-title:   "Source Han Serif SC", "Noto Serif SC", "Songti SC", serif;
+    --home-font-body:    "PingFang SC", "Microsoft YaHei", -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+/* ==================== 全局重置与基础 ==================== */
+*,
+*::before,
+*::after {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html {
+    scroll-behavior: smooth;
+    -webkit-tap-highlight-color: transparent;
+}
+
+body {
+    font-family: var(--home-font-body);
+    font-size: 16px;
+    line-height: 1.8;
+    color: var(--home-text);
+    background-color: var(--home-bg);
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+
+/* ==================== 导航栏 ==================== */
+.navbar {
+    position: sticky;
+    top: 0;
+    z-index: 900;
+    background: var(--home-glass-bg);
+    backdrop-filter: var(--home-blur);
+    -webkit-backdrop-filter: var(--home-blur);
+    border-bottom: 1px solid rgba(163, 181, 191, 0.2);
+}
+
+.nav-container {
+    max-width: 1120px;
+    margin: 0 auto;
+    padding: 0 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 64px;
+}
+
+/* Logo */
+.nav-brand {
+    font-family: var(--home-font-title);
+    font-size: 1.3rem;
+    font-weight: 300;
+    color: var(--home-text);
+    text-decoration: none;
+    letter-spacing: 0.08em;
+    flex-shrink: 0;
+}
+
+/* 桌面端导航链接（>768px 显示） */
+.nav-links-desktop {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.nav-link {
+    padding: 8px 18px;
+    color: var(--home-text-sub);
+    text-decoration: none;
+    font-size: 0.9rem;
+    font-weight: 400;
+    border-radius: 20px;
+    transition: background 0.25s, color 0.25s;
+    letter-spacing: 0.02em;
+}
+
+.nav-link:hover {
+    background: rgba(163, 181, 191, 0.15);
+    color: var(--home-text);
+}
+
+
+/* ==================== 汉堡按钮 ==================== */
+.nav-toggle {
+    display: none;          /* 桌面端隐藏，移动端通过媒体查询显示 */
+    flex-direction: column;
+    justify-content: center;
+    gap: 5px;
+    width: 36px;
+    height: 36px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 6px;
+    z-index: 910;
+}
+
+.hamburger-line {
+    display: block;
+    width: 22px;
+    height: 1.8px;
+    background-color: var(--home-text);
+    border-radius: 2px;
+    transition: transform 0.3s ease, opacity 0.3s ease;
+    transform-origin: center;
+}
+
+
+/* ==================== 移动端滑出磨砂面板 ==================== */
+.mobile-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(74, 74, 74, 0.35);
+    z-index: 920;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.35s ease, visibility 0.35s ease;
+}
+
+.mobile-overlay.show {
+    opacity: 1;
+    visibility: visible;
+}
+
+.mobile-panel {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: min(300px, 80vw);
+    background: var(--home-glass-bg);
+    backdrop-filter: var(--home-blur);
+    -webkit-backdrop-filter: var(--home-blur);
+    z-index: 930;
+    transform: translateX(100%);
+    transition: transform 0.4s cubic-bezier(0.32, 0.72, 0, 1);
+    box-shadow: -8px 0 32px rgba(166, 165, 160, 0.15);
+    border-left: 1px solid rgba(163, 181, 191, 0.2);
+}
+
+.mobile-panel.open {
+    transform: translateX(0);
+}
+
+.mobile-panel-inner {
+    display: flex;
+    flex-direction: column;
+    padding: 24px 20px;
+    padding-top: 20px;
+}
+
+.mobile-close {
+    align-self: flex-end;
+    background: none;
+    border: none;
+    font-size: 1.8rem;
+    color: var(--home-text-sub);
+    cursor: pointer;
+    padding: 4px 10px;
+    line-height: 1;
+    margin-bottom: 28px;
+    transition: color 0.2s;
+}
+
+.mobile-close:hover {
+    color: var(--home-text);
+}
+
+.mobile-link {
+    display: block;
+    padding: 14px 16px;
+    color: var(--home-text);
+    text-decoration: none;
+    font-size: 1.05rem;
+    font-weight: 400;
+    border-radius: var(--home-radius);
+    transition: background 0.25s;
+    letter-spacing: 0.03em;
+}
+
+.mobile-link:hover,
+.mobile-link:active {
+    background: rgba(163, 181, 191, 0.12);
+}
+
+
+/* ==================== 主内容区域 ==================== */
+.main-content {
+    max-width: 1120px;
+    margin: 0 auto;
+    padding: 0 24px 60px;
+}
+
+
+/* ==================== Hero 区域 ==================== */
+.hero {
+    text-align: center;
+    padding: 88px 20px 64px;
+}
+
+.hero-title {
+    font-family: var(--home-font-title);
+    font-weight: 300;
+    font-size: 2.6rem;
+    line-height: 1.45;
+    color: var(--home-text);
+    letter-spacing: 0.06em;
+    margin-bottom: 20px;
+    max-width: 640px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.hero-subtitle {
+    font-size: 1rem;
+    color: var(--home-text-sub);
+    letter-spacing: 0.04em;
+    margin-bottom: 36px;
+    line-height: 1.8;
+}
+
+.hero-btn {
+    display: inline-block;
+    padding: 14px 44px;
+    background-color: var(--home-accent);
+    color: var(--home-white);
+    text-decoration: none;
+    font-size: 1rem;
+    font-weight: 500;
+    border-radius: 30px;
+    letter-spacing: 0.08em;
+    transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
+    box-shadow: 0 4px 16px rgba(163, 181, 191, 0.3);
+}
+
+.hero-btn:hover {
+    background-color: var(--home-accent-hover);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 22px rgba(163, 181, 191, 0.4);
+}
+
+.hero-btn:active {
+    transform: translateY(0);
+}
+
+
+/* ==================== 三大入口卡片 — PC 端 Grid ==================== */
+.entry-section {
+    margin-bottom: 48px;
+}
+
+.entry-carousel {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+}
+
+.entry-card {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 36px 30px;
+    background: var(--home-card);
+    border-radius: var(--home-radius);
+    box-shadow: var(--home-shadow);
+    text-decoration: none;
+    color: inherit;
+    transition: transform 0.35s ease, box-shadow 0.35s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.entry-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: var(--home-accent);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.entry-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 12px 32px rgba(166, 165, 160, 0.18);
+}
+
+.entry-card:hover::before {
+    opacity: 1;
+}
+
+.entry-card-icon {
+    flex-shrink: 0;
+    width: 52px;
+    height: 52px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(163, 181, 191, 0.1);
+    border-radius: 14px;
+}
+
+.entry-card-icon svg {
+    width: 36px;
+    height: 36px;
+}
+
+.entry-card-title {
+    font-family: var(--home-font-title);
+    font-weight: 400;
+    font-size: 1.35rem;
+    color: var(--home-text);
+    letter-spacing: 0.05em;
+}
+
+.entry-card-desc {
+    font-size: 0.92rem;
+    color: var(--home-text-sub);
+    line-height: 1.75;
+    flex: 1;
+}
+
+.entry-card-action {
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--home-accent);
+    letter-spacing: 0.03em;
+    transition: color 0.25s;
+    margin-top: 4px;
+}
+
+.entry-card:hover .entry-card-action {
+    color: var(--home-accent-hover);
+}
+
+
+/* ==================== 页脚 ==================== */
+.footer {
+    text-align: center;
+    padding: 28px 24px;
+    color: var(--home-text-sub);
+    font-size: 0.82rem;
+    letter-spacing: 0.03em;
+    border-top: 1px solid rgba(163, 181, 191, 0.18);
+}
+
+
+/* ===================================================
+   响应式断点
+   =================================================== */
+
+/* ---------- 平板 (768px ~ 1024px) — Grid 2列 ---------- */
+@media (max-width: 1024px) and (min-width: 769px) {
+    .entry-carousel {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .entry-carousel .entry-card:last-child {
+        grid-column: 1 / -1;
+        max-width: 50%;
+        justify-self: center;
+    }
+}
+
+
+/* ---------- 移动端 (<768px) ---------- */
+@media (max-width: 768px) {
+
+    body {
+        font-size: 15px;              /* 移动端正文 15px */
+        line-height: 1.8;
+    }
+
+    /* --- 导航栏 --- */
+    .nav-toggle {
+        display: flex;                /* 显示汉堡按钮 */
+    }
+
+    .nav-links-desktop {
+        display: none;               /* 隐藏桌面链接 */
+    }
+
+    /* --- Hero 精简 --- */
+    .hero {
+        padding: 56px 16px 44px;
+    }
+
+    .hero-title {
+        font-size: 1.85rem;
+        letter-spacing: 0.05em;
+    }
+
+    .hero-subtitle {
+        font-size: 0.88rem;
+        margin-bottom: 28px;
+    }
+
+    .hero-btn {
+        padding: 13px 38px;
+        font-size: 0.95rem;
+    }
+
+    /* --- 主内容安全区 --- */
+    .main-content {
+        padding: 0 16px 48px;
+    }
+
+    /* --- 三大入口改为横向滑动轮播 --- */
+    .entry-section {
+        margin-bottom: 36px;
+        /* 左右留出 16px 安全区由 main-content 的 padding 控制 */
+    }
+
+    .entry-carousel {
+        display: flex;
+        overflow-x: auto;
+        scroll-snap-type: x mandatory;
+        scroll-behavior: smooth;
+        gap: 0;                       /* 轮播间距用卡片自身 padding + margin 控制 */
+        -webkit-overflow-scrolling: touch;
+        /* 隐藏滚动条但保留功能 */
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+        padding-bottom: 4px;           /* 为阴影留空间 */
+    }
+
+    .entry-carousel::-webkit-scrollbar {
+        display: none;
+    }
+
+    .entry-card {
+        flex: 0 0 calc(80vw - 16px);  /* 屏宽 80% 减去一侧安全区 */
+        min-width: 0;
+        scroll-snap-align: start;
+        margin-right: 16px;           /* 右侧露出下一张 20% 边缘 ≈ calc(20vw + 16px) */
+        padding: 30px 24px;
+        border-radius: var(--home-radius);
+        box-shadow: var(--home-shadow);
+    }
+
+    /* 最后一张卡片不需要右边距 */
+    .entry-card:last-child {
+        margin-right: 0;
+    }
+
+    /* 适配 safe-area-inset-bottom */
+    @supports (padding-bottom: env(safe-area-inset-bottom)) {
+        .main-content {
+            padding-bottom: calc(48px + env(safe-area-inset-bottom));
+        }
+    }
+
+    /* --- 情绪雾点挂件（移动端尺寸）--- */
+    .mist-widget {
+        width: 38px;
+        height: 38px;
+        right: 20px;
+        bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+    }
+
+    .mist-core::before,
+    .mist-core::after {
+        width: 14px; height: 14px;
+    }
+
+    .mist-hint { display: none !important; }   /* 移动端永不显示悬停提示 */
+
+    .mist-popover { display: none !important; } /* PC端弹窗在移动端隐藏 */
+}
+
+
+/* ===================================================
+   🌫️ 情绪雾点挂件 — 样式 + 动画
+   =================================================== */
+
+/* ---- 挂件本体（右下角固定定位）---- */
+.mist-widget {
+    position: fixed;
+    z-index: 800;
+    right: 28px;
+    bottom: 28px;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: rgba(163, 181, 191, 0.65);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+
+    /* 可点击区域 ≥ 44pt ≈ 58px，56px + border 扩展 */
+    min-width: 56px;
+    min-height: 56px;
+
+    /* 不阻塞页面事件，阻止冒泡由 JS 控制 */
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+
+    /* 呼吸动画：3.5s 周期，可通过 JS --breath-dur 变量修改 */
+    --breath-dur: 3.5s;
+    animation: mistBreath var(--breath-dur) ease-in-out infinite;
+
+    transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1),
+                width 0.35s ease, height 0.35s ease,
+                box-shadow 0.35s ease;
+
+    box-shadow: 0 2px 12px rgba(163, 181, 191, 0.25);
+}
+
+/* 悬停放大（PC） */
+.mist-widget.hovered {
+    width: 64px;
+    height: 64px;
+    box-shadow: 0 6px 24px rgba(163, 181, 191, 0.38);
+}
+
+/* ---- 呼吸内核（中心柔光）---- */
+.mist-core {
+    position: relative;
+    width: 100%; height: 100%;
+    border-radius: 50%;
+}
+
+/* 内层光晕 — 极淡的暖白柔光 */
+.mist-core::before {
+    content: '';
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(255,255,255,0.7) 0%, rgba(255,255,255,0.1) 70%, transparent 100%);
+}
+
+/* 外层呼吸光环 */
+.mist-core::after {
+    content: '';
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    border: 1.5px solid rgba(255, 255, 255, 0.45);
+}
+
+/* ---- 悬停提示文字 ---- */
+.mist-hint {
+    position: absolute;
+    top: -36px;
+    left: 50%;
+    transform: translateX(-50%) translateY(8px);
+    white-space: nowrap;
+    font-size: 0.75rem;
+    color: var(--home-text-sub);
+    background: var(--home-card);
+    padding: 5px 12px;
+    border-radius: 16px;
+    box-shadow: 0 2px 12px rgba(166, 165, 160, 0.15);
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease, transform 0.3s ease;
+    pointer-events: none;
+    letter-spacing: 0.03em;
+}
+
+.mist-hint.visible {
+    opacity: 1;
+    visibility: visible;
+    transform: translateX(-50%) translateY(0);
+}
+
+
+/* ===================================================
+   PC 端 — 点击展开的情绪小卡片
+   =================================================== */
+.mist-popover {
+    position: fixed;
+    z-index: 801;
+    right: 28px;
+    bottom: 100px;           /* 挂件上方 */
+    min-width: 240px;
+    max-width: 280px;
+    padding: 24px 22px 20px;
+    background: rgba(255, 253, 249, 0.85);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-radius: var(--home-radius);
+    box-shadow: 0 12px 40px rgba(166, 165, 160, 0.18);
+    text-align: center;
+
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(12px) scale(0.95);
+    transition: opacity 0.35s ease, transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), visibility 0.35s ease;
+}
+
+.mist-popover.show {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0) scale(1);
+}
+
+.mist-quote {
+    font-family: var(--home-font-title);
+    font-weight: 300;
+    font-size: 0.92rem;
+    line-height: 1.7;
+    color: var(--home-text);
+    letter-spacing: 0.04em;
+    margin-bottom: 18px;
+}
+
+.mist-options {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+}
+
+.mist-opt {
+    flex: 1;
+    min-width: 0;
+    padding: 9px 4px;
+    background: transparent;
+    border: 1px solid rgba(163, 181, 191, 0.3);
+    border-radius: 20px;
+    font-size: 0.82rem;
+    color: var(--home-text-sub);
+    cursor: pointer;
+    transition: all 0.25s ease;
+    letter-spacing: 0.02em;
+    /* ≥44pt 可点击区域 */
+    min-height: 44px;
+}
+
+.mist-opt:hover {
+    background: var(--home-accent);
+    color: #FFFFFF;
+    border-color: var(--home-accent);
+    transform: translateY(-1px);
+}
+
+.mist-opt:active {
+    transform: translateY(0);
+}
+
+
+/* ===================================================
+   移动端 — 底部滑出磨砂面板
+   =================================================== */
+.mist-sheet-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 850;
+    background: rgba(74, 74, 74, 0.3);
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.35s ease, visibility 0.35s ease;
+}
+
+.mist-sheet-overlay.visible {
+    opacity: 1;
+    visibility: visible;
+}
+
+.mist-sheet {
+    position: fixed;
+    z-index: 851;
+    left: 0; right: 0;
+    bottom: 0;
+    height: 45vh;
+    min-height: 260px;
+    max-height: 400px;
+    background: rgba(255, 253, 249, 0.9);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-radius: 24px 24px 0 0;
+    box-shadow: 0 -8px 40px rgba(166, 165, 160, 0.15);
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 12px 24px 32px;
+
+    transform: translateY(100%);      /* 初始状态：完全滑出底部 */
+    transition: transform 0.45s cubic-bezier(0.32, 0.72, 0, 1);
+
+    /* safe-area 适配 */
+    padding-bottom: calc(32px + env(safe-area-inset-bottom, 0px));
+}
+
+.mist-sheet.up {
+    transform: translateY(0);
+}
+
+/* 手势线（drag handle）*/
+.mist-sheet-handle {
+    width: 36px; height: 5px;
+    border-radius: 3px;
+    background: rgba(142, 144, 139, 0.3);
+    margin-bottom: 20px;
+    flex-shrink: 0;
+    cursor: grab;
+    touch-action: pan-y;             /* 允许垂直手势 */
+}
+
+.mist-sheet-title {
+    font-family: var(--home-font-title);
+    font-weight: 300;
+    font-size: 1.05rem;
+    color: var(--home-text);
+    letter-spacing: 0.05em;
+    margin-bottom: 24px;
+}
+
+.mist-sheet-opts {
+    display: flex;
+    gap: 16px;
+    width: 100%;
+    justify-content: center;
+}
+
+.mist-sheet-opt {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    padding: 20px 12px;
+    background: transparent;
+    border: 1px solid rgba(163, 181, 191, 0.25);
+    border-radius: var(--home-radius);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    color: var(--home-text);
+    font-size: 0.9rem;
+    /* ≥44pt 可点击区 */
+    min-height: 80px;
+}
+
+.mist-sheet-opt:active {
+    transform: scale(0.96);
+}
+
+.mist-sheet-opt:hover,
+.mist-sheet-opt:active {
+    background: rgba(163, 181, 191, 0.08);
+    border-color: var(--home-accent);
+}
+
+.mso-emoji {
+    font-size: 1.7rem;
+    line-height: 1;
+}
+
+
+/* ===================================================
+   羽毛反馈图标
+   =================================================== */
+.mist-feather {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%) scale(0.3);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.4s ease, transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.mist-feather.show {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.15);
+    transition:
+        opacity 0.4s ease,
+        transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1),
+        opacity 0.4s ease 1s;     /* 1秒后开始淡出 */
+}
+
+
+/* ===================================================
+   @keyframes — 呼吸动画
+   =================================================== */
+@keyframes mistBreath {
+    0%   { opacity: 0.75; transform: scale(0.98); }
+    50%  { opacity: 0.90; transform: scale(1.02); }
+    100% { opacity: 0.75; transform: scale(0.98); }
+}
