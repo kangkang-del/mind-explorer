@@ -1,0 +1,27 @@
+# Dependencies
+node_modules/
+
+# IDE / Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.log
+npm-debug.log*
+.env
+.env.local
+.env.production
+
+# CodeBuddy workspace
+.codebuddy/
+mind-explorer-fix/
+
+# Netlify
+.netlify/

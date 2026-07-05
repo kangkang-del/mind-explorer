@@ -52,13 +52,14 @@ exports.handler = async (event, context) => {
       name: userData.name || userData.login
     });
 
-    // Base64 编码后存到 cookie（简单方案，生产环境建议用加密）
-    const encodedUser = Buffer.from(userJson).toString('base64');
-
+    // Base64 编码后存到 cookie
+    // 注意: Netlify HTTPS 环境下自动启用 Secure; HttpOnly 会导致前端 JS 无法读取用户信息
+    // 因此保留 JS 可读性（前端 Auth.getUser 依赖 cookie），使用 SameSite=Lax 防 CSRF
+    const isSecure = process.env.URL && process.env.URL.startsWith('https');
     return {
       statusCode: 302,
       headers: {
-        'Set-Cookie': `me_user=${encodedUser}; Path=/; Max-Age=2592000; SameSite=Lax`,
+        'Set-Cookie': `me_user=${encodedUser}; Path=/; Max-Age=2592000; SameSite=Lax${isSecure ? '; Secure' : ''}`,
         'Cache-Control': 'no-cache',
         'Location': '/?login=success'
       },

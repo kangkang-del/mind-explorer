@@ -1,8 +1,27 @@
 /**
  * 心灵探索 - 社区交流模块
  * 展示用户上传的文件，支持认同和评论功能
- * 版本: v1.0
+ * 依赖: auth.js (Auth 对象)
+ * 版本: v1.1（添加 Auth 加载保护）
  */
+
+// ===== Auth 可用性检查与自动重载 =====
+(function() {
+  if (typeof Auth === 'undefined' || typeof Auth.getUser !== 'function') {
+    console.log('[Community] Auth not loaded, reloading scripts...');
+    document.querySelectorAll('script[src*="auth.js"], script[src*="community.js"]').forEach(s => s.remove());
+    var s1 = document.createElement('script');
+    s1.src = '/js/auth.js?v=' + Date.now();
+    s1.onload = function() {
+      var s2 = document.createElement('script');
+      s2.src = '/js/community.js?v=' + Date.now();
+      document.body.appendChild(s2);
+    };
+    s1.onerror = function() { console.error('[Community] Failed to load auth.js'); };
+    document.body.appendChild(s1);
+    return;
+  }
+})();
 
 const Community = {
   posts: [],
@@ -255,11 +274,17 @@ const Community = {
 
     document.body.appendChild(modal);
 
-    // 聚焦到评论框
+    // 聚焦到评论框（移动端需处理键盘弹出遮挡）
     if (focusComment) {
       setTimeout(() => {
         const input = document.getElementById(`comment-input-${postNumber}`);
-        if (input) input.focus();
+        if (input) {
+          input.focus();
+          // 移动端：将评论框滚动到可视区域
+          if (window.matchMedia('(max-width: 768px)').matches) {
+            setTimeout(() => input.scrollIntoView({ behavior: 'smooth', block: 'center' }), 400);
+          }
+        }
       }, 300);
     }
 
@@ -454,70 +479,23 @@ const Community = {
     }
   },
 
-  // ===== 工具函数 =====
+  // ===== 工具函数（委托给 Utils，保留快捷引用） =====
 
   getTypeIcon(type) {
-    const icons = {
-      article: '📝',
-      image: '🖼️',
-      link: '🔗',
-      video: '🎬',
-      file: '📄'
-    };
+    const icons = { article: '📝', image: '🖼️', link: '🔗', video: '🎬', file: '📄' };
     return icons[type] || '📄';
   },
 
   getTypeLabel(type) {
-    const labels = {
-      article: '文章',
-      image: '图片',
-      link: '链接',
-      video: '视频',
-      file: '文件'
-    };
+    const labels = { article: '文章', image: '图片', link: '链接', video: '视频', file: '文件' };
     return labels[type] || '文件';
   },
 
-  // 时间友好显示
-  timeAgo(dateStr) {
-    if (!dateStr) return '';
-    const now = new Date();
-    const date = new Date(dateStr);
-    const diffMs = now - date;
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMins / 60);
-    const diffDays = Math.floor(diffHours / 24);
-
-    if (diffMins < 1) return '刚刚';
-    if (diffMins < 60) return `${diffMins} 分钟前`;
-    if (diffHours < 24) return `${diffHours} 小时前`;
-    if (diffDays < 30) return `${diffDays} 天前`;
-    return date.toLocaleDateString('zh-CN');
-  },
-
-  // 截断 URL 显示
-  truncateUrl(url, maxLen) {
-    if (!url) return '';
-    url = url.replace(/^https?:\/\/(www\.)?/, '');
-    if (url.length <= maxLen) return url;
-    return url.slice(0, maxLen) + '...';
-  },
-
-  // HTML 转义
-  escapeHtml(str) {
-    if (!str) return '';
-    const div = document.createElement('div');
-    div.textContent = str;
-    return div.innerHTML;
-  },
-
-  // 格式化评论内容（简单处理换行）
-  formatCommentContent(content) {
-    if (!content) return '';
-    return this.escapeHtml(content)
-      .replace(/\n/g, '<br>')
-      .replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>');
-  }
+  /* 以下方法委托给公共 Utils 模块 */
+  timeAgo(dateStr) { return typeof Utils !== 'undefined' ? Utils.timeAgo(dateStr) : dateStr || ''; },
+  truncateUrl(url, maxLen) { return typeof Utils !== 'undefined' ? Utils.truncateUrl(url, maxLen) : url || ''; },
+  escapeHtml(str) { return typeof Utils !== 'undefined' ? Utils.escapeHtml(str) : str || ''; },
+  formatCommentContent(content) { return typeof Utils !== 'undefined' ? Utils.formatCommentContent(content) : content || ''; }
 };
 
 // 页面加载时初始化

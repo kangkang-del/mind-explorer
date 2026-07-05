@@ -1,9 +1,18 @@
 /**
  * 心灵探索 - 用户登录系统
  * 基于 GitHub OAuth + Netlify Functions
+ *
+ * 管理员配置说明:
+ *   - 前端通过 Auth.ADMIN_USERS 数组判断（默认仅仓库拥有者）
+ *   - 如需多人管理，在此数组中添加 GitHub 用户名
+ *   - 后端 card-interactions.js 通过 repoOwner (GITHUB_REPO_ENV) 判断
  */
 
 const Auth = {
+  // 管理员用户名列表（前端可见，用于显示/隐藏管理入口）
+  // 生产环境建议与后端 GITHUB_REPO_OWNER 保持一致或通过 API 获取
+  ADMIN_USERS: ['kangkang-del'],
+
   // 从 cookie 解析用户信息
   getUser() {
     const cookies = document.cookie;
@@ -26,10 +35,10 @@ const Auth = {
     return this.getUser();
   },
 
-  // 判断是否是管理员（仓库拥有者）
+  // 判断是否是管理员（支持多人管理）
   isAdmin() {
     const user = this.getUser();
-    return user && user.username === 'kangkang-del';
+    return user && this.ADMIN_USERS.includes(user.username);
   },
 
   // 登录（跳转到 Netlify Function）
@@ -68,7 +77,7 @@ const Auth = {
           <a href="/user/profile.html" class="dropdown-item">📋 我的主页</a>
           <a href="/user/upload.html" class="dropdown-item">📤 上传内容</a>
           <a href="/user/points.html" class="dropdown-item">🏆 贡献榜</a>
-          ${user.username === 'kangkang-del' ? '<div class="dropdown-divider"></div><a href="/admin/review.html" class="dropdown-item">🛡️ 审核管理</a>' : ''}
+          ${this.isAdmin() ? '<div class="dropdown-divider"></div><a href="/admin/review.html" class="dropdown-item">🛡️ 审核管理</a>' : ''}
           <div class="dropdown-divider"></div>
           <a href="#" class="dropdown-item" onclick="Auth.logout(); return false;">🚪 退出登录</a>
         </div>

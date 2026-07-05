@@ -57,6 +57,16 @@ async function gh(url, method, token, body, useReactionHeader = false) {
     options.body = JSON.stringify(body);
   }
   const res = await fetch(url, options);
+
+  // GitHub API 限流检测与日志
+  const remaining = res.headers.get('X-RateLimit-Remaining');
+  if (remaining !== null && parseInt(remaining) < 10) {
+    console.warn(`[GitHub API] Rate limit low: ${remaining} remaining. Reset: ${res.headers.get('X-RateLimit-Reset')}`);
+  }
+  if (res.status === 403 && res.headers.get('X-RateLimit-Remaining') === '0') {
+    console.error(`[GitHub API] Rate limit exceeded! Reset at epoch: ${res.headers.get('X-RateLimit-Reset')}`);
+  }
+
   return res;
 }
 
@@ -388,6 +398,10 @@ exports.handler = async (event) => {
         }
         if (content.length > 2000) {
           return corsJsonResponse({ error: '评论不能超过2000字' }, 400);
+        }
+        // 基础安全检查：拒绝包含潜在 XSS 的内容
+        if (/<script|javascript:/i.test(content)) {
+          return corsJsonResponse({ error: '评论内容包含不合法字符' }, 400);
         }
         
         // 管理员评论无需审核

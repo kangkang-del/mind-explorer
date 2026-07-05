@@ -359,26 +359,9 @@ const CardInteract = {
     }
   },
 
-  // 格式化时间
-  formatTime(isoString) {
-    if (!isoString) return '';
-    const now = Date.now();
-    const then = new Date(isoString).getTime();
-    const diff = Math.floor((now - then) / 1000);
-
-    if (diff < 60) return '刚刚';
-    if (diff < 3600) return `${Math.floor(diff / 60)}分钟前`;
-    if (diff < 86400) return `${Math.floor(diff / 3600)}小时前`;
-    if (diff < 2592000) return `${Math.floor(diff / 86400)}天前`;
-    return new Date(isoString).toLocaleDateString('zh-CN');
-  },
-
-  escapeHtml(text) {
-    if (!text) return '';
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-  },
+  /* 委托给公共 Utils 模块 */
+  formatTime(isoString) { return typeof Utils !== 'undefined' ? Utils.timeAgo(isoString) : isoString || ''; },
+  escapeHtml(text) { return typeof Utils !== 'undefined' ? Utils.escapeHtml(text) : text || ''; },
 
   renderError() {
     const container = document.getElementById('card-interact');

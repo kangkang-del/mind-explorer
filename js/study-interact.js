@@ -2,7 +2,27 @@
  * StudyInteract - 知识学习列表页点赞/评论交互
  * 依赖: auth.js (Auth 对象)
  * 后端: /.netlify/functions/card-interactions
+ * 版本: v1.1（添加 Auth 加载保护）
  */
+
+// ===== Auth 可用性检查与自动重载 =====
+(function() {
+  if (typeof Auth === 'undefined' || typeof Auth.getUser !== 'function') {
+    console.log('[StudyInteract] Auth not loaded, reloading scripts...');
+    document.querySelectorAll('script[src*="auth.js"], script[src*="study-interact.js"]').forEach(s => s.remove());
+    var s1 = document.createElement('script');
+    s1.src = '/js/auth.js?v=' + Date.now();
+    s1.onload = function() {
+      var s2 = document.createElement('script');
+      s2.src = '/js/study-interact.js?v=' + Date.now();
+      document.body.appendChild(s2);
+    };
+    s1.onerror = function() { console.error('[StudyInteract] Failed to load auth.js'); };
+    document.body.appendChild(s1);
+    return;
+  }
+})();
+
 const StudyInteract = {
   API: '/.netlify/functions/card-interactions',
   BATCH_SIZE: 5,
@@ -63,6 +83,7 @@ const StudyInteract = {
     }
   },
 
+  /* 统一 cardId 为字符串，与 card-interact.js 保持一致 */
   async toggleLike(cardId) {
     const user = Auth.getUser();
     if (!user) { alert('请先登录后再点赞'); return; }
@@ -76,7 +97,7 @@ const StudyInteract = {
       const res = await fetch(this.API, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ card: parseInt(cardId), action })
+        body: JSON.stringify({ card: String(cardId), action })
       });
       if (!res.ok) return;
       const data = await res.json();
@@ -145,7 +166,7 @@ const StudyInteract = {
       const res = await fetch(this.API, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ card: parseInt(this.currentCardId), action: 'comment', content })
+        body: JSON.stringify({ card: String(this.currentCardId), action: 'comment', content })
       });
       const data = await res.json();
       if (data.error) { alert(data.error); return; }
@@ -172,16 +193,7 @@ const StudyInteract = {
     this.currentCardId = null;
   },
 
-  escapeHtml(str) {
-    if (!str) return '';
-    const div = document.createElement('div');
-    div.textContent = str;
-    return div.innerHTML;
-  },
-
-  fmtTime(iso) {
-    if (!iso) return '';
-    const d = new Date(iso);
-    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
-  }
+  /* 委托给公共 Utils 模块 */
+  escapeHtml(str) { return typeof Utils !== 'undefined' ? Utils.escapeHtml(str) : str || ''; },
+  fmtTime(iso) { return typeof Utils !== 'undefined' ? Utils.formatDateTime(iso) : iso || ''; }
 };
