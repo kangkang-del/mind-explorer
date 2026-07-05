@@ -53,6 +53,7 @@ exports.handler = async (event, context) => {
     });
 
     // Base64 编码后存到 cookie
+    const encodedUser = Buffer.from(userJson).toString('base64');
     // 注意: Netlify HTTPS 环境下自动启用 Secure; HttpOnly 会导致前端 JS 无法读取用户信息
     // 因此保留 JS 可读性（前端 Auth.getUser 依赖 cookie），使用 SameSite=Lax 防 CSRF
     const isSecure = process.env.URL && process.env.URL.startsWith('https');

@@ -1,6 +1,14 @@
 /* ===================================================
    心灵探索 (Mind Explorer) — 首页样式
    设计令牌: 燕麦色暖调 / 雾霾蓝强调 / 毛玻璃质感
+
+   Z-Index 层级管理（首页）:
+     0-100:    普通内容流
+     100-500:  组件内部层级
+     800-899:  提示类浮层（.mist-hint: 810）
+     900:      导航栏 (.navbar, sticky)
+     1000:     下拉菜单 / 模态框遮罩 (.nav-dropdown, .community-modal-overlay)
+     1050+:    全局最高优先级浮动（.mist-widget: 1050, .mist-popover: 1051）
    =================================================== */
 
 /* ==================== 设计变量（CSS Custom Properties）==================== */
@@ -287,11 +295,11 @@ body {
 
 /* ---------- 移动端 (<768px) ---------- */
 
-/* ==================== 水母迷思弹窗 ==================== */
+/* ==================== 水母迷思弹窗（z-index: 1051 > widget: 1050）==================== */
 .mist-popover {
     display: none;
     position: fixed;
-    z-index: 951;
+    z-index: 1051;
     bottom: 115px;
     right: 28px;
     width: 240px;
@@ -440,9 +448,9 @@ eyframes mistPopIn {
    🪼 情绪水母挂件 v3 — 圆形玻璃球 + 灵动水母
    =================================================== */
 
-/* ---- 玻璃球本体 ---- */
+/* ---- 玻璃球本体（z-index: 1050 确保在 navbar(900) 和 dropdown(1000) 之上）---- */
 .mist-widget {
-    position: fixed; z-index: 950;
+    position: fixed; z-index: 1050;
     right: 28px; bottom: 28px;
     width: 74px; height: 74px;
     border-radius: 50%;
