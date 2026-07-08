@@ -1,17 +1,40 @@
 /**
  * 用户上传卡片 API（直连 Supabase）
+ * 长内容提交前 gzip 压缩，读取时自动解压，避免请求体过大
  */
 
 import { supabase } from './supabase'
+import { gzipToString, gunzipFromString } from '../utils/compress'
+
+const COMPRESS_THRESHOLD = 800  // 超过 800 字符才压缩
+
+// 批量解压（API 层统一处理，上层无需关心）
+async function decompressList(list) {
+  if (!list || !list.length) return list || []
+  return Promise.all(list.map(async (c) => {
+    if (c.is_compressed && c.content) {
+      try { c.content = await gunzipFromString(c.content) } catch (e) {}
+    }
+    return c
+  }))
+}
 
 export const userCardsApi = {
-  // 提交新卡片（待审核）
+  // 提交新卡片（长内容压缩）
   async submit(card) {
+    let content = card.content
+    let isCompressed = false
+    if (content && content.length > COMPRESS_THRESHOLD) {
+      content = await gzipToString(content)
+      isCompressed = true
+    }
+
     const { data, error } = await supabase
       .from('user_cards')
       .insert([{
         title: card.title,
-        content: card.content,
+        content: content,
+        is_compressed: isCompressed,
         category: card.category || null,
         summary: card.summary || null,
         source: card.source || null,
@@ -27,7 +50,6 @@ export const userCardsApi = {
     return data
   },
 
-  // 获取已审核通过的卡片
   async getApproved(limit = 50) {
     const { data, error } = await supabase
       .from('user_cards')
@@ -35,76 +57,64 @@ export const userCardsApi = {
       .eq('status', 'approved')
       .order('created_at', { ascending: false })
       .limit(limit)
-
     if (error) throw error
-    return data || []
+    return decompressList(data)
   },
 
-  // 获取作者自己的卡片（含待审）
   async getByAuthor(authorId) {
     const { data, error } = await supabase
       .from('user_cards')
       .select('*')
       .eq('author_id', authorId)
       .order('created_at', { ascending: false })
-
     if (error) throw error
-    return data || []
+    return decompressList(data)
   },
 
-  // 获取待审核卡片（审核后台用）
-  async getPending() {
-    const { data, error } = await supabase
-      .from('user_cards')
-      .select('*')
-      .eq('status', 'pending')
-      .order('created_at', { ascending: false })
-
-    if (error) throw error
-    return data || []
-  },
-
-  // 审核通过
-  async approve(id, reviewer) {
-    const { error } = await supabase
-      .from('user_cards')
-      .update({ status: 'approved', reviewed_at: new Date().toISOString(), reviewer: reviewer || 'admin' })
-      .eq('id', id)
-
-    if (error) throw new Error('审核失败: ' + error.message)
-  },
-
-  // 审核拒绝
-  async reject(id, reviewer) {
-    const { error } = await supabase
-      .from('user_cards')
-      .update({ status: 'rejected', reviewed_at: new Date().toISOString(), reviewer: reviewer || 'admin' })
-      .eq('id', id)
-
-    if (error) throw new Error('审核失败: ' + error.message)
-  },
-
-  // 按状态获取卡片
   async getByStatus(status) {
     const { data, error } = await supabase
       .from('user_cards')
       .select('*')
       .eq('status', status)
       .order('created_at', { ascending: false })
-
     if (error) throw error
-    return data || []
+    return decompressList(data)
   },
 
-  // 获取单张用户卡片（详情页用）
+  async getPending() {
+    const { data, error } = await supabase
+      .from('user_cards')
+      .select('*')
+      .eq('status', 'pending')
+      .order('created_at', { ascending: false })
+    if (error) throw error
+    return decompressList(data)
+  },
+
+  async approve(id, reviewer) {
+    const { error } = await supabase
+      .from('user_cards')
+      .update({ status: 'approved', reviewed_at: new Date().toISOString(), reviewer: reviewer || 'admin' })
+      .eq('id', id)
+    if (error) throw new Error('审核失败: ' + error.message)
+  },
+
+  async reject(id, reviewer) {
+    const { error } = await supabase
+      .from('user_cards')
+      .update({ status: 'rejected', reviewed_at: new Date().toISOString(), reviewer: reviewer || 'admin' })
+      .eq('id', id)
+    if (error) throw new Error('审核失败: ' + error.message)
+  },
+
   async getById(id) {
     const { data, error } = await supabase
       .from('user_cards')
       .select('*')
       .eq('id', id)
       .single()
-
     if (error) throw error
-    return data
+    const list = await decompressList([data])
+    return list[0]
   }
 }
