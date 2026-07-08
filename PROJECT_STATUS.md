@@ -1,6 +1,6 @@
 # 心灵探索 (Mind Explorer) — Vue 3 迁移项目报告
 
-> **最后更新**: 2025-07-07  
+> **最后更新**: 2025-07-08  
 > **项目仓库**: https://github.com/kangkang-del/mind-explorer  
 > **在线预览(Vue版)**: https://kangkang-del.github.io/mind-explorer/  
 > **在线预览(原版)**: 部署在 Netlify  
@@ -22,7 +22,7 @@
 | **API 请求** | 原生 fetch | Axios |
 | **UI 组件库** | 无 | Element Plus |
 | **后端** | Netlify Functions | Netlify Functions (保留) |
-| **数据库** | GitHub Issues API | Supabase (评论) + GitHub Issues (点赞) |
+| **数据库** | GitHub Issues API | Supabase (评论/点赞/社区) |
 | **认证** | GitHub OAuth | GitHub OAuth + 游客模式 |
 | **部署** | Netlify | GitHub Pages (前端) + Netlify (后端) |
 
@@ -71,26 +71,29 @@
 | Supabase 集成 | 游客评论直连 Supabase，无需后端 | ✅ |
 | GitHub Pages 部署 | Vue 构建产物部署到 gh-pages 分支 | ✅ |
 | 原版 Bug 修复 | OAuth 登录崩溃 + PC端水母覆盖 | ✅ |
+| 点赞功能 | Supabase `guest_likes` 表，游客/用户均可点赞 | ✅ |
+| 评论功能联调 | Supabase URL 已修复，评论/点赞实测可用 | ✅ |
+| 游客模式完善 | 游客身份管理、退出登录、导航跳转主页 | ✅ |
+| 社区交流页面 | 帖子列表/发帖/认同/评论 (Supabase 三表) | ✅ |
+| 用户个人主页 | 资料/发布帖子/我的评论，导航栏可跳转 | ✅ |
 
 ### 3.2 进行中 🔄
 
 | 任务 | 说明 | 状态 |
 |------|------|------|
-| 评论功能联调 | Supabase URL 已修复，待验证评论提交 | 🔄 |
-| 游客模式完善 | 游客身份管理、退出登录 | 🔄 |
+| GitHub OAuth 登录 | 前端逻辑就绪，待部署 Netlify Functions 联调 | 🔄 |
+| 内容上传功能 | 用户上传知识卡片 (后端 API 待定) | 🔄 |
 
 ### 3.3 待完成 ⏳
 
 | 任务 | 优先级 | 说明 |
 |------|--------|------|
 | 接上 GitHub OAuth 登录 | P1 | 需部署 Netlify Functions，配置 OAuth 回调 |
-| 点赞功能 | P1 | 需后端 API (GitHub Reactions) 或迁移到 Supabase |
-| 社区交流页面 | P2 | 帖子列表、发帖、认同、评论 |
-| 用户个人主页 | P2 | 个人信息、贡献值、上传内容 |
 | 内容上传功能 | P2 | 用户上传知识卡片 |
+| 用户贡献值/等级 | P2 | 基于发帖/评论计算 (user-points) |
 | 管理后台 | P3 | 内容审核界面 |
-| Netlify 部署配置 | P3 | netlify.toml + Functions 部署 |
-| 性能优化 | P3 | 代码分割、懒加载、图片优化 |
+| Netlify 部署配置 | P3 | netlify.toml + Functions 部署 (前后端统一) |
+| 性能优化 | P3 | 代码分割、按需引入 Element Plus、图片优化 |
 
 ---
 
@@ -103,13 +106,14 @@ mind-explorer-vue/
 ├── src/
 │   ├── api/
 │   │   ├── supabase.js          # Supabase 客户端
-│   │   └── card.js              # API 请求封装 (评论/点赞)
+│   │   ├── card.js              # 卡片 API (评论/点赞, 直连 Supabase)
+│   │   └── community.js         # 社区 API (帖子/认同/评论, 直连 Supabase)
 │   ├── assets/
 │   │   └── style/
 │   │       ├── style.css        # 全局样式 (从原项目迁移)
 │   │       └── home.css         # 首页样式 (从原项目迁移)
 │   ├── components/
-│   │   ├── Navbar.vue           # 导航栏 (含登录弹窗)
+│   │   ├── Navbar.vue           # 导航栏 (含登录弹窗 + 主页跳转)
 │   │   ├── Footer.vue           # 页脚
 │   │   └── Card/
 │   │       └── CardItem.vue     # 知识卡片组件
@@ -117,15 +121,18 @@ mind-explorer-vue/
 │   │   ├── cards.json           # 96张知识卡片数据
 │   │   └── health.json          # 20个心理健康主题数据
 │   ├── router/
-│   │   └── index.js             # Vue Router 配置
+│   │   └── index.js             # Vue Router 配置 (含 /user/profile)
 │   ├── stores/
 │   │   └── auth.js              # Pinia 认证状态 (GitHub + 游客)
 │   ├── views/
 │   │   ├── Home.vue             # 首页
 │   │   ├── Card/
-│   │   │   └── CardDetail.vue   # 卡片详情页 (含评论)
+│   │   │   └── CardDetail.vue   # 卡片详情页 (含评论/点赞)
 │   │   ├── Community/
-│   │   │   └── Community.vue    # 社区交流页
+│   │   │   ├── Community.vue    # 社区交流页 (帖子列表/发帖)
+│   │   │   └── PostDetail.vue   # 帖子详情页 (认同/评论)
+│   │   ├── User/
+│   │   │   └── Profile.vue      # 用户个人主页
 │   │   ├── Study/
 │   │   │   └── Study.vue        # 知识学习列表页
 │   │   └── Health/
@@ -162,19 +169,59 @@ mind-explorer-vue/
 ### 4.3 Supabase 数据库结构
 
 ```sql
--- 游客评论表
+-- 游客评论表 (卡片评论)
 CREATE TABLE guest_comments (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  card_id INTEGER NOT NULL,          -- 关联卡片 ID
+  card_id INTEGER NOT NULL,
   user_type TEXT NOT NULL DEFAULT 'guest',  -- 'guest' 或 'github'
-  username TEXT NOT NULL,            -- 用户名/昵称
-  avatar TEXT,                       -- 头像 URL (GitHub 用户有)
-  content TEXT NOT NULL,             -- 评论内容
+  username TEXT NOT NULL,
+  avatar TEXT,
+  content TEXT NOT NULL,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- RLS 策略
--- 任何人可读、任何人可写（游客无需 Supabase 登录）
+-- 点赞表 (卡片点赞, UNIQUE(card_id, user_identifier))
+CREATE TABLE guest_likes (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  card_id INTEGER NOT NULL,
+  user_identifier TEXT NOT NULL,     -- 游客 id 或 GitHub 用户名
+  user_type TEXT NOT NULL DEFAULT 'guest',
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- 社区帖子表
+CREATE TABLE community_posts (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  title TEXT NOT NULL,
+  content TEXT NOT NULL,
+  user_type TEXT NOT NULL DEFAULT 'guest',
+  username TEXT NOT NULL,
+  avatar TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- 帖子评论表
+CREATE TABLE post_comments (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  post_id UUID NOT NULL REFERENCES community_posts(id),
+  content TEXT NOT NULL,
+  user_type TEXT NOT NULL DEFAULT 'guest',
+  username TEXT NOT NULL,
+  avatar TEXT,
+  user_identifier TEXT,              -- 用于个人主页查询
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- 帖子认同表
+CREATE TABLE post_likes (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  post_id UUID NOT NULL REFERENCES community_posts(id),
+  user_identifier TEXT NOT NULL,
+  user_type TEXT NOT NULL DEFAULT 'guest',
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- RLS 策略 (所有表): 任何人可读、任何人可写（游客无需 Supabase 登录）
 ```
 
 ### 4.4 认证体系
@@ -230,9 +277,9 @@ Auth Store (Pinia)
 
 ### 6.1 下一步优先任务
 
-#### 任务 1：接上 GitHub OAuth 登录 (P1)
+#### 任务 1：接上 GitHub OAuth 登录 (P1) 🔄
 
-**目标**：让 GitHub 用户能登录并评论
+**目标**：让 GitHub 用户能登录并评论（当前游客模式已可用，GitHub OAuth 前端逻辑就绪但未联调）
 
 **步骤**：
 1. 将 `netlify/functions/` 部署到 Netlify
@@ -244,28 +291,21 @@ Auth Store (Pinia)
 - `netlify/functions/auth-callback.js` — OAuth 回调处理
 - `src/stores/auth.js` — 前端认证状态
 
-#### 任务 2：点赞功能 (P1)
+#### ✅ 已完成：点赞功能 (P1)
 
-**目标**：用户可以点赞卡片
+已采用方案 B —— 在 Supabase 新建 `guest_likes` 表，游客/用户均可对卡片点赞/取消，直连 Supabase 无需后端。见 `src/api/card.js`。
 
-**方案选择**：
-- 方案 A：继续用 GitHub Reactions API (需登录)
-- 方案 B：在 Supabase 新建 `guest_likes` 表 (游客也可点赞)
+#### ✅ 已完成：社区交流页面 (P2)
 
-**推荐**：方案 B，与评论系统统一
+已建 `community_posts` / `post_comments` / `post_likes` 三张表，开发 `Community.vue`（帖子列表+发帖）与 `PostDetail.vue`（认同+评论）。见 `src/api/community.js`。
 
-#### 任务 3：社区交流页面 (P2)
+#### ✅ 已完成：用户个人主页 (P2)
 
-**目标**：用户可以发帖、认同、评论
+已开发 `src/views/User/Profile.vue`：展示资料、发布帖子数、我的评论，导航栏头像/昵称可点击跳转 `/user/profile`。
 
-**步骤**：
-1. 在 Supabase 新建 `community_posts` 表
-2. 开发 `Community.vue` 的帖子列表和发帖功能
-3. 开发帖子详情页
+#### 任务 5：部署到 Netlify (P3)
 
-#### 任务 4：部署到 Netlify (P3)
-
-**目标**：前端 + 后端统一部署
+**目标**：前端 + 后端统一部署，启用 GitHub OAuth 与内容上传
 
 **配置**：
 ```toml
@@ -376,6 +416,8 @@ node convert-cards.js    # 生成 cards.json
 | 2025-07-07 | `f23e945` | 添加 cards.json + health.json 数据文件 |
 | 2025-07-07 | `2c986cb` | Vue 版部署到 GitHub Pages |
 | 2025-07-07 | 修复 Supabase URL | 修复评论功能 |
+| 2025-07-08 | 社区交流页面 | Community.vue + PostDetail.vue + 3 张 Supabase 表 |
+| 2025-07-08 | 用户个人主页 | Profile.vue + 路由 + 导航跳转 + SPA fallback 同步 |
 
 ---
 
