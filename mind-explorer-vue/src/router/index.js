@@ -11,6 +11,8 @@ const routes = [
   { path: '/health/:slug', name: 'HealthDetail', component: () => import('../views/Health/HealthDetail.vue'), props: true },
   { path: '/user/profile', name: 'UserProfile', component: () => import('../views/User/Profile.vue') },
   { path: '/upload', name: 'Upload', component: () => import('../views/Upload.vue') },
+  { path: '/admin', name: 'Admin', component: () => import('../views/Admin.vue') },
+  { path: '/user-card/:id', name: 'UserCardDetail', component: () => import('../views/Card/UserCardDetail.vue'), props: true },
 ]
 
 const router = createRouter({

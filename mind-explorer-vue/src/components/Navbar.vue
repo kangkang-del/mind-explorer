@@ -8,6 +8,7 @@
         <RouterLink to="/health" class="nav-link">了解心理</RouterLink>
         <RouterLink to="/community" class="nav-link">社区交流</RouterLink>
         <RouterLink to="/upload" class="nav-link">上传内容</RouterLink>
+        <RouterLink to="/admin" class="nav-link">审核后台</RouterLink>
         <div v-if="auth.isLoggedIn" class="user-menu">
           <RouterLink to="/user/profile" class="user-info">
             <img v-if="auth.user?.avatar" :src="auth.user.avatar" class="user-avatar" />

@@ -4,7 +4,9 @@
     <h3>{{ card.title }}</h3>
     <div class="proponent-badge"><span>👤 {{ card.proponent }}</span></div>
     <p class="card-summary">{{ card.summary }}</p>
-    <RouterLink :to="`/card/${card.id}`" class="btn btn-small">查看详情</RouterLink>
+    <RouterLink :to="card.isUserCard ? `/user-card/${card.id}` : `/card/${card.id}`" class="btn btn-small">
+      查看详情
+    </RouterLink>
   </div>
 </template>
 

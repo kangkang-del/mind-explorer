@@ -77,9 +77,11 @@
 | 社区交流页面 | 帖子列表/发帖/认同/评论 (Supabase 三表) | ✅ |
 | 用户个人主页 | 资料/发布帖子/我的评论，导航栏可跳转 | ✅ |
 | GitHub OAuth 双方案 | Netlify Functions + 纯前端 PKCE (callback.html)，代码就绪 | ✅ |
-| 游客密码登录 | Supabase guest_users 表，注册+登录校验（代码就绪，待执行 SQL） | ✅ |
+| 游客密码登录 | Supabase guest_users 表，注册+登录校验（已验证可用） | ✅ |
 | 首页优化 | 搜索框+统计+分类入口+最新动态+响应式 | ✅ |
-| 内容上传 | Supabase user_cards 表，提交+审核+我的投稿（代码就绪，待执行 SQL） | ✅ |
+| 内容上传 | Supabase user_cards 表，提交+审核+我的投稿（已验证可用） | ✅ |
+| 审核后台 | Admin.vue 管理员审核（通过/拒绝），密码保护 | ✅ |
+| 用户贡献展示 | Study 页"用户贡献"tab + 用户卡片详情页 | ✅ |
 | 部署指南 | DEPLOY_GUIDE.md (Netlify / GitHub Pages 两套步骤) | ✅ |
 
 ### 3.2 进行中 🔄
@@ -87,15 +89,13 @@
 | 任务 | 说明 | 状态 |
 |------|------|------|
 | GitHub OAuth 配置 | 代码已就绪，需用户创建 OAuth App + 填写 Client ID/Secret | 🔄 |
-| 内容上传功能 | 用户上传知识卡片 (后端 API 待定) | 🔄 |
 
 ### 3.3 待完成 ⏳
 
 | 任务 | 优先级 | 说明 |
 |------|--------|------|
-| **执行 Supabase SQL** | P0 | 在 Supabase 控制台执行 `sql/guest_users.sql` 和 `sql/user_cards.sql` |
+| **执行 admin_review.sql** | P0 | 审核后台的 RLS UPDATE 策略（不执行则审核按钮无效） |
 | **配置 GitHub OAuth App** | P1 | 见 `DEPLOY_GUIDE.md`，创建 App → 填 ID/Secret → 测试登录 |
-| 审核后台 | P2 | 管理员审核 user_cards（admin-review 待适配 Vue） |
 | 用户贡献值/等级 | P2 | 基于发帖/评论计算 (user-points) |
 | Netlify 统一部署 | P3 | 前后端统一，启用 OAuth + 内容审核 |
 | 性能优化 | P3 | 按需引入 Element Plus、代码分割（当前 index 1.4MB） |
@@ -455,9 +455,11 @@ node convert-cards.js    # 生成 cards.json
 |------|------|
 | `mind-explorer-vue/sql/guest_users.sql` | 游客账号表（昵称唯一+密码哈希+服务端校验） |
 | `mind-explorer-vue/sql/user_cards.sql` | 用户上传卡片表（待审/已通过状态+作者关联） |
+| `mind-explorer-vue/sql/admin_review.sql` | 审核后台 RLS UPDATE 策略（启用审核按钮） |
 
 执行步骤：
 1. 打开 Supabase 控制台 → SQL Editor
 2. 粘贴 `guest_users.sql` 内容 → Run
 3. 粘贴 `user_cards.sql` 内容 → Run
-4. 验证游客注册/登录、内容上传即可使用
+4. 粘贴 `admin_review.sql` 内容 → Run
+5. 验证游客注册/登录、内容上传、审核后台即可使用
