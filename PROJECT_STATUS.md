@@ -23,7 +23,7 @@
 | **UI 组件库** | 无 | Element Plus |
 | **后端** | Netlify Functions | Netlify Functions (保留) |
 | **数据库** | GitHub Issues API | Supabase (评论/点赞/社区) |
-| **认证** | GitHub OAuth | GitHub OAuth + 游客模式 |
+| **认证** | GitHub OAuth | GitHub OAuth + 游客模式 (双方案: Netlify Functions + 纯前端 PKCE) |
 | **部署** | Netlify | GitHub Pages (前端) + Netlify (后端) |
 
 ---
@@ -76,24 +76,25 @@
 | 游客模式完善 | 游客身份管理、退出登录、导航跳转主页 | ✅ |
 | 社区交流页面 | 帖子列表/发帖/认同/评论 (Supabase 三表) | ✅ |
 | 用户个人主页 | 资料/发布帖子/我的评论，导航栏可跳转 | ✅ |
+| GitHub OAuth 双方案 | Netlify Functions + 纯前端 PKCE (callback.html)，代码就绪 | ✅ |
+| 部署指南 | DEPLOY_GUIDE.md (Netlify / GitHub Pages 两套步骤) | ✅ |
 
 ### 3.2 进行中 🔄
 
 | 任务 | 说明 | 状态 |
 |------|------|------|
-| GitHub OAuth 登录 | 前端逻辑就绪，待部署 Netlify Functions 联调 | 🔄 |
+| GitHub OAuth 配置 | 代码已就绪，需用户创建 OAuth App + 填写 Client ID/Secret | 🔄 |
 | 内容上传功能 | 用户上传知识卡片 (后端 API 待定) | 🔄 |
 
 ### 3.3 待完成 ⏳
 
 | 任务 | 优先级 | 说明 |
 |------|--------|------|
-| 接上 GitHub OAuth 登录 | P1 | 需部署 Netlify Functions，配置 OAuth 回调 |
+| **配置 GitHub OAuth App** | P1 | 见 `DEPLOY_GUIDE.md`，创建 App → 填 ID/Secret → 测试登录 |
 | 内容上传功能 | P2 | 用户上传知识卡片 |
 | 用户贡献值/等级 | P2 | 基于发帖/评论计算 (user-points) |
 | 管理后台 | P3 | 内容审核界面 |
-| Netlify 部署配置 | P3 | netlify.toml + Functions 部署 (前后端统一) |
-| 性能优化 | P3 | 代码分割、按需引入 Element Plus、图片优化 |
+| 性能优化 | P3 | 按需引入 Element Plus、代码分割、图片优化 |
 
 ---
 
@@ -108,6 +109,8 @@ mind-explorer-vue/
 │   │   ├── supabase.js          # Supabase 客户端
 │   │   ├── card.js              # 卡片 API (评论/点赞, 直连 Supabase)
 │   │   └── community.js         # 社区 API (帖子/认同/评论, 直连 Supabase)
+│   ├── utils/
+│   │   └── githubOAuth.js       # 纯前端 GitHub OAuth (PKCE)
 │   ├── assets/
 │   │   └── style/
 │   │       ├── style.css        # 全局样式 (从原项目迁移)
@@ -123,7 +126,7 @@ mind-explorer-vue/
 │   ├── router/
 │   │   └── index.js             # Vue Router 配置 (含 /user/profile)
 │   ├── stores/
-│   │   └── auth.js              # Pinia 认证状态 (GitHub + 游客)
+│   │   └── auth.js              # Pinia 认证状态 (GitHub + 游客 + 双方案 OAuth)
 │   ├── views/
 │   │   ├── Home.vue             # 首页
 │   │   ├── Card/
@@ -138,6 +141,19 @@ mind-explorer-vue/
 │   │   └── Health/
 │   │       ├── Health.vue       # 心理健康列表页
 │   │       └── HealthDetail.vue # 心理健康详情页
+├── public/
+│   └── callback.html            # GitHub OAuth 回调处理页（纯前端 PKCE）
+├── netlify/
+│   └── functions/               # Netlify Functions (8个)
+│       ├── auth-login.js        # GitHub OAuth 登录入口
+│       ├── auth-callback.js     # OAuth 回调 (已修复重定向到 /mind-explorer/)
+│       ├── auth-logout.js       # 登出
+│       ├── card-interactions.js # 卡片交互 (原版，待适配)
+│       ├── community.js         # 社区功能 (原版，待适配)
+│       ├── upload-content.js    # 内容上传
+│       ├── user-points.js       # 用户贡献值
+│       └── admin-review.js      # 管理审核
+├── netlify.toml                 # Netlify 部署配置 (Vite 构建)
 │   ├── App.vue                  # 根组件
 │   └── main.js                  # 入口文件
 ├── netlify/
@@ -418,6 +434,8 @@ node convert-cards.js    # 生成 cards.json
 | 2025-07-07 | 修复 Supabase URL | 修复评论功能 |
 | 2025-07-08 | 社区交流页面 | Community.vue + PostDetail.vue + 3 张 Supabase 表 |
 | 2025-07-08 | 用户个人主页 | Profile.vue + 路由 + 导航跳转 + SPA fallback 同步 |
+| 2025-07-08 | GitHub OAuth 双方案 | Netlify Functions (auth-callback 重定向修复) + 纯前端 PKCE (callback.html) |
+| 2025-07-08 | 部署指南 | DEPLOY_GUIDE.md，Netlify / GitHub Pages 两套部署步骤 |
 
 ---
 
