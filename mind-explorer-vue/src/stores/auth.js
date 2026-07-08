@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia'
+import { startGithubLogin } from '../utils/githubOAuth'
 
 export const useAuthStore = defineStore('auth', {
   state: () => ({
@@ -47,7 +48,19 @@ export const useAuthStore = defineStore('auth', {
     },
 
     login() {
-      window.location.href = '/.netlify/functions/auth-login'
+      // 优先尝试 Netlify Functions（后端方案）
+      // 如果 Netlify 不可用（如 GitHub Pages），回退到纯前端 PKCE
+      const isNetlify = typeof NETLIFY !== 'undefined' || window.location.hostname.includes('netlify')
+
+      if (isNetlify) {
+        // Netlify 部署：走后端 auth-login function
+        window.location.href = '/.netlify/functions/auth-login'
+      } else {
+        // GitHub Pages / Vercel 等静态部署：走纯前端 PKCE
+        startGithubLogin().catch(err => {
+          alert('GitHub 登录失败: ' + err.message + '\n\n请确保已配置 GITHUB_CLIENT_ID')
+        })
+      }
     },
 
     logout() {

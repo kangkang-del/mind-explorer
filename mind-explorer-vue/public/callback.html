@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>登录处理中...</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; background: #f5f5f5; color: #333; }
+    .container { text-align: center; padding: 40px; }
+    .spinner { width: 40px; height: 40px; border: 4px solid #e0e0e0; border-top-color: #0366d6; border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 20px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .error { color: #d32f2f; background: #ffebee; padding: 16px 24px; border-radius: 8px; margin-top: 16px; }
+    a { color: #0366d6; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="spinner"></div>
+    <p id="status">正在完成 GitHub 登录...</p>
+    <div id="error" class="error" style="display:none;"></div>
+    <a id="home-link" href="./" style="display:none;">返回首页</a>
+  </div>
+
+<script>
+(function() {
+  const params = new URLSearchParams(window.location.search)
+  const error = params.get('error')
+
+  if (error) {
+    showError(error === 'access_denied' ? '你取消了授权' : '登录失败: ' + error)
+    return
+  }
+
+  const code = params.get('code')
+  if (!code) {
+    showError('未收到授权码，请重新尝试登录')
+    return
+  }
+
+  // 取出 PKCE 参数
+  let verifier, state, clientSecret
+  try {
+    verifier = sessionStorage.getItem('pkce_verifier')
+    state = sessionStorage.getItem('oauth_state')
+    clientSecret = sessionStorage.getItem('gh_client_secret')
+  } catch(e) {
+    verifier = null
+  }
+
+  if (!verifier) {
+    showError('登录会话已过期，请重新登录')
+    return
+  }
+
+  const returnedState = params.get('state')
+  if (state && state !== returnedState) {
+    showError('安全验证失败，请重新登录')
+    return
+  }
+
+  // 获取 Client ID（从当前 URL 推断 base path）
+  const basePath = getBasePath()
+  const redirectUri = window.location.origin + window.location.pathname
+
+  document.getElementById('status').textContent = '正在获取用户信息...'
+
+  // Step 1: 用 code 换 access_token
+  fetch('https://github.com/login/oauth/access_token', {
+    method: 'POST',
+    headers: { 'Accept': 'application/json', 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      client_id: GITHUB_CLIENT_ID,
+      client_secret: clientSecret,
+      code: code,
+      redirect_uri: redirectUri,
+      code_verifier: verifier
+    }).toString()
+  })
+  .then(res => res.json())
+  .then(tokenData => {
+    if (tokenData.error) {
+      throw new Error(tokenData.error_description || tokenData.error)
+    }
+
+    // Step 2: 获取用户信息
+    return fetch('https://api.github.com/user', {
+      headers: { 'Authorization': 'token ' + tokenData.access_token, 'User-Agent': 'Mind-Explorer-App' }
+    }).then(res => res.json()).then(userData => ({ tokenData, userData }))
+  })
+  .then(({ tokenData, userData }) => {
+    // Step 3: 存入 cookie 并跳转回应用
+    const userJson = JSON.stringify({
+      token: tokenData.access_token,
+      username: userData.login,
+      avatar: userData.avatar_url,
+      name: userData.name || userData.login
+    })
+    const encoded = btoa(userJson)
+    const isSecure = location.protocol === 'https:'
+    document.cookie = `me_user=${encoded}; Path=${basePath}; Max-Age=2592000; SameSite=Lax${isSecure ? '; Secure' : ''}`
+
+    // 清理临时数据
+    try { sessionStorage.removeItem('pkce_verifier') } catch(e){}
+    try { sessionStorage.removeItem('oauth_state') } catch(e){}
+    try { sessionStorage.removeItem('gh_client_secret') } catch(e){}
+
+    // 跳转回 Vue 应用首页
+    document.getElementById('status').textContent = '✅ 登录成功！正在跳转...'
+    setTimeout(() => {
+      window.location.href = basePath + (basePath.endsWith('/') ? '' : '/') + '?login=success'
+    }, 500)
+  })
+  .catch(err => {
+    showError('登录失败: ' + err.message)
+  })
+
+  function showError(msg) {
+    document.getElementById('status').style.display = 'none'
+    const el = document.getElementById('error')
+    el.textContent = msg
+    el.style.display = 'block'
+    document.getElementById('home-link').style.display = 'inline'
+  }
+
+  function getBasePath() {
+    // 从 callback.html 的路径推断 basePath
+    // 例如 /mind-explorer/callback.html -> /mind-explorer
+    // 例如 /callback.html -> /
+    const path = window.location.pathname
+    const idx = path.lastIndexOf('/')
+    if (idx <= 0) return '/'
+    return path.substring(0, idx)
+  }
+})()
+
+// ===== 配置（部署时替换）=====
+var GITHUB_CLIENT_ID = ''  // TODO: 替换为你的 GitHub OAuth App Client ID
+</script>
+</body>
+</html>

@@ -1,0 +1,28 @@
+[build]
+  command = "node node_modules/vite/bin/vite.js build"
+  publish = "dist"
+  functions = "netlify/functions"
+
+# Netlify Functions 路由
+[[redirects]]
+  from = "/.netlify/functions/*"
+  to = "/.netlify/functions/:splat"
+  status = 200
+
+# SPA fallback: 所有前端路由都返回 index.html
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# HTML 文件不缓存，确保用户总是看到最新版本
+[[headers]]
+  for = "/*.html"
+  [headers.values]
+    Cache-Control = "no-cache, must-revalidate"
+
+# JS/CSS 文件缓存 7 天（加了哈希版本号）
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=604800"
