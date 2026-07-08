@@ -7,6 +7,7 @@
         <RouterLink to="/study" class="nav-link">开始学习</RouterLink>
         <RouterLink to="/health" class="nav-link">了解心理</RouterLink>
         <RouterLink to="/community" class="nav-link">社区交流</RouterLink>
+        <RouterLink to="/upload" class="nav-link">上传内容</RouterLink>
         <div v-if="auth.isLoggedIn" class="user-menu">
           <RouterLink to="/user/profile" class="user-info">
             <img v-if="auth.user?.avatar" :src="auth.user.avatar" class="user-avatar" />
@@ -22,12 +23,23 @@
 
   <div v-if="showLoginModal" class="login-modal" @click.self="showLoginModal = false">
     <div class="login-modal-content">
-      <h3>选择登录方式</h3>
+      <h3>{{ guestMode === 'login' ? '游客登录' : '游客注册' }}</h3>
+
       <button @click="auth.login()" class="github-login-btn">🔗 GitHub 登录</button>
       <div class="divider"><span>或</span></div>
-      <input v-model="guestName" placeholder="输入昵称" class="guest-input" @keyup.enter="becomeGuest" />
-      <button @click="becomeGuest" class="guest-login-btn">👤 游客模式</button>
-      <p class="login-tip">游客模式可浏览和评论，无需注册</p>
+
+      <input v-model="guestName" :placeholder="guestMode === 'login' ? '昵称' : '设置昵称'" class="guest-input" />
+      <input v-if="guestMode === 'register'" v-model="guestDisplay" placeholder="显示名称（可选）" class="guest-input" />
+      <input v-model="guestPwd" type="password" :placeholder="guestMode === 'login' ? '密码' : '设置密码（至少6位）'" class="guest-input" @keyup.enter="guestMode === 'login' ? guestSignIn() : guestSignUp()" />
+
+      <button v-if="guestMode === 'login'" @click="guestSignIn" class="guest-login-btn">👤 登录</button>
+      <button v-else @click="guestSignUp" class="guest-login-btn">👤 注册并登录</button>
+
+      <p class="login-tip">
+        <a href="#" @click.prevent="toggleGuestMode">
+          {{ guestMode === 'login' ? '没有账号？去注册' : '已有账号？去登录' }}
+        </a>
+      </p>
       <button @click="showLoginModal = false" class="close-btn">关闭</button>
     </div>
   </div>
@@ -40,24 +52,61 @@ import { useAuthStore } from '../stores/auth'
 const auth = useAuthStore()
 const menuOpen = ref(false)
 const showLoginModal = ref(false)
+const guestMode = ref('login')  // 'login' | 'register'
 const guestName = ref('')
+const guestDisplay = ref('')
+const guestPwd = ref('')
 
 function toggleMenu() {
   menuOpen.value = !menuOpen.value
 }
 
-function becomeGuest() {
+function toggleGuestMode() {
+  guestMode.value = guestMode.value === 'login' ? 'register' : 'login'
+}
+
+async function guestSignUp() {
   if (!guestName.value.trim()) {
     alert('请输入昵称')
     return
   }
-  auth.createGuest(guestName.value)
-  showLoginModal.value = false
-  guestName.value = ''
+  if (guestPwd.value.length < 6) {
+    alert('密码至少 6 位')
+    return
+  }
+  try {
+    await auth.guestRegister(guestName.value.trim(), guestPwd.value, guestDisplay.value.trim())
+    showLoginModal.value = false
+    guestName.value = ''
+    guestDisplay.value = ''
+    guestPwd.value = ''
+    guestMode.value = 'login'
+  } catch (e) {
+    alert(e.message || '注册失败')
+  }
+}
+
+async function guestSignIn() {
+  if (!guestName.value.trim() || !guestPwd.value) {
+    alert('请输入昵称和密码')
+    return
+  }
+  try {
+    await auth.guestLogin(guestName.value.trim(), guestPwd.value)
+    showLoginModal.value = false
+    guestName.value = ''
+    guestPwd.value = ''
+  } catch (e) {
+    alert(e.message || '登录失败')
+  }
 }
 
 onMounted(() => {
   auth.restoreUser()
+  // 监听来自其他页面的"打开登录弹窗"请求
+  window.addEventListener('open-login', () => {
+    showLoginModal.value = true
+  })
 })
 </script>
 

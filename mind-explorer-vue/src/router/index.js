@@ -10,6 +10,7 @@ const routes = [
   { path: '/health', name: 'Health', component: () => import('../views/Health/Health.vue') },
   { path: '/health/:slug', name: 'HealthDetail', component: () => import('../views/Health/HealthDetail.vue'), props: true },
   { path: '/user/profile', name: 'UserProfile', component: () => import('../views/User/Profile.vue') },
+  { path: '/upload', name: 'Upload', component: () => import('../views/Upload.vue') },
 ]
 
 const router = createRouter({

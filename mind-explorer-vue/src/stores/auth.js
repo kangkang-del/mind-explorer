@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { startGithubLogin } from '../utils/githubOAuth'
+import { guestAuthApi } from '../api/guestAuth'
 
 export const useAuthStore = defineStore('auth', {
   state: () => ({
@@ -12,6 +13,7 @@ export const useAuthStore = defineStore('auth', {
     isLoggedIn: (state) => !!state.user || !!state.guest,
     currentUser: (state) => state.user || state.guest,
     isGuest: (state) => !state.user && !!state.guest,
+    isGuestPasswordMode: (state) => !!state.guest && state.guest.type === 'guest',
     displayName: (state) => state.user?.name || state.guest?.name || '',
   },
 
@@ -36,27 +38,39 @@ export const useAuthStore = defineStore('auth', {
       }
     },
 
-    createGuest(name) {
-      const guest = {
-        id: 'guest_' + Math.random().toString(36).substring(2, 10),
-        name: name,
-        avatar: null,
+    // 游客注册（昵称 + 密码）
+    async guestRegister(username, password, displayName) {
+      const user = await guestAuthApi.register(username, password, displayName)
+      this.guest = {
+        id: user.id,
+        name: user.display_name || user.username,
+        username: user.username,
+        avatar: user.avatar || null,
         type: 'guest'
       }
-      localStorage.setItem('guest_info', JSON.stringify(guest))
-      this.guest = guest
+      localStorage.setItem('guest_info', JSON.stringify(this.guest))
+      return this.guest
+    },
+
+    // 游客登录（昵称 + 密码校验）
+    async guestLogin(username, password) {
+      const user = await guestAuthApi.login(username, password)
+      this.guest = {
+        id: user.id,
+        name: user.display_name || user.username,
+        username: user.username,
+        avatar: user.avatar || null,
+        type: 'guest'
+      }
+      localStorage.setItem('guest_info', JSON.stringify(this.guest))
+      return this.guest
     },
 
     login() {
-      // 优先尝试 Netlify Functions（后端方案）
-      // 如果 Netlify 不可用（如 GitHub Pages），回退到纯前端 PKCE
       const isNetlify = typeof NETLIFY !== 'undefined' || window.location.hostname.includes('netlify')
-
       if (isNetlify) {
-        // Netlify 部署：走后端 auth-login function
         window.location.href = '/.netlify/functions/auth-login'
       } else {
-        // GitHub Pages / Vercel 等静态部署：走纯前端 PKCE
         startGithubLogin().catch(err => {
           alert('GitHub 登录失败: ' + err.message + '\n\n请确保已配置 GITHUB_CLIENT_ID')
         })
