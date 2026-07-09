@@ -25,64 +25,182 @@ body {
     color: var(--text);
     line-height: 1.6;
     min-height: 100vh;
+/* ============================================================
+   Mind Explorer — Vue 版全局样式（增强版）
+   迁移自原版静态站：
+   - 导航栏毛玻璃 sticky
+   - 双设计系统（冷调/暖调）
+   - Z-Index 层级规范
+   - 暖调系统供 Health 页面使用
+   ============================================================ */
+
+/* ==================== 设计令牌 ==================== */
+:root {
+    /* ---- 冷调（默认）---- */
+    --primary: #A3B5BF;
+    --primary-dark: #8A9CA8;
+    --secondary: #9DBFBF;
+    --bg: #f8fafc;
+    --card-bg: #ffffff;
+    --text: #1e293b;
+    --text-light: #64748b;
+    --border: #e2e8f0;
+    --success: #22c55e;
+    --warning: #f59e0b;
+    --danger: #ef4444;
+    --radius: 12px;
+    --shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.06);
+    --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.08);
+
+    /* ---- 暖调（Health 页面使用）---- */
+    --warm-primary: #f6a5c0;
+    --warm-secondary: #f8b88b;
+    --warm-bg: #fff5f7;
+    --warm-card: #ffffff;
+    --warm-text: #6b4a5e;
+    --warm-text-sub: #8a6a7e;
+    --warm-accent: #7eb8a5;
+    --warm-gradient: linear-gradient(135deg, #ffd6e0, #ffe8d6);
+    --warm-shadow: 0 8px 24px rgba(246, 165, 192, 0.18);
+    --radius-warm: 20px;
+
+    /* ---- 燕麦色（首页可选主题）---- */
+    --oat-bg: #F7F4EF;
+    --oat-card: #FFFDF9;
+    --oat-text: #4A4A4A;
+    --oat-text-sub: #8E908B;
+    --oat-accent: #7BAE9A;
+    --oat-accent-hover: #6A9A87;
+    --oat-glass-bg: rgba(255, 253, 249, 0.72);
+    --oat-blur: blur(16px);
+    --oat-shadow: 0 8px 24px rgba(166, 165, 160, 0.12);
+    --font-title: "Source Han Serif SC", "Noto Serif SC", "Songti SC", serif;
+    --font-body: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+
+    /* ---- Z-Index 层级体系 ----
+       0-100:   普通内容流
+       100-500: 组件内部
+       800-899: 提示类浮层
+       900:     导航栏 (sticky)
+       1000:    下拉菜单 / 模态遮罩
+       1050+:   全局最高浮动（水母等）
+    */
+    --z-nav: 900;
+    --z-dropdown: 1000;
+    --z-modal: 1040;
+    --z-floating: 1050;
 }
 
-/* 导航栏 */
+/* ==================== 全局基础 ==================== */
+* { box-sizing: border-box; }
+
+html {
+    scroll-behavior: smooth;
+    -webkit-tap-highlight-color: transparent;
+}
+
+body {
+    font-family: var(--font-body);
+    font-size: 16px;
+    line-height: 1.7;
+    color: var(--text);
+    background-color: var(--bg);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    min-height: 100vh;
+}
+
+/* ==================== 导航栏（毛玻璃 sticky） ==================== */
 .navbar {
-    background: var(--card-bg);
-    border-bottom: 1px solid var(--border);
     position: sticky;
     top: 0;
-    z-index: 100;
-    box-shadow: var(--shadow);
+    z-index: var(--z-nav);
+    background: var(--oat-glass-bg);
+    backdrop-filter: var(--oat-blur);
+    -webkit-backdrop-filter: var(--oat-blur);
+    border-bottom: 1px solid rgba(123, 174, 154, 0.18);
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.4) inset, 0 2px 8px rgba(166, 165, 160, 0.06);
 }
 
 .nav-container {
     max-width: 1200px;
     margin: 0 auto;
-    padding: 0 20px;
+    padding: 0 24px;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    height: 60px;
+    height: 64px;
 }
 
 .nav-brand {
-    font-size: 1.25rem;
-    font-weight: 700;
-    color: var(--primary);
+    font-family: var(--font-title);
+    font-size: 1.3rem;
+    font-weight: 600;
+    color: var(--oat-text);
     text-decoration: none;
+    letter-spacing: 0.08em;
+    flex-shrink: 0;
 }
 
-.nav-links { display: flex; gap: 4px; }
+.nav-links { display: flex; gap: 4px; align-items: center; }
 
 .nav-link {
     padding: 8px 16px;
-    color: var(--text-light);
+    color: var(--oat-text-sub);
     text-decoration: none;
-    border-radius: 8px;
-    font-size: 0.9rem;
-    transition: all 0.2s;
+    border-radius: 10px;
+    font-size: 0.92rem;
+    transition: all 0.25s;
+    font-weight: 500;
 }
-
 .nav-link:hover {
-    background: #f1f5f9;
-    color: var(--primary);
+    background: rgba(123, 174, 154, 0.12);
+    color: var(--oat-text);
 }
 .nav-link.active {
-    color: var(--primary-dark);
+    color: var(--oat-accent-hover);
     font-weight: 600;
-    background: rgba(163, 181, 191, 0.12);
+    background: rgba(123, 174, 154, 0.12);
 }
 
-/* 容器 */
+.nav-toggle {
+    display: none;
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    padding: 4px 8px;
+    color: var(--oat-text);
+    line-height: 1;
+}
+
+@media (max-width: 768px) {
+    .nav-toggle { display: block; }
+    .nav-links {
+        position: absolute;
+        top: 64px;
+        right: 0;
+        left: 0;
+        background: var(--oat-card);
+        flex-direction: column;
+        align-items: stretch;
+        padding: 12px;
+        gap: 4px;
+        box-shadow: 0 8px 22px rgba(0, 0, 0, 0.08);
+        display: none;
+    }
+    .nav-links.active { display: flex; }
+    .nav-link { padding: 12px 16px; }
+}
+
+/* ==================== 容器 ==================== */
 .container {
     max-width: 1200px;
     margin: 0 auto;
     padding: 32px 20px;
 }
 
-/* Hero */
+/* ==================== Hero ==================== */
 .hero {
     text-align: center;
     padding: 60px 20px;
@@ -91,16 +209,163 @@ body {
     color: white;
     margin-bottom: 40px;
 }
-
 .hero h1 { font-size: 2.5rem; margin-bottom: 12px; }
 .hero p { font-size: 1.15rem; opacity: 0.9; }
 .hero-sub { font-size: 0.95rem; opacity: 0.75; margin-top: 4px; }
-
 .hero-buttons {
     margin-top: 24px;
     display: flex;
     gap: 12px;
     justify-content: center;
+}
+
+/* ==================== 按钮 ==================== */
+.btn {
+    display: inline-block;
+    padding: 10px 20px;
+    background: var(--primary);
+    color: #fff;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: 500;
+    transition: all 0.2s;
+    border: none;
+    cursor: pointer;
+    font-size: 0.95rem;
+}
+.btn:hover { transform: translateY(-1px); box-shadow: var(--shadow-lg); }
+.btn-primary { background: white; color: var(--primary); }
+.btn-small { padding: 6px 16px; font-size: 0.85rem; }
+
+/* ==================== 卡片 ==================== */
+.card {
+    background: var(--card-bg);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 20px;
+    transition: all 0.3s;
+}
+.card:hover { box-shadow: var(--shadow-lg); transform: translateY(-2px); }
+
+/* ==================== 通用工具类 ==================== */
+.text-light { color: var(--text-light); }
+.text-center { text-align: center; }
+.mb-1 { margin-bottom: 8px; }
+.mb-2 { margin-bottom: 16px; }
+.mb-3 { margin-bottom: 24px; }
+.mt-2 { margin-top: 16px; }
+.gap-2 { gap: 16px; }
+
+/* ==================== 暖调主题（Health 页面用）==================== */
+.theme-warm {
+    background: var(--warm-bg);
+    color: var(--warm-text);
+    min-height: 100vh;
+}
+.theme-warm .container { padding: 40px 20px; }
+
+.health-hero {
+    text-align: center;
+    padding: 56px 24px;
+    background: var(--warm-gradient);
+    border-radius: var(--radius-warm);
+    color: var(--warm-text);
+    margin-bottom: 36px;
+    box-shadow: var(--warm-shadow);
+}
+.health-hero h1 {
+    font-family: var(--font-title);
+    font-size: 2.4rem;
+    font-weight: 400;
+    margin-bottom: 12px;
+    letter-spacing: 0.04em;
+}
+.health-hero p { font-size: 1.1rem; opacity: 0.85; }
+
+.warm-card {
+    background: var(--warm-card);
+    border-radius: var(--radius-warm);
+    padding: 28px;
+    box-shadow: var(--warm-shadow);
+    color: var(--warm-text);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    border: 1px solid rgba(246, 165, 192, 0.15);
+}
+.warm-card:hover { transform: translateY(-4px); box-shadow: 0 12px 32px rgba(246, 165, 192, 0.25); }
+
+.warm-note-box {
+    background: var(--warm-gradient);
+    border-left: 4px solid var(--warm-primary);
+    border-radius: 12px;
+    padding: 18px 22px;
+    margin-bottom: 24px;
+    color: var(--warm-text);
+    font-size: 0.95rem;
+    line-height: 1.7;
+}
+
+.warm-seek-help {
+    background: var(--warm-card);
+    border-left: 4px solid var(--warm-accent);
+    border-radius: var(--radius-warm);
+    padding: 24px;
+    text-align: center;
+    color: var(--warm-text);
+    margin-top: 32px;
+    box-shadow: var(--warm-shadow);
+}
+.warm-seek-help strong { color: var(--warm-accent); }
+
+.warm-symptom-bullet {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--warm-primary);
+    margin-right: 10px;
+    flex-shrink: 0;
+    margin-top: 8px;
+}
+
+.warm-coping-card {
+    background: var(--warm-card);
+    border: 1px solid rgba(246, 165, 192, 0.2);
+    border-radius: 16px;
+    padding: 18px;
+    color: var(--warm-text);
+    transition: all 0.3s;
+}
+.warm-coping-card:hover {
+    border-color: var(--warm-primary);
+    transform: translateY(-2px);
+}
+
+/* ==================== Footer ==================== */
+.footer {
+    text-align: center;
+    padding: 32px 20px;
+    color: var(--text-light);
+    font-size: 0.9rem;
+    border-top: 1px solid var(--border);
+    margin-top: 60px;
+}
+
+/* ==================== Health 列表网格 ==================== */
+.health-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 20px;
+}
+
+/* ==================== 响应式 ==================== */
+@media (max-width: 640px) {
+    .container { padding: 24px 16px; }
+    .hero h1 { font-size: 2rem; }
+    .nav-container { padding: 0 16px; height: 56px; }
+    .nav-brand { font-size: 1.15rem; }
+    .health-hero h1 { font-size: 1.9rem; }
+    .health-grid { grid-template-columns: 1fr; }
+}
 }
 
 /* 按钮 */
