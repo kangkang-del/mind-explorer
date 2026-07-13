@@ -1,7 +1,7 @@
 <template>
-  <div class="app-layout">
+  <div class="flex min-h-screen flex-col bg-[#fafbfc]">
     <AppNavbar />
-    <main class="app-main">
+    <main class="flex-1 w-full max-w-app mx-auto px-4 py-6 md:px-6 md:py-8 lg:px-8">
       <RouterView />
     </main>
     <AppFooter />
@@ -14,18 +14,3 @@ import AppNavbar from './components/AppNavbar.vue'
 import AppFooter from './components/AppFooter.vue'
 import FloatingCompanion from './components/FloatingCompanion.vue'
 </script>
-
-<style scoped>
-.app-layout {
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-}
-.app-main {
-  flex: 1;
-  width: 100%;
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 24px 16px 48px;
-}
-</style>

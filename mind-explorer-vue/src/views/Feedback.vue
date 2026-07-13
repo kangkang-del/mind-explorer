@@ -1,32 +1,41 @@
 <template>
-  <main class="page feedback">
-    <header class="page-head">
-      <h1>✉️ 反馈与建议</h1>
-      <p>你的每一条声音，都会让心灵探索更温暖。</p>
+  <main class="max-w-2xl mx-auto">
+    <header class="text-center mb-6">
+      <h1 class="text-2xl md:text-3xl font-bold text-[#3a4a5c] m-0">✉️ 反馈与建议</h1>
+      <p class="text-[#9aa6b2] mt-2 m-0">你的每一条声音，都会让心灵探索更温暖。</p>
     </header>
 
-    <form class="feedback-form" @submit.prevent="onSubmit">
-      <label class="field">
-        <span class="label">类型</span>
-        <div class="types">
-          <label v-for="t in types" :key="t.value" class="type">
-            <input type="radio" v-model="form.type" :value="t.value" />
+    <form class="bg-white border border-[#eef2f7] rounded-2xl p-6 flex flex-col gap-4" @submit.prevent="onSubmit">
+      <div class="flex flex-col gap-2">
+        <span class="text-[14px] font-semibold text-[#5a6b7c]">类型</span>
+        <div class="flex gap-3 flex-wrap">
+          <label v-for="t in types" :key="t.value" class="inline-flex items-center gap-1.5 px-3.5 py-1.5 border border-[#eef2f7] rounded-[20px] cursor-pointer text-[14px] text-[#5a6b7c]">
+            <input type="radio" v-model="form.type" :value="t.value" class="accent-[#7c9cb8]" />
             <span>{{ t.label }}</span>
           </label>
         </div>
+      </div>
+
+      <label class="flex flex-col gap-2">
+        <span class="text-[14px] font-semibold text-[#5a6b7c]">内容</span>
+        <textarea
+          v-model="form.content"
+          rows="5"
+          placeholder="说说你的想法、遇到的问题，或想感谢的事…"
+          class="w-full p-3 border border-[#e0e6ec] rounded-lg resize-y text-[14px] focus:outline-none focus:border-[#7c9cb8]"
+        ></textarea>
       </label>
 
-      <label class="field">
-        <span class="label">内容</span>
-        <textarea v-model="form.content" rows="5" placeholder="说说你的想法、遇到的问题，或想感谢的事…"></textarea>
-      </label>
-
-      <label class="field-inline">
-        <input type="checkbox" v-model="form.anonymous" />
+      <label class="flex items-center gap-2 text-[14px] text-[#5a6b7c]">
+        <input type="checkbox" v-model="form.anonymous" class="accent-[#7c9cb8]" />
         <span>匿名提交</span>
       </label>
 
-      <button type="submit" class="submit-btn" :disabled="!form.content.trim()">
+      <button
+        type="submit"
+        :disabled="!form.content.trim()"
+        class="self-start px-7 py-2.5 bg-gradient-to-r from-[#7c9cb8] to-[#a8c3d6] text-white border-0 rounded-lg text-[15px] cursor-pointer transition hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
+      >
         提交反馈
       </button>
     </form>
@@ -54,74 +63,3 @@ function onSubmit() {
   form.content = ''
 }
 </script>
-
-<style scoped>
-.feedback { max-width: 640px; }
-
-.page-head { text-align: center; margin-bottom: 24px; }
-.page-head h1 { font-size: 26px; color: #3a4a5c; margin: 0 0 8px; }
-.page-head p { color: #9aa6b2; margin: 0; }
-
-.feedback-form {
-  background: #fff;
-  border: 1px solid #eef2f7;
-  border-radius: 14px;
-  padding: 24px;
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
-}
-.field { display: flex; flex-direction: column; gap: 8px; }
-.label { font-size: 14px; color: #5a6b7c; font-weight: 600; }
-.types { display: flex; gap: 12px; flex-wrap: wrap; }
-.type {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 14px;
-  border: 1px solid #eef2f7;
-  border-radius: 20px;
-  cursor: pointer;
-  font-size: 14px;
-  color: #5a6b7c;
-}
-.type input { accent-color: #7c9cb8; }
-
-textarea {
-  width: 100%;
-  padding: 12px;
-  border: 1px solid #e0e6ec;
-  border-radius: 8px;
-  resize: vertical;
-  font-size: 14px;
-  font-family: inherit;
-  box-sizing: border-box;
-}
-textarea:focus {
-  outline: none;
-  border-color: #7c9cb8;
-}
-
-.field-inline {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: #5a6b7c;
-  font-size: 14px;
-}
-.field-inline input { accent-color: #7c9cb8; }
-
-.submit-btn {
-  align-self: flex-start;
-  padding: 10px 28px;
-  background: linear-gradient(135deg, #7c9cb8, #a8c3d6);
-  color: #fff;
-  border: none;
-  border-radius: 8px;
-  font-size: 15px;
-  cursor: pointer;
-  transition: opacity 0.2s;
-}
-.submit-btn:hover { opacity: 0.92; }
-.submit-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-</style>
