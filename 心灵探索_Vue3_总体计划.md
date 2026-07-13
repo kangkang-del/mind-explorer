@@ -273,4 +273,38 @@ exports.handler = async () => {
 
 ---
 
+## 十二、开发与提交流程（本地工作目录 + GitHub 上传）
+
+> **约定**：之后每个阶段的进展，一律放在本地工作目录 `/workspace/my-vue-project/`（**普通文件夹，不是 git 仓库**），并在完成后推送到 GitHub。本地不再维护 git 仓库。
+
+### 1. 本地工作目录
+- 项目源码统一放在 `/workspace/my-vue-project/`，可直接 `npm install && npm run dev` 预览。
+- 每个阶段由助手直接将文件写入该目录对应位置（如 `src/views/`、`src/components/`）。
+- 不在此目录执行 `git init` / `git commit`；仅最终成果推送到 GitHub。
+
+### 2. 将进展放入 my-vue-project（辅助命令）
+```bash
+# 示例：把某阶段成果同步进工作目录（排除依赖与构建产物）
+tar cf - --exclude node_modules --exclude dist /源路径/ | (cd /workspace/my-vue-project && tar xf -)
+```
+> 实际开发中，助手会在每个阶段直接把新建/修改的文件写入 `/workspace/my-vue-project/` 相应位置，无需你手动操作。
+
+### 3. 上传到 GitHub 的命令（token 用占位符，切勿填真实值）
+```bash
+# 用「带 token 的远程 URL」推送，token 不写入 .git/config
+git push "https://<GITHUB_USER>:<YOUR_GITHUB_TOKEN>@github.com/<GITHUB_USER>/mind-explorer.git" HEAD:main
+```
+- `<YOUR_GITHUB_TOKEN>`：替换为有 `repo` 写权限的 GitHub PAT（classic 勾选 `repo`，或 fine-grained 对该仓库授权 **Contents: Read and write**）。
+- 推送完成后执行 `gh auth logout`（若用 gh 登录过）清理本地凭证。
+- 公开仓库可匿名 `git clone`；仅 `git push` 时需要 token。
+
+### 4. Token 安全规范（重要 ⚠️ 别泄露）
+- **绝不打印真实 token**：不在对话输出、日志、截图、提交信息中输出 token 明文；调试时用掩码（如 `ghp_****...`）。
+- 使用**最小权限** token（仅 `repo` / Contents 写），避免使用 full 权限 token。
+- 用途完成后（或定期）在 GitHub → Settings → Developer settings → Personal access tokens **撤销**该 token；需要再次上传时再生成新的。
+- 优先通过临时命令行参数 / 环境变量传递 token，避免写入 `.git/config`、脚本文件或代码仓库。
+- 助手每次上传后会主动 `gh auth logout` 并清理内存中的凭证引用。
+
+---
+
 > 计划已就绪。确认后我可从 **P0 骨架** 或你指定的任意阶段开始落地实现。
