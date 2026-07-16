@@ -18,8 +18,11 @@
       </button>
     </nav>
 
+    <!-- 加载态 -->
+    <p v-if="loading" class="text-center text-[#9aa6b2] py-12 m-0">正在加载晴天的温暖… ☀️</p>
+
     <!-- 发帖 -->
-    <section class="bg-white border border-[#eef2f7] rounded-2xl p-4 mb-5">
+    <section v-else class="bg-white border border-[#eef2f7] rounded-2xl p-4 mb-5">
       <textarea
         v-model="draft.content"
         rows="3"
@@ -34,16 +37,16 @@
         </div>
         <button
           @click="publish"
-          :disabled="!draft.content.trim()"
+          :disabled="!draft.content.trim() || publishing"
           class="px-5 py-2 bg-gradient-to-r from-[#7c9cb8] to-[#a8c3d6] text-white rounded-lg text-[14px] disabled:opacity-50 disabled:cursor-not-allowed transition hover:opacity-90"
         >
-          发布
+          {{ publishing ? '发布中…' : '发布' }}
         </button>
       </div>
     </section>
 
     <!-- 内容流：手机1列 / 平板2列 / 桌面3列 -->
-    <section class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+    <section v-if="!loading" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
       <article
         v-for="post in visiblePosts"
         :key="post.id"
@@ -81,12 +84,16 @@
       </article>
     </section>
 
-    <p v-if="!visiblePosts.length" class="text-center text-[#9aa6b2] py-12 m-0">这个分类下还没有内容，换个标签看看 ☀️</p>
+    <p v-if="!loading && !visiblePosts.length" class="text-center text-[#9aa6b2] py-12 m-0">这个分类下还没有内容，换个标签看看 ☀️</p>
   </main>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import { communityApi } from '../api/community'
+import { useAuthStore } from '../stores/auth'
+
+const auth = useAuthStore()
 
 const categories = [
   { key: 'cat', label: '🐱 猫狗' },
@@ -102,53 +109,158 @@ const tabs = [
 const active = ref('all')
 
 function catLabel(k) {
-  return categories.find(c => c.key === k)?.label?.replace(/[🐱🤝🌅]\s*/, '') || k
+  const map = { cat: '猫狗', dog: '猫狗', kindness: '善意', nature: '环境', quote: '小木语录', general: '其他' }
+  return map[k] || k
 }
 
-// 初始 mock 内容（模拟「自动推送」防冷场 + 小木语录穿插）
-let uid = 100
-const posts = ref([
-  { id: 1, type: 'auto', category: 'cat', title: '今天遇到的橘猫', content: '它在台阶上晒了一下午太阳，尾巴一摆一摆，好像在说「生活很好」。', image: 'https://picsum.photos/seed/cat1/400/300', author: '系统推送', likes: 12, liked: false, comments: [], showComment: false, draftComment: '' },
-  { id: 2, type: 'auto', category: 'kindness', title: '地铁上有人让座', content: '一位阿姨主动把座位让给提重物的小伙子，两人都笑了。', image: 'https://picsum.photos/seed/kind1/400/300', author: '系统推送', likes: 8, liked: false, comments: [{ id: 1, author: '路人', text: '世界好温柔' }], showComment: false, draftComment: '' },
-  { id: 3, type: 'auto', category: 'nature', title: '雨后的天空', content: '云散开的时候，整片天都是橘子味的。', image: 'https://picsum.photos/seed/nature1/400/300', author: '系统推送', likes: 15, liked: false, comments: [], showComment: false, draftComment: '' },
-  { id: 4, type: 'xiaomu', category: 'kindness', title: '小木的今日语录', content: '你不必时刻坚强。允许自己偶尔像猫一样，懒洋洋地、只是存在着，也很好。', author: '小木', likes: 20, liked: false, comments: [], showComment: false, draftComment: '' },
-])
+const loading = ref(true)
+const publishing = ref(false)
+const posts = ref([])
+const myLikes = ref({}) // postId -> 是否已认同
 
 const visiblePosts = computed(() => {
   return active.value === 'all'
     ? posts.value
-    : posts.value.filter(p => p.category === active.value)
+    : posts.value.filter((p) => p.category === active.value)
 })
 
 const draft = ref({ content: '', category: 'cat' })
 
-function publish() {
-  if (!draft.value.content.trim()) return
-  posts.value.unshift({
-    id: ++uid,
-    type: 'user',
-    category: draft.value.category,
-    title: draft.value.content.slice(0, 20),
-    content: draft.value.content,
-    image: '',
-    author: '我',
+// 将 Supabase 记录映射为页面需要的结构
+function normalize(raw) {
+  return {
+    id: raw.id,
+    type: raw.type || 'user',
+    category: raw.category || 'general',
+    title: raw.title,
+    content: raw.content,
+    image: raw.image || '',
+    author: raw.username || '匿名用户',
+    createdAt: raw.created_at,
+    isAutoPush: !!raw.is_auto_push,
     likes: 0,
     liked: false,
     comments: [],
     showComment: false,
     draftComment: '',
-  })
-  draft.value.content = ''
+  }
 }
 
-function toggleLike(p) {
+async function loadPosts() {
+  loading.value = true
+  try {
+    const raw = await communityApi.getPosts()
+    let list = raw.map(normalize)
+
+    // 批量拉取点赞数
+    try {
+      const ids = list.map((p) => p.id)
+      const likeMap = await communityApi.getLikesBatch(ids)
+      list.forEach((p) => (p.likes = likeMap[p.id] || 0))
+    } catch (e) {
+      console.warn('获取点赞数失败', e)
+    }
+
+    // 当前用户已认同状态
+    const me = auth.currentUser
+    if (me) {
+      const myId = me.type === 'github' ? me.username : me.id
+      const { data } = await supabaseLikeList(ids)
+      const likedIds = new Set((data || []).filter((r) => r.user_identifier === myId).map((r) => r.post_id))
+      list.forEach((p) => (p.liked = likedIds.has(p.id)))
+    }
+
+    posts.value = list
+  } catch (e) {
+    console.error('加载帖子失败', e)
+    posts.value = []
+  } finally {
+    loading.value = false
+  }
+}
+
+// 取当前用户在所有帖子上的认同记录（一次查询）
+async function supabaseLikeList(ids) {
+  const { supabase } = await import('../api/supabase')
+  const { data, error } = await supabase
+    .from('post_likes')
+    .select('post_id, user_identifier')
+    .in('post_id', ids)
+  return { data, error }
+}
+
+// 兜底懒触发：每日首次打开若今日尚无自动推送，则即时拉取
+async function ensureTodayPush() {
+  const hasAuto = posts.value.some((p) => p.isAutoPush)
+  if (hasAuto) return
+  try {
+    const res = await communityApi.triggerSunnyPush()
+    if (res && res.pushed) {
+      await loadPosts() // 重新读取，包含新推送
+    }
+  } catch (e) {
+    console.warn('兜底推送未触发（可忽略，定时任务会补）', e)
+  }
+}
+
+async function publish() {
+  if (!draft.value.content.trim() || publishing.value) return
+  publishing.value = true
+  try {
+    const user = auth.currentUser || { name: '我', type: 'guest' }
+    const created = await communityApi.addPost({
+      title: draft.value.content.slice(0, 20),
+      content: draft.value.content,
+      user,
+      type: 'user',
+      category: draft.value.category,
+    })
+    posts.value.unshift(normalize({ ...created, username: user.name || '我' }))
+    draft.value.content = ''
+  } catch (e) {
+    console.error('发布失败', e)
+    alert('发布失败，请稍后再试')
+  } finally {
+    publishing.value = false
+  }
+}
+
+async function toggleLike(p) {
+  const me = auth.currentUser
+  if (!me) {
+    alert('请先登录后再认同 ❤️')
+    return
+  }
+  const before = p.liked
   p.liked = !p.liked
   p.likes += p.liked ? 1 : -1
+  try {
+    await communityApi.toggleLike(p.id, me)
+  } catch (e) {
+    console.error('认同操作失败', e)
+    p.liked = before
+    p.likes += before ? 1 : -1
+  }
 }
 
-function addComment(p) {
+async function addComment(p) {
+  const me = auth.currentUser
+  if (!me) {
+    alert('请先登录后再评论 💬')
+    return
+  }
   if (!p.draftComment.trim()) return
-  p.comments.push({ id: Date.now(), author: '我', text: p.draftComment })
-  p.draftComment = ''
+  try {
+    const c = await communityApi.addComment(p.id, p.draftComment, me)
+    p.comments.push({ id: c.id, author: c.username || me.name || '我', text: c.content })
+    p.draftComment = ''
+  } catch (e) {
+    console.error('评论失败', e)
+  }
 }
+
+onMounted(async () => {
+  await loadPosts()
+  await ensureTodayPush()
+})
 </script>

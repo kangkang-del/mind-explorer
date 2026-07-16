@@ -28,27 +28,46 @@
         </div>
       </div>
 
-      <!-- 手机汉堡按钮 -->
-      <button class="md:hidden ml-auto flex flex-col justify-center gap-[5px] w-9 h-9 border-0 bg-transparent cursor-pointer" @click="menuOpen = !menuOpen" aria-label="切换菜单">
+      <!-- 手机汉堡按钮（三横线 → X 动画） -->
+      <button
+        class="md:hidden ml-auto flex flex-col justify-center gap-[5px] w-9 h-9 border-0 bg-transparent cursor-pointer relative z-[60]"
+        @click="menuOpen = !menuOpen"
+        :aria-expanded="menuOpen ? 'true' : 'false'"
+        aria-label="切换菜单"
+      >
         <span class="block w-[22px] h-0.5 bg-[#5a6b7c] rounded transition-all duration-300" :class="{ 'translate-y-[7px] rotate-45': menuOpen }"></span>
         <span class="block w-[22px] h-0.5 bg-[#5a6b7c] rounded transition-all duration-300" :class="{ 'opacity-0': menuOpen }"></span>
         <span class="block w-[22px] h-0.5 bg-[#5a6b7c] rounded transition-all duration-300" :class="{ '-translate-y-[7px] -rotate-45': menuOpen }"></span>
       </button>
     </div>
 
-    <!-- 手机抽屉菜单 -->
-    <div class="md:hidden overflow-hidden transition-all duration-300 border-[#eef2f7]" :class="menuOpen ? 'max-h-[480px] border-t' : 'max-h-0'">
-      <nav class="flex flex-col px-4 py-2">
-        <RouterLink to="/" @click="menuOpen=false" class="px-3 py-3 rounded-md text-[15px] text-[#5a6b7c] no-underline hover:bg-[#f0f4f9]">首页</RouterLink>
-        <RouterLink to="/knowledge" @click="menuOpen=false" class="px-3 py-3 rounded-md text-[15px] text-[#5a6b7c] no-underline hover:bg-[#f0f4f9]">了解心理学知识</RouterLink>
-        <RouterLink to="/companion" @click="menuOpen=false" class="px-3 py-3 rounded-md text-[15px] text-[#5a6b7c] no-underline hover:bg-[#f0f4f9]">同行者</RouterLink>
-        <RouterLink to="/sunny" @click="menuOpen=false" class="px-3 py-3 rounded-md text-[15px] text-[#5a6b7c] no-underline hover:bg-[#f0f4f9]">心灵晴天</RouterLink>
-        <RouterLink to="/feedback" @click="menuOpen=false" class="px-3 py-3 rounded-md text-[15px] text-[#5a6b7c] no-underline hover:bg-[#f0f4f9]">反馈与建议</RouterLink>
-        <div class="border-t border-[#eef2f7] my-1"></div>
-        <RouterLink to="/profile" @click="menuOpen=false" class="px-3 py-3 rounded-md text-[15px] text-[#5a6b7c] no-underline hover:bg-[#f0f4f9]">个人中心</RouterLink>
-        <button class="px-3 py-3 rounded-md text-left text-[15px] text-[#7c9cb8] font-semibold hover:bg-[#f0f4f9]">登录 / 注册</button>
+    <!-- 手机遮罩 -->
+    <div
+      class="md:hidden fixed inset-0 bg-black/40 z-[55] transition-opacity duration-300"
+      :class="menuOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'"
+      @click="menuOpen = false"
+    ></div>
+
+    <!-- 手机右侧滑入抽屉 -->
+    <aside
+      class="md:hidden fixed top-0 right-0 h-full w-[80%] max-w-[320px] bg-white z-[56] shadow-2xl transition-transform duration-300 ease-out flex flex-col"
+      :class="menuOpen ? 'translate-x-0' : 'translate-x-full'"
+    >
+      <div class="flex items-center justify-between px-5 h-[60px] border-b border-[#eef2f7] shrink-0">
+        <span class="font-bold text-[17px] text-[#3a4a5c]">心灵探索</span>
+        <button class="border-0 bg-transparent text-[26px] text-[#9aa6b2] cursor-pointer leading-none" @click="menuOpen = false" aria-label="关闭菜单">×</button>
+      </div>
+      <nav class="flex flex-col px-3 py-2 overflow-y-auto">
+        <RouterLink to="/" @click="menuOpen=false" class="px-3 py-3.5 rounded-lg text-[16px] text-[#5a6b7c] no-underline transition hover:bg-[#f0f4f9]">首页</RouterLink>
+        <RouterLink to="/knowledge" @click="menuOpen=false" class="px-3 py-3.5 rounded-lg text-[16px] text-[#5a6b7c] no-underline transition hover:bg-[#f0f4f9]">了解心理学知识</RouterLink>
+        <RouterLink to="/companion" @click="menuOpen=false" class="px-3 py-3.5 rounded-lg text-[16px] text-[#5a6b7c] no-underline transition hover:bg-[#f0f4f9]">同行者</RouterLink>
+        <RouterLink to="/sunny" @click="menuOpen=false" class="px-3 py-3.5 rounded-lg text-[16px] text-[#5a6b7c] no-underline transition hover:bg-[#f0f4f9]">心灵晴天</RouterLink>
+        <RouterLink to="/feedback" @click="menuOpen=false" class="px-3 py-3.5 rounded-lg text-[16px] text-[#5a6b7c] no-underline transition hover:bg-[#f0f4f9]">反馈与建议</RouterLink>
+        <div class="border-t border-[#eef2f7] my-2"></div>
+        <RouterLink to="/profile" @click="menuOpen=false" class="px-3 py-3.5 rounded-lg text-[16px] text-[#5a6b7c] no-underline transition hover:bg-[#f0f4f9]">个人中心</RouterLink>
+        <button class="px-3 py-3.5 rounded-lg text-left text-[16px] text-[#7c9cb8] font-semibold transition hover:bg-[#f0f4f9]" @click="menuOpen=false">登录 / 注册</button>
       </nav>
-    </div>
+    </aside>
   </header>
 </template>
 

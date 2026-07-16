@@ -22,6 +22,7 @@ npm-debug.log*
 # CodeBuddy workspace
 .codebuddy/
 mind-explorer-fix/
+.merge-tmp/
 
-# Netlify
-.netlify/
+# Build output
+dist/

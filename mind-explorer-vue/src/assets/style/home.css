@@ -45,6 +45,7 @@
 html {
     scroll-behavior: smooth;
     -webkit-tap-highlight-color: transparent;
+    overflow-x: clip;   /* 防止通栏轮播(100vw)在窄屏产生横向滚动，且不破坏吸顶导航 */
 }
 
 body {
