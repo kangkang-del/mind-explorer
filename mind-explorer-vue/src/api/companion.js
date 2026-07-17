@@ -9,8 +9,40 @@
 const ENDPOINT = '/.netlify/functions/companion'
 
 export const companionApi = {
-  // 流式对话；history 为最近若干条 {role, content}
-  streamChat({ message, history = [], onMeta, onDelta, onDone, onError, signal }) {
+  // 拉取服务端最近对话（跨设备恢复）；无 userId 或函数未启用记忆时返回空
+  async getHistory(userId) {
+    if (!userId) return []
+    try {
+      const res = await fetch(ENDPOINT, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'history', userId }),
+      })
+      if (!res.ok) return []
+      const data = await res.json()
+      return Array.isArray(data?.messages) ? data.messages : []
+    } catch {
+      return []
+    }
+  },
+
+  // 清空服务端记忆（用户点击「清空」时调用）
+  async clearHistory(userId) {
+    if (!userId) return
+    try {
+      await fetch(ENDPOINT, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'clear', userId }),
+      })
+    } catch {
+      /* 忽略 */
+    }
+  },
+
+  // 流式对话；history 为最近若干条 {role, content}（仅在未启用服务端记忆时作回退）
+  // userId / nickname 启用服务端记忆与画像
+  streamChat({ message, history = [], userId, nickname, onMeta, onDelta, onDone, onError, signal }) {
     const controller = new AbortController()
     const abort = signal || controller.signal
 
@@ -19,7 +51,7 @@ export const companionApi = {
         const res = await fetch(ENDPOINT, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ message, history }),
+          body: JSON.stringify({ message, history, userId, nickname }),
           signal: abort,
         })
         if (!res.ok || !res.body) {

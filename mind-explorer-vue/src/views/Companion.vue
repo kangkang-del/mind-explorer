@@ -79,8 +79,18 @@
 </template>
 
 <script setup>
-import { ref, reactive, nextTick, onBeforeUnmount } from 'vue'
+import { ref, reactive, computed, nextTick, onMounted, onBeforeUnmount } from 'vue'
 import { companionApi } from '../api/companion'
+import { useAuthStore } from '../stores/auth'
+
+const auth = useAuthStore()
+// 用户标识（服务端记忆用）：guest→g:{id}，github→gh:{username}；未登录为空（走本地 localStorage）
+const userId = computed(() => {
+  const u = auth.currentUser
+  if (!u) return ''
+  return u.type === 'github' ? `gh:${u.username}` : `g:${u.id}`
+})
+const userNickname = computed(() => auth.displayName || '')
 
 const STORAGE_KEY = 'xiaomu_history_v1'
 const MAX_HISTORY = 12
@@ -131,6 +141,8 @@ function clearChat() {
   emotionLabel.value = ''
   emotionEmoji.value = ''
   saveHistory()
+  // 同步清空服务端记忆（若已登录且启用）
+  if (userId.value) companionApi.clearHistory(userId.value)
 }
 
 function getHistory() {
@@ -161,6 +173,8 @@ async function send() {
   controller = companionApi.streamChat({
     message: text,
     history,
+    userId: userId.value,
+    nickname: userNickname.value,
     onMeta: (meta) => {
       if (meta.emotion) {
         emotionLabel.value = meta.emotion.label || ''
@@ -243,6 +257,17 @@ async function localFallback(text) {
   sending.value = false
   saveHistory()
 }
+
+// 挂载时：若已登录，从服务端恢复对话（跨设备连续性）；失败则保留本地 localStorage
+onMounted(async () => {
+  if (!userId.value) return
+  const serverMsgs = await companionApi.getHistory(userId.value)
+  if (serverMsgs && serverMsgs.length) {
+    messages.splice(0, messages.length, ...serverMsgs.map((m) => ({ role: m.role, content: m.content })))
+    saveHistory()
+    await scrollToBottom()
+  }
+})
 
 onBeforeUnmount(() => {
   controller?.abort()
