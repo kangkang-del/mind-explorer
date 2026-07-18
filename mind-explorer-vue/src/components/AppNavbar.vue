@@ -13,6 +13,7 @@
         <RouterLink to="/companion" class="px-3 py-2 rounded-lg text-[15px] text-[#5a6b7c] no-underline transition hover:bg-[#f0f4f9] hover:text-[#3a4a5c]">同行者</RouterLink>
         <RouterLink to="/mood" class="px-3 py-2 rounded-lg text-[15px] text-[#5a6b7c] no-underline transition hover:bg-[#f0f4f9] hover:text-[#3a4a5c]">心情日记</RouterLink>
         <RouterLink to="/upload" class="px-3 py-2 rounded-lg text-[15px] text-[#5a6b7c] no-underline transition hover:bg-[#f0f4f9] hover:text-[#3a4a5c]">治愈瞬间</RouterLink>
+        <RouterLink to="/tools" class="px-3 py-2 rounded-lg text-[15px] text-[#5a6b7c] no-underline transition hover:bg-[#f0f4f9] hover:text-[#3a4a5c]">自助工具</RouterLink>
         <RouterLink to="/sunny" class="px-3 py-2 rounded-lg text-[15px] text-[#5a6b7c] no-underline transition hover:bg-[#f0f4f9] hover:text-[#3a4a5c]">心灵晴天</RouterLink>
         <RouterLink to="/feedback" class="px-3 py-2 rounded-lg text-[15px] text-[#5a6b7c] no-underline transition hover:bg-[#f0f4f9] hover:text-[#3a4a5c]">反馈与建议</RouterLink>
         <RouterLink to="/profile" class="px-3 py-2 rounded-lg text-[15px] text-[#5a6b7c] no-underline transition hover:bg-[#f0f4f9] hover:text-[#3a4a5c]">个人中心</RouterLink>
@@ -27,6 +28,7 @@
           <RouterLink to="/profile" class="px-3 py-2 rounded-md text-[14px] text-[#5a6b7c] no-underline hover:bg-[#f0f4f9]" @click="userMenuOpen=false">个人中心</RouterLink>
           <RouterLink to="/mood" class="px-3 py-2 rounded-md text-[14px] text-[#5a6b7c] no-underline hover:bg-[#f0f4f9]" @click="userMenuOpen=false">心情日记</RouterLink>
           <RouterLink to="/upload" class="px-3 py-2 rounded-md text-[14px] text-[#5a6b7c] no-underline hover:bg-[#f0f4f9]" @click="userMenuOpen=false">治愈瞬间</RouterLink>
+          <RouterLink to="/tools" class="px-3 py-2 rounded-md text-[14px] text-[#5a6b7c] no-underline hover:bg-[#f0f4f9]" @click="userMenuOpen=false">自助工具</RouterLink>
           <RouterLink to="/admin" class="px-3 py-2 rounded-md text-[14px] text-[#5a6b7c] no-underline hover:bg-[#f0f4f9]" @click="userMenuOpen=false">审核后台</RouterLink>
           <RouterLink to="/feedback" class="px-3 py-2 rounded-md text-[14px] text-[#5a6b7c] no-underline hover:bg-[#f0f4f9]" @click="userMenuOpen=false">反馈与建议</RouterLink>
           <button class="px-3 py-2 rounded-md text-left text-[14px] text-[#7c9cb8] font-semibold hover:bg-[#f0f4f9]" @click="userMenuOpen=false">登录 / 注册</button>
@@ -68,6 +70,7 @@
         <RouterLink to="/companion" @click="menuOpen=false" class="px-3 py-3.5 rounded-lg text-[16px] text-[#5a6b7c] no-underline transition hover:bg-[#f0f4f9]">同行者</RouterLink>
         <RouterLink to="/mood" @click="menuOpen=false" class="px-3 py-3.5 rounded-lg text-[16px] text-[#5a6b7c] no-underline transition hover:bg-[#f0f4f9]">心情日记</RouterLink>
         <RouterLink to="/upload" @click="menuOpen=false" class="px-3 py-3.5 rounded-lg text-[16px] text-[#5a6b7c] no-underline transition hover:bg-[#f0f4f9]">治愈瞬间</RouterLink>
+        <RouterLink to="/tools" @click="menuOpen=false" class="px-3 py-3.5 rounded-lg text-[16px] text-[#5a6b7c] no-underline transition hover:bg-[#f0f4f9]">自助工具</RouterLink>
         <RouterLink to="/sunny" @click="menuOpen=false" class="px-3 py-3.5 rounded-lg text-[16px] text-[#5a6b7c] no-underline transition hover:bg-[#f0f4f9]">心灵晴天</RouterLink>
         <RouterLink to="/feedback" @click="menuOpen=false" class="px-3 py-3.5 rounded-lg text-[16px] text-[#5a6b7c] no-underline transition hover:bg-[#f0f4f9]">反馈与建议</RouterLink>
         <div class="border-t border-[#eef2f7] my-2"></div>

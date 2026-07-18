@@ -50,24 +50,30 @@
 
     <!-- 危机干预弹窗 -->
     <div v-if="showCrisis" class="fixed inset-0 z-[120] flex items-center justify-center bg-black/40 px-4" @click.self="showCrisis = false">
-      <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-xl border border-[#f0a868]">
+      <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl border border-[#f0a868]">
         <div class="text-[24px] mb-2">🌿💛</div>
         <h3 class="text-lg font-bold text-[#3a4a5c] m-0 mb-2">你值得被好好接住</h3>
-        <p class="text-[13px] text-[#5a6b7c] leading-7 m-0 mb-4">
-          我听到了你此刻很重的疲惫。寻求 help 不是软弱，而是对自己温柔的勇气。如果可以，请让专业的人陪你走一段：
+        <p class="text-[13px] text-[#5a6b7c] leading-7 m-0 mb-3">
+          我听到了你此刻很重的疲惫，也很心疼。想轻轻告诉你：你不需要一个人扛着这些。
+          寻求帮助不是软弱，而是对自己温柔的勇气。如果可以，请让专业的人陪你走一段：
         </p>
-        <ul class="text-[13px] text-[#3a4a5c] space-y-1.5 mb-4">
+        <ul class="text-[13px] text-[#3a4a5c] space-y-1.5 mb-3">
           <li>· 全国 24 小时心理援助热线：<b>400-161-9995</b></li>
           <li>· 北京心理危机研究与干预中心：<b>010-82951332</b></li>
-          <li>· 希望 24 热线：<b>400-161-9995</b></li>
+          <li>· 青少年心理咨询热线：<b>12355</b></li>
         </ul>
-        <button @click="showCrisis = false" class="w-full py-2.5 bg-gradient-to-r from-[#7c9cb8] to-[#a8c3d6] text-white rounded-lg text-[14px] font-semibold">我知道了，小木陪着我</button>
+        <p class="text-[12px] text-[#a85a2c] m-0 mb-4">⚠️ 若你正面临紧急危险，请立即拨打 <b>120</b> 或前往最近医院急诊，或拨打 <b>110</b>。</p>
+        <div class="flex gap-2">
+          <button @click="talkToXiaomu" class="flex-1 py-2.5 bg-gradient-to-r from-[#7c9cb8] to-[#a8c3d6] text-white rounded-lg text-[14px] font-semibold hover:opacity-90 transition">现在就和「小木」聊聊</button>
+          <button @click="showCrisis = false" class="px-4 py-2.5 rounded-lg text-[14px] text-[#5a6b7c] border border-[#e0e6ec] hover:bg-[#f0f4f9] transition">我记住了</button>
+        </div>
       </div>
     </div>
 
     <!-- 输入区 -->
     <footer class="mt-3 shrink-0 flex items-end gap-2">
       <textarea
+        ref="inputEl"
         v-model="input"
         rows="1"
         @keydown.enter.exact.prevent="send"
@@ -106,6 +112,7 @@ const input = ref('')
 const sending = ref(false)
 const messages = reactive(loadHistory())
 const scrollEl = ref(null)
+const inputEl = ref(null)
 const emotionLabel = ref('')
 const emotionEmoji = ref('')
 const showCrisis = ref(false)
@@ -133,6 +140,12 @@ async function loadGreeting() {
 }
 function dismissGreeting() {
   greeting.value = ''
+}
+
+// 危机弹窗「现在就和「小木」聊聊」：关闭弹窗并聚焦输入框
+function talkToXiaomu() {
+  showCrisis.value = false
+  nextTick(() => inputEl.value?.focus())
 }
 
 // 当前助手消息的引用，用于流式追加
@@ -263,7 +276,7 @@ function localDetect(text) {
 
 function localReply(text, crisis, emotion) {
   if (crisis) {
-    return '我听到了你此刻很重的疲惫，也很心疼。寻求帮助不是软弱，而是对自己温柔的勇气。如果你愿意，可以拨打援助热线：\n· 全国 24 小时心理援助热线：400-161-9995\n· 北京心理危机研究与干预中心：010-82951332\n我会一直在这里陪着你。'
+    return '我听到了你此刻很重的疲惫，也很心疼。你不需要一个人扛着这些。\n寻求帮助不是软弱，而是对自己温柔的勇气。如果你愿意，可以拨打援助热线：\n· 全国 24 小时心理援助热线：400-161-9995\n· 北京心理危机研究与干预中心：010-82951332\n· 青少年心理咨询热线：12355\n我会一直在这里陪着你。'
   }
   if (emotion.label.includes('焦虑')) return '听起来你心里绷着一根弦。先一起慢慢吐口气——你最担心的是哪一件事呢？'
   if (emotion.label.includes('低落')) return '我感觉到你有些累了。没关系，今天可以允许自己慢一点。你愿意说说，是从什么时候开始觉得沉重的吗？'
