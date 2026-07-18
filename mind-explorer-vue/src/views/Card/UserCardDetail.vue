@@ -1,45 +1,39 @@
 <template>
-  <main class="container" style="padding: 40px 20px; max-width: 800px; margin: 0 auto;">
-    <div v-if="loading" class="loading">加载中...</div>
+  <main class="max-w-2xl mx-auto px-4 py-6">
+    <div v-if="loading" class="text-center text-[#9aa6b2] py-16 m-0">加载中…</div>
 
-    <div v-else-if="!card" class="not-found">
-      <p>卡片不存在或已被移除</p>
-      <RouterLink to="/study" class="back-link">← 返回学习页</RouterLink>
+    <div v-else-if="!card" class="text-center py-16">
+      <p class="text-[#5a6b7c] text-[15px] m-0 mb-3">这条治愈瞬间不存在或已被移除</p>
+      <RouterLink to="/upload" class="text-[#7c9cb8] no-underline font-semibold">← 返回分享页</RouterLink>
     </div>
 
-    <article v-else class="card-detail">
-      <RouterLink to="/study" class="back-link">← 返回学习页</RouterLink>
+    <article v-else class="bg-white rounded-2xl border border-[#eef2f7] p-6">
+      <RouterLink to="/upload" class="inline-block text-[13px] text-[#7c9cb8] no-underline mb-4">← 返回分享页</RouterLink>
 
-      <span class="card-category">{{ card.category || '未分类' }}</span>
-      <h1>{{ card.title }}</h1>
-      <div class="author-badge">👤 由 {{ card.author_name }} 贡献</div>
+      <span v-if="card.category" class="inline-block bg-[#f0f4f9] text-[#5a6b7c] text-[12px] px-3 py-1 rounded-full mb-3">{{ card.category }}</span>
+      <h1 class="text-2xl font-bold text-[#3a4a5c] m-0 mb-2">{{ card.title }}</h1>
+      <p class="text-[13px] text-[#9aa6b2] m-0 mb-4">👤 由 {{ card.author_name }} 分享</p>
 
-      <div class="content" v-html="formattedContent"></div>
+      <img v-if="card.image" :src="card.image" alt="配图" class="w-full rounded-xl mb-4 object-cover max-h-[360px]" />
 
-      <div v-if="card.source" class="source">来源: {{ card.source }}</div>
-      <div class="status-line" v-if="card.status !== 'approved'">
-        状态: {{ statusText(card.status) }}
-      </div>
+      <p class="text-[15px] text-[#3a4a5c] leading-8 whitespace-pre-wrap m-0">{{ card.content }}</p>
+
+      <p v-if="card.source" class="text-[13px] text-[#9aa6b2] mt-4 m-0">来源：{{ card.source }}</p>
+
+      <p v-if="card.status !== 'approved'" class="text-[13px] text-[#b08968] mt-4 m-0">
+        状态：{{ statusText(card.status) }}（通过后将展示在社区里）
+      </p>
     </article>
   </main>
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted } from 'vue'
 import { userCardsApi } from '../../api/userCards'
 
 const props = defineProps({ id: String })
 const card = ref(null)
 const loading = ref(true)
-
-const formattedContent = computed(() => {
-  if (!card.value?.content) return ''
-  return card.value.content
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/\n/g, '<br>')
-})
 
 function statusText(s) {
   return { pending: '审核中', approved: '已通过', rejected: '已拒绝' }[s] || s
@@ -55,14 +49,3 @@ onMounted(async () => {
   }
 })
 </script>
-
-<style scoped>
-.loading, .not-found { text-align: center; padding: 60px; color: var(--text-light); }
-.back-link { display: inline-block; margin-bottom: 20px; color: var(--primary); text-decoration: none; }
-.card-category { display: inline-block; background: var(--primary); color: #fff; padding: 4px 12px; border-radius: 20px; font-size: 0.85rem; margin-bottom: 12px; }
-h1 { font-size: 2rem; margin-bottom: 12px; }
-.author-badge { color: var(--text-light); margin-bottom: 24px; }
-.content { line-height: 1.9; font-size: 1.05rem; }
-.source { margin-top: 24px; padding: 12px; background: var(--bg); border-radius: 8px; font-size: 0.9rem; color: var(--text-light); }
-.status-line { margin-top: 16px; font-size: 0.9rem; color: var(--warning); }
-</style>
