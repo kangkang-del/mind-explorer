@@ -6,6 +6,7 @@ const routes = [
   { path: '/', name: 'Home', component: Home, meta: { title: '首页' } },
   { path: '/knowledge', name: 'Knowledge', component: () => import('../views/Knowledge.vue'), meta: { title: '了解心理学知识' } },
   { path: '/companion', name: 'Companion', component: () => import('../views/Companion.vue'), meta: { title: '同行者·小木' } },
+  { path: '/mood', name: 'Mood', component: () => import('../views/Mood.vue'), meta: { title: '心情日记' } },
   { path: '/sunny', name: 'Sunny', component: () => import('../views/Sunny.vue'), meta: { title: '心灵晴天' } },
   { path: '/feedback', name: 'Feedback', component: () => import('../views/Feedback.vue'), meta: { title: '反馈与建议' } },
   { path: '/profile', name: 'Profile', component: () => import('../views/Profile.vue'), meta: { title: '个人中心' } },
