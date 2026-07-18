@@ -40,6 +40,21 @@ export const companionApi = {
     }
   },
 
+  // 每日主动陪伴语（P5-2）：拉取当天基于心情/画像生成的问候
+  async getGreeting(userId) {
+    if (!userId) return { ok: false }
+    try {
+      const res = await fetch(ENDPOINT, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'greeting', userId }),
+      })
+      return await res.json().catch(() => ({ ok: false }))
+    } catch {
+      return { ok: false }
+    }
+  },
+
   // 流式对话；history 为最近若干条 {role, content}（仅在未启用服务端记忆时作回退）
   // userId / nickname 启用服务端记忆与画像
   streamChat({ message, history = [], userId, nickname, onMeta, onDelta, onDone, onError, signal }) {

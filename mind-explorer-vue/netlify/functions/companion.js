@@ -67,6 +67,8 @@ const EMOTION_RULES = [
   { key: 'grateful', label: '有些温暖', emoji: '🌤️', words: ['谢谢', '感谢', '开心', '幸福', '幸运', '温暖', '喜欢', '爱'] },
 ]
 const EMOTION_LABEL = Object.fromEntries(EMOTION_RULES.map((r) => [r.key, r.label]))
+// 情绪 → 效价值（与 Mood.vue 曲线一致）：负值偏低落，正值偏温暖
+const MOOD_VAL = { anxious: -2, low: -2, angry: -1, lost: -1, calm: 0, grateful: 2 }
 
 function detectCrisis(text) {
   return CRISIS_KEYWORDS.some((k) => text.includes(k))
@@ -148,6 +150,80 @@ async function upsertProfile(userId, emotionKey, nickname) {
     })
   } catch (e) {
     console.error('更新画像失败:', e.message)
+  }
+}
+
+async function loadRecentMoods(userId, days = 7) {
+  const since = new Date(Date.now() - days * 86400000).toISOString()
+  const url = `${SUPABASE_URL}/rest/v1/mood_diary?select=emotion,created_at&user_identifier=eq.${encodeURIComponent(userId)}&created_at=gte.${encodeURIComponent(since)}&order=created_at.asc`
+  try {
+    const res = await fetch(url, { headers: sbHeaders(), signal: AbortSignal.timeout(8000) })
+    if (!res.ok) return []
+    const rows = await res.json()
+    return Array.isArray(rows) ? rows : []
+  } catch {
+    return []
+  }
+}
+
+// 一次性（非流式）大模型调用，用于生成短句
+async function callLLMOnce(messages) {
+  const res = await fetch(`${DEEPSEEK_BASE_URL}/chat/completions`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${DEEPSEEK_API_KEY}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ model: 'deepseek-chat', messages, stream: false, temperature: 0.9, max_tokens: 80 }),
+    signal: AbortSignal.timeout(20000),
+  })
+  if (!res.ok) throw new Error(`大模型返回 ${res.status}`)
+  const j = await res.json()
+  return (j.choices?.[0]?.message?.content || '').trim()
+}
+
+// ---------- 每日主动陪伴语（P5-2） ----------
+const GREETING_SYSTEM = `你是「小木」，一位温柔的心理陪伴者。用户刚打开「同行者」页面，你主动说一句短短的关心（1-2 句，不超过 40 字），像清晨的一句轻问候。
+- 结合你了解到的对方近期心情趋势（如果提供了），自然、不刻板地关怀。
+- 不要诊断、不要说教、不要问太多问题，只是一句暖意。
+- 如果对方最近偏低落，多一分托住；如果偏温暖，真诚为 Ta 高兴。
+- 直接给出这句话，不要加引号、不要解释、不要换行。`
+
+function todayKey() {
+  const d = new Date()
+  return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`
+}
+
+async function generateGreeting(ctx) {
+  const key = todayKey()
+  if (!ctx.useLLM) {
+    let line
+    if (!ctx.moods.length) {
+      line = '今天也记得对自己温柔一点 🌿 我在这儿，想聊随时都在。'
+    } else {
+      const vals = ctx.moods.map((m) => MOOD_VAL[m.emotion] ?? 0)
+      const avg = vals.reduce((a, b) => a + b, 0) / vals.length
+      if (avg < -0.5) line = '最近你似乎经历了一些不容易的时刻。今天哪怕只为自己松一小口气，也好。我陪着你。'
+      else if (avg > 0.5) line = '感觉你最近亮堂了一些 ☀️ 真为你高兴，把这些小确幸收进怀里吧。'
+      else line = '今天还好吗？不管怎样，能来这儿本身就很勇敢了。'
+    }
+    return { greeting: line, date: key }
+  }
+  let moodInfo = '（暂无心情记录）'
+  if (ctx.moods.length) {
+    const vals = ctx.moods.map((m) => MOOD_VAL[m.emotion] ?? 0)
+    const avg = vals.reduce((a, b) => a + b, 0) / vals.length
+    const trend = avg < -0.5 ? '偏低落' : avg > 0.5 ? '偏温暖明亮' : '比较平稳'
+    const lastEmo = ctx.moods[ctx.moods.length - 1].emotion
+    moodInfo = `对方最近 ${ctx.moods.length} 次心情记录，整体${trend}，最近一次标记是「${EMOTION_LABEL[lastEmo] || lastEmo}」。`
+  }
+  const nick = ctx.nickname ? `对方昵称：${ctx.nickname}。` : ''
+  const profileNote = ctx.profile?.summary ? `关于对方的简记：${ctx.profile.summary}` : ''
+  try {
+    const text = await callLLMOnce([
+      { role: 'system', content: GREETING_SYSTEM },
+      { role: 'user', content: `${nick}${moodInfo}${profileNote}\n请说一句今天的主动问候。` },
+    ])
+    return { greeting: text || '今天也记得对自己温柔一点 🌿', date: key }
+  } catch {
+    return { greeting: '今天也记得对自己温柔一点 🌿 我在这儿，想聊随时都在。', date: key }
   }
 }
 
@@ -267,6 +343,23 @@ export const handler = async (event) => {
       console.error('清空记忆失败:', e.message)
     }
     return json({ ok: true })
+  }
+
+  // 每日主动陪伴语（P5-2）：基于近期心情 + 画像，生成一句当天的主动问候
+  // 由前端按「当天首次访问」节流调用；函数本身不持久化，避免污染对话历史
+  if (body.action === 'greeting') {
+    const key = todayKey()
+    if (!memoryEnabled || !userId) {
+      return json({ ok: true, greeting: '今天也记得对自己温柔一点 🌿 我在这儿，想聊随时都在。', date: key, personalized: false })
+    }
+    try {
+      const [moods, profile] = await Promise.all([loadRecentMoods(userId, 7), loadProfile(userId)])
+      const r = await generateGreeting({ moods, profile, nickname: body.nickname, useLLM: !!DEEPSEEK_API_KEY })
+      return json({ ok: true, greeting: r.greeting, date: r.date, personalized: true })
+    } catch (e) {
+      console.error('生成陪伴语失败:', e.message)
+      return json({ ok: true, greeting: '今天也记得对自己温柔一点 🌿 我在这儿，想聊随时都在。', date: key, personalized: false })
+    }
   }
 
   const message = (body.message || '').toString().trim()

@@ -15,6 +15,13 @@
 
     <!-- 对话区 -->
     <section ref="scrollEl" class="flex-1 overflow-y-auto rounded-2xl bg-[#fafbfc] border border-[#eef2f7] p-4 space-y-3">
+      <!-- 每日主动陪伴语（P5-2）：当天首次访问显示，可关闭 -->
+      <div v-if="greeting" class="flex items-start gap-2 bg-gradient-to-r from-[#fff7ec] to-[#fef2f5] border border-[#f6dcc4] rounded-2xl px-4 py-3">
+        <span class="text-[20px] shrink-0">🌅</span>
+        <p class="flex-1 text-[13.5px] text-[#7a6a58] leading-7 m-0">{{ greeting }}</p>
+        <button @click="dismissGreeting" class="text-[#b9a890] hover:text-[#8a7a66] text-[18px] leading-none shrink-0" aria-label="关闭">×</button>
+      </div>
+
       <!-- 欢迎语 -->
       <div v-if="!messages.length" class="text-center text-[#9aa6b2] text-[14px] leading-8 py-10">
         <p>🌿 我是小木，这里没有对错，只有被认真听见的你。</p>
@@ -102,7 +109,31 @@ const scrollEl = ref(null)
 const emotionLabel = ref('')
 const emotionEmoji = ref('')
 const showCrisis = ref(false)
+const greeting = ref('')
+const GREETING_KEY = 'xiaomu_greeting_date'
 let controller = null
+
+function todayKey() {
+  const d = new Date()
+  return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`
+}
+// 仅在「当天首次访问」拉取一次陪伴语，避免每次进页面都打扰
+async function loadGreeting() {
+  if (!userId.value) return
+  try {
+    if (localStorage.getItem(GREETING_KEY) === todayKey()) return
+    const data = await companionApi.getGreeting(userId.value)
+    if (data?.ok && data.greeting) {
+      greeting.value = data.greeting
+      localStorage.setItem(GREETING_KEY, todayKey())
+    }
+  } catch {
+    /* 忽略：陪伴语是锦上添花，失败不影响主流程 */
+  }
+}
+function dismissGreeting() {
+  greeting.value = ''
+}
 
 // 当前助手消息的引用，用于流式追加
 let activeAssistant = null
@@ -267,6 +298,8 @@ onMounted(async () => {
     saveHistory()
     await scrollToBottom()
   }
+  // 并行拉取当天的主动陪伴语（独立于对话恢复）
+  loadGreeting()
 })
 
 onBeforeUnmount(() => {
