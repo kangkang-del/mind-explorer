@@ -12,7 +12,10 @@
 
       <span v-if="card.category" class="inline-block bg-[#f0f4f9] text-[#5a6b7c] text-[12px] px-3 py-1 rounded-full mb-3">{{ card.category }}</span>
       <h1 class="text-2xl font-bold text-[#3a4a5c] m-0 mb-2">{{ card.title }}</h1>
-      <p class="text-[13px] text-[#9aa6b2] m-0 mb-4">👤 由 {{ card.author_name }} 分享</p>
+      <div class="flex items-center justify-between mb-4">
+        <p class="text-[13px] text-[#9aa6b2] m-0">👤 由 {{ card.author_name }} 分享</p>
+        <FavoriteButton type="moment" :id="card.id" :title="card.title" :summary="(card.content||'').slice(0,80)" :link="`/user-card/${card.id}`" variant="full" />
+      </div>
 
       <img v-if="card.image" :src="card.image" alt="配图" class="w-full rounded-xl mb-4 object-cover max-h-[360px]" />
 
@@ -30,6 +33,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { userCardsApi } from '../../api/userCards'
+import FavoriteButton from '../../components/FavoriteButton.vue'
 
 const props = defineProps({ id: String })
 const card = ref(null)

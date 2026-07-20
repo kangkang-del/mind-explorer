@@ -66,6 +66,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { moodApi } from '../api/mood'
+import { checkinsApi } from '../api/checkins'
 import { useAuthStore } from '../stores/auth'
 
 const auth = useAuthStore()
@@ -156,6 +157,8 @@ async function save() {
     note.value = ''
     selected.value = ''
     await load()
+    // 心情记录即打卡（优雅跳过，失败不影响主流程）
+    checkinsApi.checkin({ userId: userId.value, source: 'mood' }).catch(() => {})
   } else {
     savedTip.value = '保存失败，稍后再试'
   }

@@ -3,10 +3,13 @@
     <RouterLink to="/study" class="back-link">← 返回知识列表</RouterLink>
 
     <div class="card-detail-page" v-if="card.id">
-      <div class="card-detail-header">
+        <div class="card-detail-header">
         <span class="card-category">{{ card.category }}</span>
         <h1>{{ card.title }}</h1>
-        <div class="proponent-badge"><span>👤 提出者：{{ card.proponent }}</span></div>
+        <div class="flex items-center justify-between">
+          <div class="proponent-badge"><span>👤 提出者：{{ card.proponent }}</span></div>
+          <FavoriteButton type="card" :id="card.id" :title="card.title" :summary="card.summary" :link="`/card/${card.id}`" variant="full" />
+        </div>
         <p class="card-summary-large">{{ card.summary }}</p>
       </div>
 
@@ -89,6 +92,7 @@ import { useRoute } from 'vue-router'
 import { useAuthStore } from '../../stores/auth'
 import { cardApi } from '../../api/card'
 import cards from '../../data/cards.json'
+import FavoriteButton from '../../components/FavoriteButton.vue'
 
 const route = useRoute()
 const auth = useAuthStore()

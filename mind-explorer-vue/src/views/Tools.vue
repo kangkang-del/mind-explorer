@@ -97,7 +97,11 @@
 </template>
 
 <script setup>
-import { reactive, ref, computed, onBeforeUnmount } from 'vue'
+import { reactive, ref, computed, onBeforeUnmount, watch } from 'vue'
+import { useAuthStore } from '../stores/auth'
+import { checkinsApi } from '../api/checkins'
+
+const auth = useAuthStore()
 
 // 危机资源（与同行者危机弹窗保持一致）
 const hotlines = [
@@ -155,6 +159,8 @@ function startBreathing(key) {
   breathing.running = true
   clearInterval(timer)
   timer = setInterval(tick, 1000)
+  // 练习打卡（优雅跳过）
+  tryCheckin()
 }
 function tick() {
   breathing.remaining -= 1
@@ -185,6 +191,25 @@ const groundSteps = [
   { count: 1, sense: '尝到', hint: '1 种你能尝到的味道' },
 ]
 const groundInputs = reactive(groundSteps.map((s) => Array(s.count).fill('')))
+
+// 练习打卡（优雅跳过，失败不影响主流程）
+function tryCheckin() {
+  const u = auth.currentUser
+  if (!u) return
+  const uid = u.type === 'github' ? `gh:${u.username}` : `g:${u.id}`
+  checkinsApi.checkin({ userId: uid, source: 'practice' }).catch(() => {})
+}
+// 接地练习中任意输入有内容即视为一次练习打卡（仅首次触发）
+let groundedCheckin = false
+watch(
+  () => groundInputs.flat().join(''),
+  (val) => {
+    if (val && !groundedCheckin) {
+      groundedCheckin = true
+      tryCheckin()
+    }
+  }
+)
 
 onBeforeUnmount(() => clearInterval(timer))
 </script>

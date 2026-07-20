@@ -63,6 +63,7 @@
           <p class="text-[13px] text-[#5a6b7c] mt-1 flex-1 leading-relaxed m-0">{{ post.content }}</p>
 
           <div class="flex items-center gap-4 mt-3 text-[13px] text-[#9aa6b2]">
+            <FavoriteButton :type="post.type === 'xiaomu' ? 'quote' : 'post'" :id="post.id" :title="post.title" :summary="(post.content||'').slice(0,60)" :link="post.type === 'xiaomu' ? '' : ''" />
             <button @click="toggleLike(post)" :class="post.liked ? 'text-[#e07a3f]' : ''" class="transition">❤️ {{ post.likes }}</button>
             <button @click="post.showComment = !post.showComment" class="transition">💬 {{ post.comments.length }}</button>
           </div>
@@ -92,6 +93,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { communityApi } from '../api/community'
 import { useAuthStore } from '../stores/auth'
+import FavoriteButton from '../components/FavoriteButton.vue'
 
 const auth = useAuthStore()
 
