@@ -66,6 +66,20 @@ export const useAuthStore = defineStore('auth', {
       return this.guest
     },
 
+    // 游客快速进入（无需密码，本地生成会话，用于评论/点赞等轻互动）
+    createGuest(name) {
+      const id = 'g_' + Math.random().toString(36).slice(2, 10)
+      this.guest = {
+        id,
+        name: name,
+        username: name,
+        avatar: null,
+        type: 'guest'
+      }
+      localStorage.setItem('guest_info', JSON.stringify(this.guest))
+      return this.guest
+    },
+
     login() {
       const isNetlify = typeof NETLIFY !== 'undefined' || window.location.hostname.includes('netlify')
       if (isNetlify) {

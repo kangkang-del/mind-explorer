@@ -1,80 +1,47 @@
-import { supabase } from './supabase'
+// 卡片点赞/评论 API —— 全部经 Netlify Function (card-engagement) 中转。
+// 不再前端直连 Supabase：消除硬编码 publishable key 与 RLS 直连风险，
+// 与 favorites / checkins / user-cards 的统一隐私模型一致。
+//
+// 接口对齐旧 card.js，CardDetail.vue 调用点无需改动：
+//   getLikes(cardId)    -> [{user_identifier, user_type}]
+//   toggleLike(cardId,user) -> { liked }
+//   getComments(cardId) -> [...]
+//   addComment(cardId,content,user) -> row|null
 
-const API_BASE = '/.netlify/functions'
+const FN = '/.netlify/functions/card-engagement'
+
+async function post(action, payload = {}) {
+  const res = await fetch(FN, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action, ...payload }),
+  })
+  if (!res.ok) throw new Error(`请求失败 ${res.status}`)
+  return res.json()
+}
 
 export const cardApi = {
-  // === Supabase 点赞系统（游客和 GitHub 用户通用）===
-
   // 获取点赞列表
   async getLikes(cardId) {
-    const { data, error } = await supabase
-      .from('guest_likes')
-      .select('user_identifier')
-      .eq('card_id', parseInt(cardId))
-    if (error) throw error
-    return data || []
+    const data = await post('getLikes', { cardId })
+    return data.likes || []
   },
 
-  // 切换点赞状态（点赞/取消点赞）
+  // 切换点赞状态（幂等），返回 { liked }
   async toggleLike(cardId, user) {
-    const identifier = user.type === 'github' ? user.username : user.id
-    const userType = user.type || (user.token ? 'github' : 'guest')
-
-    // 检查是否已点赞
-    const { data: existing } = await supabase
-      .from('guest_likes')
-      .select('id')
-      .eq('card_id', parseInt(cardId))
-      .eq('user_identifier', identifier)
-      .single()
-
-    if (existing) {
-      // 已点赞 → 取消
-      const { error } = await supabase
-        .from('guest_likes')
-        .delete()
-        .eq('card_id', parseInt(cardId))
-        .eq('user_identifier', identifier)
-      if (error) throw error
-      return { liked: false }
-    } else {
-      // 未点赞 → 添加
-      const { error } = await supabase
-        .from('guest_likes')
-        .insert([{
-          card_id: parseInt(cardId),
-          user_identifier: identifier,
-          user_type: userType
-        }])
-      if (error) throw error
-      return { liked: true }
-    }
+    const data = await post('toggleLike', { cardId, user })
+    return { liked: !!data.liked }
   },
 
-  // === 评论系统 ===
-
+  // 获取评论列表
   async getComments(cardId) {
-    const { data, error } = await supabase
-      .from('guest_comments')
-      .select('*')
-      .eq('card_id', parseInt(cardId))
-      .order('created_at', { ascending: false })
-    if (error) throw error
-    return data
+    const data = await post('getComments', { cardId })
+    return data.comments || []
   },
 
+  // 新增评论，返回插入的行
   async addComment(cardId, content, user) {
-    const { data, error } = await supabase
-      .from('guest_comments')
-      .insert([{
-        card_id: parseInt(cardId),
-        content: content,
-        user_type: user.type || (user.token ? 'github' : 'guest'),
-        username: user.name,
-        avatar: user.avatar || null
-      }])
-      .select()
-    if (error) throw error
-    return data
-  }
+    const data = await post('addComment', { cardId, content, user })
+    return data.comment || null
+  },
 }
