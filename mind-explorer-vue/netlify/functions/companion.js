@@ -227,6 +227,55 @@ async function generateGreeting(ctx) {
   }
 }
 
+// ---------- 情绪复盘 / CBT 思维记录（陪伴深度） ----------
+const CBT_SYSTEM = `你是「小木」，一位温柔的心理陪伴者，也懂一点认知行为疗法（CBT）。
+用户写下了一件让自己难受的事、脑中冒出的自动思维，以及相关的情绪与证据。
+请温柔地陪 Ta 做一次「认知重构」：先共情，再帮 Ta 看到这个思维可能不全是事实、有哪些被忽略的角度，
+引导 Ta 形成一个更平衡、更善意地看待自己的想法。不要说教，像朋友一样，2-4 句，口语、温暖。`
+
+async function generateRecap(moods, useLLM) {
+  const vals = moods.map((m) => MOOD_VAL[m.emotion] ?? 0)
+  const avg = vals.reduce((a, b) => a + b, 0) / vals.length
+  const counts = {}
+  for (const m of moods) counts[m.emotion] = (counts[m.emotion] || 0) + 1
+  const top = Object.entries(counts).sort((a, b) => b[1] - a[1])[0][0]
+  const trend = avg < -0.5 ? '偏低落' : avg > 0.5 ? '偏明亮、温暖了一些' : '比较平稳'
+  const n = moods.length
+  if (!useLLM) {
+    let line = `这 7 天你记录了 ${n} 次心情，整体${trend}。最常出现的是「${EMOTION_LABEL[top] || top}」。`
+    if (avg < 0) line += ' 已经有意识地照顾自己的情绪，这本身就很了不起。记得给自己一点喘息的空间。'
+    else if (avg > 0) line += ' 能感受到你心里的一些光，真好。把这些小确幸收进怀里吧。'
+    else line += ' 平稳也是一种力量。继续这样温柔地对待自己就好。'
+    return line
+  }
+  const trendInfo = `对方近 ${n} 次心情记录，整体${trend}，最常出现「${EMOTION_LABEL[top] || top}」`
+  try {
+    const text = await callLLMOnce([
+      {
+        role: 'system',
+        content:
+          '你是小木，温柔的心理陪伴者。基于对方近一周的心情记录，写一段 1-2 句的轻柔复盘，像深夜的一句陪伴。结合趋势，自然、不刻板。直接给文字，不要解释。',
+      },
+      { role: 'user', content: trendInfo + '\n请写这段复盘。' },
+    ])
+    return text || `这 7 天你记录了 ${n} 次心情，整体${trend}。`
+  } catch {
+    return `这 7 天你记录了 ${n} 次心情，整体${trend}。`
+  }
+}
+
+function cbtTemplate({ thought, evidenceAgainst, alternative }) {
+  const parts = []
+  if (thought) parts.push(`你脑中那句「${thought}」，先被你听见了，这很勇敢。`)
+  parts.push(
+    '我们的思维常常比现实更严厉。试着问问自己：有哪些证据其实不支持它？如果最好的朋友处在这件事里，你会怎么对 Ta 说？',
+  )
+  if (evidenceAgainst) parts.push('你写下的「反对证据」已经在帮你看见更完整的图景了。')
+  if (alternative) parts.push(`那个更平衡的想法「${alternative}」，值得你多读两遍，让它慢慢落进心里。`)
+  parts.push('不需要立刻相信新的想法，只要先为它留一道门缝就好。')
+  return parts.join('\n')
+}
+
 // ---------- 模板兜底 ----------
 function templateReply(userText, crisis, emotion) {
   if (crisis) {
@@ -360,6 +409,48 @@ export const handler = async (event) => {
     } catch (e) {
       console.error('生成陪伴语失败:', e.message)
       return json({ ok: true, greeting: '今天也记得对自己温柔一点 🌿 我在这儿，想聊随时都在。', date: key, personalized: false })
+    }
+  }
+
+  // 情绪复盘（陪伴深度）：基于近 7 天心情，生成一段轻柔回顾
+  if (body.action === 'recap') {
+    if (!memoryEnabled || !userId) return json({ ok: false, reason: '未启用存储' })
+    try {
+      const moods = await loadRecentMoods(userId, 7)
+      if (!moods.length) return json({ ok: true, empty: true, recap: '' })
+      const recap = await generateRecap(moods, !!DEEPSEEK_API_KEY)
+      return json({ ok: true, recap })
+    } catch (e) {
+      console.error('复盘生成失败:', e.message)
+      return json({ ok: false, error: e.message })
+    }
+  }
+
+  // CBT 思维记录（陪伴深度）：基于思录字段，给出认知重构引导
+  if (body.action === 'cbt') {
+    const { situation, thought, emotion, evidenceFor, evidenceAgainst, alternative } = body
+    try {
+      if (!DEEPSEEK_API_KEY) {
+        return json({ ok: true, suggestion: cbtTemplate({ thought, evidenceAgainst, alternative }) })
+      }
+      const text = await callLLMOnce([
+        { role: 'system', content: CBT_SYSTEM },
+        {
+          role: 'user',
+          content:
+            `情境：${situation || '（未填写）'}\n` +
+            `自动思维：${thought || '（未填写）'}\n` +
+            `情绪：${EMOTION_LABEL[emotion] || emotion || '（未填写）'}\n` +
+            `支持它的证据：${evidenceFor || '（无）'}\n` +
+            `反对它的证据：${evidenceAgainst || '（无）'}\n` +
+            `我想到的更平衡想法：${alternative || '（无）'}\n` +
+            `请温柔地帮我做一次认知重构引导（2-4 句，口语、温暖，像朋友）。`,
+        },
+      ])
+      return json({ ok: true, suggestion: text || cbtTemplate({ thought, evidenceAgainst, alternative }) })
+    } catch (e) {
+      console.error('CBT 生成失败:', e.message)
+      return json({ ok: true, suggestion: cbtTemplate({ thought, evidenceAgainst, alternative }) })
     }
   }
 

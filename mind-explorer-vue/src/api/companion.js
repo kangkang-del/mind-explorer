@@ -55,6 +55,35 @@ export const companionApi = {
     }
   },
 
+  // 情绪复盘（陪伴深度）：基于近 7 天心情生成一段回顾
+  async getRecap(userId) {
+    if (!userId) return { ok: false, reason: '未登录' }
+    try {
+      const res = await fetch(ENDPOINT, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'recap', userId }),
+      })
+      return await res.json().catch(() => ({ ok: false }))
+    } catch {
+      return { ok: false }
+    }
+  },
+
+  // CBT 思维记录（陪伴深度）：提交思录字段，获取认知重构引导
+  async submitCbt(payload = {}) {
+    try {
+      const res = await fetch(ENDPOINT, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'cbt', ...payload }),
+      })
+      return await res.json().catch(() => ({ ok: false }))
+    } catch {
+      return { ok: false }
+    }
+  },
+
   // 流式对话；history 为最近若干条 {role, content}（仅在未启用服务端记忆时作回退）
   // userId / nickname 启用服务端记忆与画像
   streamChat({ message, history = [], userId, nickname, onMeta, onDelta, onDone, onError, signal }) {

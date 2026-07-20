@@ -13,6 +13,46 @@
       <button v-if="messages.length" @click="clearChat" class="text-[12px] text-[#9aa6b2] hover:text-[#e07a3f] transition px-2 py-1">清空</button>
     </header>
 
+    <!-- 引导入口（陪伴深度） -->
+    <div class="flex flex-wrap gap-2 mb-3 shrink-0">
+      <button
+        v-for="g in guides"
+        :key="g.key"
+        @click="openGuide(g.key)"
+        class="px-3 py-1.5 rounded-full text-[12.5px] border transition"
+        :class="guide === g.key ? 'bg-[#eef4f9] border-[#c5d8ea] text-[#5a7d9a] font-semibold' : 'bg-white border-[#eef2f7] text-[#7a8a9a] hover:border-[#c5d8ea]'"
+      >
+        {{ g.emoji }} {{ g.label }}
+      </button>
+    </div>
+
+    <!-- 情绪命名引导（陪伴深度） -->
+    <div v-if="guide === 'mood'" class="bg-white rounded-2xl border border-[#eef2f7] p-4 mb-3 shrink-0">
+      <p class="text-[13px] text-[#5a6b7c] mb-2.5 m-0">此刻，你感觉……（点一个，小木来接住你）</p>
+      <div class="grid grid-cols-6 gap-2 mb-3">
+        <button
+          v-for="m in MOODS"
+          :key="m.key"
+          @click="pickEmotion(m)"
+          class="flex flex-col items-center gap-0.5 py-2 rounded-xl border transition"
+          :class="pickedEmotion === m.key ? 'border-[#7c9cb8] bg-[#f0f4f9] scale-[1.03]' : 'border-[#eef2f7] hover:border-[#c5d8ea]'"
+        >
+          <span class="text-[22px] leading-none">{{ m.emoji }}</span>
+          <span class="text-[11px] text-[#5a6b7c]">{{ m.label }}</span>
+        </button>
+      </div>
+      <div v-if="pickedEmotion" class="flex items-center gap-2 flex-wrap">
+        <button
+          @click="logMood"
+          :disabled="moodLogging"
+          class="px-4 py-2 rounded-lg bg-gradient-to-r from-[#7c9cb8] to-[#a8c3d6] text-white text-[13px] font-semibold disabled:opacity-50 transition hover:opacity-90"
+        >
+          {{ moodLogging ? '记入中…' : '记入今天的心情 + 打卡' }}
+        </button>
+        <span class="text-[12px] text-[#9aa6b2]">{{ moodTip }}</span>
+      </div>
+    </div>
+
     <!-- 对话区 -->
     <section ref="scrollEl" class="flex-1 overflow-y-auto rounded-2xl bg-[#fafbfc] border border-[#eef2f7] p-4 space-y-3">
       <!-- 每日主动陪伴语（P5-2）：当天首次访问显示，可关闭 -->
@@ -70,6 +110,58 @@
       </div>
     </div>
 
+    <!-- CBT 思维记录（陪伴深度） -->
+    <div v-if="guide === 'cbt'" class="fixed inset-0 z-[110] flex items-center justify-center bg-black/40 px-4" @click.self="guide = ''">
+      <div class="bg-white rounded-2xl max-w-lg w-full p-5 shadow-xl max-h-[88vh] overflow-y-auto">
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="text-[16px] font-bold text-[#3a4a5c] m-0">🧠 换个角度看一看</h3>
+          <button @click="guide = ''" class="text-[#9aa6b2] hover:text-[#3a4a5c] text-xl leading-none">×</button>
+        </div>
+        <p class="text-[12.5px] text-[#9aa6b2] leading-6 m-0 mb-3">当脑中那句反复的话让你难受，试着把它摊开，和小木一起看看它是不是全部的真相。</p>
+        <div class="space-y-2.5">
+          <textarea v-model="cbt.situation" rows="2" placeholder="发生了什么？（情境）" class="w-full px-3 py-2 border border-[#e0e6ec] rounded-xl text-[13.5px] resize-none focus:outline-none focus:border-[#7c9cb8]"></textarea>
+          <textarea v-model="cbt.thought" rows="2" placeholder="脑中冒出的想法是……（自动思维）" class="w-full px-3 py-2 border border-[#e0e6ec] rounded-xl text-[13.5px] resize-none focus:outline-none focus:border-[#7c9cb8]"></textarea>
+          <div class="flex flex-wrap gap-1.5">
+            <button v-for="m in MOODS" :key="m.key" @click="cbt.emotion = m.key"
+              class="px-2.5 py-1 rounded-full text-[12px] border transition"
+              :class="cbt.emotion === m.key ? 'border-[#7c9cb8] bg-[#f0f4f9] text-[#5a7d9a]' : 'border-[#eef2f7] text-[#7a8a9a]'">
+              {{ m.emoji }} {{ m.label }}
+            </button>
+          </div>
+          <textarea v-model="cbt.evidenceFor" rows="2" placeholder="支持这个想法的证据……" class="w-full px-3 py-2 border border-[#e0e6ec] rounded-xl text-[13.5px] resize-none focus:outline-none focus:border-[#7c9cb8]"></textarea>
+          <textarea v-model="cbt.evidenceAgainst" rows="2" placeholder="不支持它的证据……（哪怕一点点）" class="w-full px-3 py-2 border border-[#e0e6ec] rounded-xl text-[13.5px] resize-none focus:outline-none focus:border-[#7c9cb8]"></textarea>
+          <textarea v-model="cbt.alternative" rows="2" placeholder="更平衡、更善意的想法是……" class="w-full px-3 py-2 border border-[#e0e6ec] rounded-xl text-[13.5px] resize-none focus:outline-none focus:border-[#7c9cb8]"></textarea>
+        </div>
+        <div class="flex items-center gap-2 mt-3">
+          <button @click="submitCbtForm" :disabled="cbtLoading"
+            class="flex-1 py-2.5 bg-gradient-to-r from-[#7c9cb8] to-[#a8c3d6] text-white rounded-lg text-[14px] font-semibold disabled:opacity-50 transition hover:opacity-90">
+            {{ cbtLoading ? '小木在读…' : '请小木陪我看看' }}
+          </button>
+          <button @click="guide = ''" class="px-4 py-2.5 rounded-lg text-[14px] text-[#5a6b7c] border border-[#e0e6ec] hover:bg-[#f0f4f9] transition">稍后</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 睡前仪式（陪伴深度） -->
+    <div v-if="guide === 'bedtime'" class="fixed inset-0 z-[110] flex items-center justify-center bg-black/40 px-4" @click.self="guide = ''">
+      <div class="bg-white rounded-2xl max-w-md w-full p-5 shadow-xl">
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="text-[16px] font-bold text-[#3a4a5c] m-0">🌙 睡前一刻</h3>
+          <button @click="guide = ''" class="text-[#9aa6b2] hover:text-[#3a4a5c] text-xl leading-none">×</button>
+        </div>
+        <p class="text-[13px] text-[#5a6b7c] leading-7 m-0 mb-3">
+          先把注意力放到呼吸上，慢慢吸气、慢慢呼气。然后从脚到头，感受身体一点点松弛下来，把今天的重量交给床。
+        </p>
+        <p class="text-[13px] text-[#5a6b7c] m-0 mb-2">今天，有三件让你有一点点暖的小事吗？</p>
+        <div class="space-y-2 mb-4">
+          <input v-for="i in 3" :key="i" v-model="bedtime.gratitude[i - 1]" :placeholder="'第 ' + i + ' 件小确幸…'" class="w-full px-3 py-2 border border-[#e0e6ec] rounded-xl text-[13.5px] focus:outline-none focus:border-[#7c9cb8]" />
+        </div>
+        <button @click="finishBedtime" class="w-full py-2.5 bg-gradient-to-r from-[#7c9cb8] to-[#a8c3d6] text-white rounded-lg text-[14px] font-semibold hover:opacity-90 transition">
+          完成 · 和小木说晚安
+        </button>
+      </div>
+    </div>
+
     <!-- 输入区 -->
     <footer class="mt-3 shrink-0 flex items-end gap-2">
       <textarea
@@ -94,6 +186,8 @@
 <script setup>
 import { ref, reactive, computed, nextTick, onMounted, onBeforeUnmount } from 'vue'
 import { companionApi } from '../api/companion'
+import { moodApi } from '../api/mood'
+import { checkinsApi } from '../api/checkins'
 import { useAuthStore } from '../stores/auth'
 
 const auth = useAuthStore()
@@ -119,6 +213,136 @@ const showCrisis = ref(false)
 const greeting = ref('')
 const GREETING_KEY = 'xiaomu_greeting_date'
 let controller = null
+
+// —— 陪伴深度：引导模块 ——
+const MOODS = [
+  { key: 'anxious', label: '焦虑', emoji: '😟' },
+  { key: 'low', label: '低落', emoji: '🌧️' },
+  { key: 'angry', label: '愤怒', emoji: '😣' },
+  { key: 'lost', label: '迷茫', emoji: '🌫️' },
+  { key: 'calm', label: '平静', emoji: '🍃' },
+  { key: 'grateful', label: '温暖', emoji: '🌤️' },
+]
+const guides = [
+  { key: 'mood', emoji: '🌤️', label: '此刻心情' },
+  { key: 'recap', emoji: '📊', label: '本周复盘' },
+  { key: 'cbt', emoji: '🧠', label: '换个角度看' },
+  { key: 'bedtime', emoji: '🌙', label: '睡前一刻' },
+]
+const guide = ref('')
+const pickedEmotion = ref('')
+const moodTip = ref('')
+const moodLogging = ref(false)
+const cbt = reactive({ situation: '', thought: '', emotion: '', evidenceFor: '', evidenceAgainst: '', alternative: '' })
+const cbtLoading = ref(false)
+const bedtime = reactive({ gratitude: ['', '', ''] })
+
+function openGuide(key) {
+  if (key === 'recap') {
+    guide.value = ''
+    loadRecap()
+    return
+  }
+  guide.value = guide.value === key ? '' : key
+}
+
+// 情绪命名：点亮情绪 + 以「我感到{label}」触发小木回应
+async function pickEmotion(m) {
+  pickedEmotion.value = m.key
+  emotionLabel.value = m.label
+  emotionEmoji.value = m.emoji
+  moodTip.value = ''
+  await sendText(`我感到${m.label}`)
+}
+
+// 记入今天的心情 + 打卡（与 Mood.vue 一致）
+async function logMood() {
+  if (!userId.value) {
+    moodTip.value = '请先登录后再记录'
+    return
+  }
+  if (!pickedEmotion.value) return
+  moodLogging.value = true
+  moodTip.value = ''
+  const res = await moodApi.add(userId.value, pickedEmotion.value, '')
+  moodLogging.value = false
+  if (res.ok) {
+    moodTip.value = '已记入今天的心情 + 打卡 ✓'
+    checkinsApi.checkin({ userId: userId.value, source: 'mood' }).catch(() => {})
+  } else {
+    moodTip.value = res.reason || '记录失败，稍后再试'
+  }
+}
+
+// 以打字机方式追加一条小木气泡（用于复盘 / CBT / 睡间的非流式结果）
+async function pushAssistant(text) {
+  sending.value = true
+  activeAssistant = reactive({ role: 'assistant', content: '', thinking: true })
+  messages.push(activeAssistant)
+  await scrollToBottom()
+  activeAssistant.thinking = false
+  for (const ch of text) {
+    activeAssistant.content += ch
+    if ('，。、；：！？\n'.includes(ch)) await new Promise((r) => setTimeout(r, 40))
+    scrollToBottom()
+  }
+  sending.value = false
+  saveHistory()
+}
+
+// 本周情绪复盘
+async function loadRecap() {
+  if (!userId.value) {
+    await pushAssistant('先登录后，小木才能陪你看看���一周的心情～')
+    return
+  }
+  await pushAssistant('小木在翻你这几天的心情记录，稍等一下……')
+  const data = await companionApi.getRecap(userId.value)
+  if (!data.ok) {
+    await pushAssistant('小木暂时没能调出记录，稍后再试试。')
+    return
+  }
+  if (data.empty) {
+    await pushAssistant('这几天还没有心情记录呢。先去「心情日记」留几笔，小木才能陪你复盘～')
+    return
+  }
+  await pushAssistant(data.recap)
+}
+
+// CBT 思维记录提交
+async function submitCbtForm() {
+  if (!cbt.thought.trim()) return
+  guide.value = ''
+  cbtLoading.value = true
+  await pushAssistant('你愿意把这件心事摊开来看，已经很勇敢了。我慢慢读……')
+  const data = await companionApi.submitCbt({
+    situation: cbt.situation,
+    thought: cbt.thought,
+    emotion: cbt.emotion,
+    evidenceFor: cbt.evidenceFor,
+    evidenceAgainst: cbt.evidenceAgainst,
+    alternative: cbt.alternative,
+  })
+  cbtLoading.value = false
+  Object.assign(cbt, { situation: '', thought: '', emotion: '', evidenceFor: '', evidenceAgainst: '', alternative: '' })
+  if (data.ok && data.suggestion) {
+    await pushAssistant(data.suggestion)
+  } else {
+    await pushAssistant('小木暂时走神了，稍后再陪你看看好吗？')
+  }
+}
+
+// 睡前仪式完成
+async function finishBedtime() {
+  guide.value = ''
+  if (userId.value) checkinsApi.checkin({ userId: userId.value, source: 'practice' }).catch(() => {})
+  const g = bedtime.gratitude.map((x) => x.trim()).filter(Boolean)
+  let line = '晚安。今天你为自己留出了这一刻安静，已经很了不起了。'
+  if (g.length) line += `\n你记下的${g.length}件小确幸——${g.join('、')}——就让它们陪你入梦吧。`
+  line += '\n慢慢呼吸，把一天的重量轻轻放下。我在这里，明天见。🌙'
+  bedtime.gratitude = ['', '', '']
+  await pushAssistant(line)
+}
 
 function todayKey() {
   const d = new Date()
@@ -200,10 +424,15 @@ function getHistory() {
 async function send() {
   const text = input.value.trim()
   if (!text || sending.value) return
-
-  // 用户消息
-  messages.push({ role: 'user', content: text })
   input.value = ''
+  await sendText(text)
+}
+
+// 以指定文本触发一次小木对话（供「情绪命名」等引导模块复用）
+async function sendText(text) {
+  if (!text || sending.value) return
+
+  messages.push({ role: 'user', content: text })
   sending.value = true
   await scrollToBottom()
 
