@@ -37,10 +37,19 @@
         </div>
 
         <!-- 搜索 -->
-        <div class="mb-4">
-          <el-input v-model="search" placeholder="搜索知识卡片或心理疾病…" clearable>
-            <template #prefix>🔍</template>
-          </el-input>
+        <div class="mb-4 relative">
+          <span class="absolute left-3 top-1/2 -translate-y-1/2 text-[#b8c2cc] pointer-events-none">🔍</span>
+          <input
+            v-model="search"
+            placeholder="搜索知识卡片或心理疾病…"
+            class="w-full pl-9 pr-9 py-2.5 rounded-xl border border-[#e2e8f0] bg-white text-sm text-[#3a4a5c] outline-none transition focus:border-[#7c9cb8] focus:ring-2 focus:ring-[#7c9cb8]/20 placeholder:text-[#b8c2cc]"
+          />
+          <button
+            v-if="search"
+            @click="search = ''"
+            class="absolute right-3 top-1/2 -translate-y-1/2 text-[#b8c2cc] hover:text-[#5a6b7c] text-sm leading-none"
+            aria-label="清空"
+          >✕</button>
         </div>
 
         <!-- 卡片网格：手机1列 / 平板2列 / 桌面3列 -->
@@ -63,9 +72,18 @@
       </div>
     </div>
 
-    <el-dialog v-model="dialogVisible" :title="detailTitle" width="92%" top="8vh">
-      <div class="detail-content" v-html="detailHtml"></div>
-    </el-dialog>
+    <Teleport to="body">
+      <div v-if="dialogVisible" class="fixed inset-0 z-50 flex justify-center" @click.self="dialogVisible = false">
+        <div class="absolute inset-0 bg-black/40"></div>
+        <div class="relative bg-white rounded-2xl shadow-2xl w-[92%] max-w-2xl mt-[8vh] max-h-[80vh] flex flex-col">
+          <div class="flex items-center justify-between px-5 py-4 border-b border-[#eef2f7]">
+            <h3 class="text-lg font-bold text-[#3a4a5c] m-0">{{ detailTitle }}</h3>
+            <button @click="dialogVisible = false" class="text-[#9aa6b2] hover:text-[#3a4a5c] text-xl leading-none" aria-label="关闭">✕</button>
+          </div>
+          <div class="detail-content px-5 py-4 overflow-y-auto" v-html="detailHtml"></div>
+        </div>
+      </div>
+    </Teleport>
   </main>
 </template>
 

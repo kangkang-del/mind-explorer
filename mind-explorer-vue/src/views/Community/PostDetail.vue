@@ -28,16 +28,16 @@
             <span v-if="auth.user"><img :src="auth.user.avatar" class="user-avatar-sm" /> {{ auth.user.name }}</span>
             <span v-else>👤 游客：{{ auth.guest.name }}</span>
           </div>
-          <el-input v-model="newComment" type="textarea" :rows="3" placeholder="写下你的想法..." />
-          <el-button type="primary" @click="submitComment" :loading="submitting" style="margin-top: 8px">发表评论</el-button>
+          <textarea v-model="newComment" rows="3" placeholder="写下你的想法..." class="w-full px-3 py-2 rounded-lg border border-[#e2e8f0] bg-white text-sm text-[#3a4a5c] outline-none transition focus:border-[#7c9cb8] focus:ring-2 focus:ring-[#7c9cb8]/20 placeholder:text-[#b8c2cc] resize-y min-h-[72px]"></textarea>
+          <button @click="submitComment" :disabled="submitting" class="mt-2 inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#7c9cb8] text-white text-sm font-medium transition hover:bg-[#6b8aa6] disabled:opacity-60 disabled:cursor-not-allowed">{{ submitting ? '发表中…' : '发表评论' }}</button>
         </div>
 
         <div v-else class="login-options">
           <p>参与评论：</p>
-          <el-button @click="auth.login()" type="primary">GitHub 登录</el-button>
+          <button @click="auth.login()" class="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#7c9cb8] text-white text-sm font-medium transition hover:bg-[#6b8aa6]">GitHub 登录</button>
           <span class="divider">或</span>
-          <el-input v-model="guestName" placeholder="输入昵称" style="width: 150px" />
-          <el-button @click="becomeGuest">游客评论</el-button>
+          <input v-model="guestName" placeholder="输入昵称" class="w-[150px] px-3 py-2 rounded-lg border border-[#e2e8f0] bg-white text-sm text-[#3a4a5c] outline-none transition focus:border-[#7c9cb8] focus:ring-2 focus:ring-[#7c9cb8]/20 placeholder:text-[#b8c2cc]" />
+          <button @click="becomeGuest" class="px-4 py-2 rounded-lg border border-[#e2e8f0] bg-white text-[#5a6b7c] text-sm transition hover:bg-[#f0f4f9]">游客评论</button>
         </div>
 
         <div v-if="comments.length" class="comment-list" style="margin-top: 20px;">

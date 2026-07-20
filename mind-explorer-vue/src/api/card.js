@@ -1,4 +1,3 @@
-import axios from 'axios'
 import { supabase } from './supabase'
 
 const API_BASE = '/.netlify/functions'
