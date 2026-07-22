@@ -13,6 +13,9 @@ const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || ''
 const SB = 'mood_diary'
 const memoryEnabled = !!(SUPABASE_URL && SUPABASE_SERVICE_KEY)
 
+// 全站危机干预统一中间件
+import { detectCrisis } from './_lib/crisis.js'
+
 const CORS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'Content-Type',
@@ -66,9 +69,11 @@ export const handler = async (event) => {
   if (body.action === 'add') {
     if (!memoryEnabled) return json({ ok: false, reason: '未启用记忆存储' }, 200)
     if (!userId || !body.emotion) return json({ error: '缺少 userId 或 emotion' }, 400)
+    // 危机干预：心情备注命中高危词 → 返回 crisis 标志（非阻断，前端弹援助资源）
+    const crisis = detectCrisis(body.note || '')
     try {
       await addEntry(userId, body.emotion, body.note)
-      return json({ ok: true })
+      return json({ ok: true, crisis })
     } catch (e) {
       return json({ ok: false, error: e.message }, 500)
     }

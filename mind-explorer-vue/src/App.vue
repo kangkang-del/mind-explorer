@@ -7,6 +7,7 @@
     <AppFooter />
     <FloatingCompanion />
     <BadgeCelebration />
+    <CrisisSupport />
   </div>
 </template>
 
@@ -15,4 +16,5 @@ import AppNavbar from './components/AppNavbar.vue'
 import AppFooter from './components/AppFooter.vue'
 import FloatingCompanion from './components/FloatingCompanion.vue'
 import BadgeCelebration from './components/BadgeCelebration.vue'
+import CrisisSupport from './components/CrisisSupport.vue'
 </script>

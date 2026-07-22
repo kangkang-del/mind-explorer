@@ -111,28 +111,6 @@
       </div>
     </section>
 
-    <!-- 危机干预弹窗 -->
-    <div v-if="showCrisis" class="fixed inset-0 z-[120] flex items-center justify-center bg-black/40 px-4" @click.self="showCrisis = false">
-      <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl border border-[#f0a868]">
-        <div class="text-[24px] mb-2">🌿💛</div>
-        <h3 class="text-lg font-bold text-[#3a4a5c] m-0 mb-2">你值得被好好接住</h3>
-        <p class="text-[13px] text-[#5a6b7c] leading-7 m-0 mb-3">
-          我听到了你此刻很重的疲惫，也很心疼。想轻轻告诉你：你不需要一个人扛着这些。
-          寻求帮助不是软弱，而是对自己温柔的勇气。如果可以，请让专业的人陪你走一段：
-        </p>
-        <ul class="text-[13px] text-[#3a4a5c] space-y-1.5 mb-3">
-          <li>· 全国 24 小时心理援助热线：<b>400-161-9995</b></li>
-          <li>· 北京心理危机研究与干预中心：<b>010-82951332</b></li>
-          <li>· 青少年心理咨询热线：<b>12355</b></li>
-        </ul>
-        <p class="text-[12px] text-[#a85a2c] m-0 mb-4">⚠️ 若你正面临紧急危险，请立即拨打 <b>120</b> 或前往最近医院急诊，或拨打 <b>110</b>。</p>
-        <div class="flex gap-2">
-          <button @click="talkToXiaomu" class="flex-1 py-2.5 bg-gradient-to-r from-[#7c9cb8] to-[#a8c3d6] text-white rounded-lg text-[14px] font-semibold hover:opacity-90 transition">现在就和「小木」聊聊</button>
-          <button @click="showCrisis = false" class="px-4 py-2.5 rounded-lg text-[14px] text-[#5a6b7c] border border-[#e0e6ec] hover:bg-[#f0f4f9] transition">我记住了</button>
-        </div>
-      </div>
-    </div>
-
     <!-- CBT 思维记录（陪伴深度） -->
     <div v-if="guide === 'cbt'" class="fixed inset-0 z-[110] flex items-center justify-center bg-black/40 px-4" @click.self="guide = ''">
       <div class="bg-white rounded-2xl max-w-lg w-full p-5 shadow-xl max-h-[88vh] overflow-y-auto">
@@ -236,9 +214,12 @@ import { moodApi } from '../api/mood'
 import { checkinsApi } from '../api/checkins'
 import { useAuthStore } from '../stores/auth'
 import { useBadgeStore } from '../stores/badges'
+import { useCrisisStore } from '../stores/crisisStore'
+import { detectCrisis, crisisReply } from '../lib/crisis'
 
 const auth = useAuthStore()
 const badgesStore = useBadgeStore()
+const crisisStore = useCrisisStore()
 // 用户标识（服务端记忆用）：guest→g:{id}，github→gh:{username}；未登录为空（走本地 localStorage）
 const userId = computed(() => {
   const u = auth.currentUser
@@ -257,7 +238,6 @@ const scrollEl = ref(null)
 const inputEl = ref(null)
 const emotionLabel = ref('')
 const emotionEmoji = ref('')
-const showCrisis = ref(false)
 const greeting = ref('')
 const GREETING_KEY = 'xiaomu_greeting_date'
 let controller = null
@@ -466,12 +446,6 @@ function dismissGreeting() {
   greeting.value = ''
 }
 
-// 危机弹窗「现在就和「小木」聊聊」：关闭弹窗并聚焦输入框
-function talkToXiaomu() {
-  showCrisis.value = false
-  nextTick(() => inputEl.value?.focus())
-}
-
 // 当前助手消息的引用，用于流式追加
 let activeAssistant = null
 
@@ -558,7 +532,7 @@ async function sendText(text) {
         emotionLabel.value = meta.emotion.label || ''
         emotionEmoji.value = meta.emotion.emoji || ''
       }
-      if (meta.crisis) showCrisis.value = true
+      if (meta.crisis) crisisStore.open()
     },
     onDelta: (chunk) => {
       activeAssistant.thinking = false
@@ -587,10 +561,9 @@ function isServiceUnavailable(msg) {
   return !msg || /Failed to fetch|404|NetworkError|HTTP 4|load failed/i.test(msg)
 }
 
-// 本地降级：复制与后端一致的规则，逐字模拟打字机（无需后端/key 即可对话）
-const CRISIS_WORDS = ['想死', '不想活', '活不下去', '自杀', '轻生', '结束生命', '伤害自己', '解脱', '一了百了', '去死']
+// 本地降级：与后端一致的规则，逐字模拟打字机（无需后端/key 即可对话）
 function localDetect(text) {
-  const crisis = CRISIS_WORDS.some((w) => text.includes(w))
+  const crisis = detectCrisis(text)
   let emotion = { label: '平静', emoji: '🍃' }
   const rules = [
     { label: '有些焦虑', emoji: '😟', words: ['焦虑', '紧张', '害怕', '担心', '慌', '不安', '压力', '睡不着', '失眠'] },
@@ -609,9 +582,7 @@ function localDetect(text) {
 }
 
 function localReply(text, crisis, emotion) {
-  if (crisis) {
-    return '我听到了你此刻很重的疲惫，也很心疼。你不需要一个人扛着这些。\n寻求帮助不是软弱，而是对自己温柔的勇气。如果你愿意，可以拨打援助热线：\n· 全国 24 小时心理援助热线：400-161-9995\n· 北京心理危机研究与干预中心：010-82951332\n· 青少年心理咨询热线：12355\n我会一直在这里陪着你。'
-  }
+  if (crisis) return crisisReply()
   if (emotion.label.includes('焦虑')) return '听起来你心里绷着一根弦。先一起慢慢吐口气——你最担心的是哪一件事呢？'
   if (emotion.label.includes('低落')) return '我感觉到你有些累了。没关系，今天可以允许自己慢一点。你愿意说说，是从什么时候开始觉得沉重的吗？'
   if (emotion.label.includes('愤怒')) return '这件事让你很不舒服，你的生气是有道理的。最让你委屈的是哪一点呢？'
@@ -624,7 +595,7 @@ async function localFallback(text) {
   const { crisis, emotion } = localDetect(text)
   emotionLabel.value = emotion.label
   emotionEmoji.value = emotion.emoji
-  if (crisis) showCrisis.value = true
+  if (crisis) crisisStore.open()
   const reply = localReply(text, crisis, emotion)
   activeAssistant.thinking = false
   for (const ch of reply) {

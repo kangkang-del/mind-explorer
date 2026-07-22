@@ -24,6 +24,9 @@ const ADMIN_PWD = process.env.ADMIN_PWD || 'mind2024'
 const SB = 'user_cards'
 const memoryEnabled = !!(SUPABASE_URL && SUPABASE_SERVICE_KEY)
 
+// 全站危机干预统一中间件
+import { detectCrisis } from './_lib/crisis.js'
+
 const CORS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'Content-Type',
@@ -196,7 +199,9 @@ export const handler = async (event) => {
       }
       const rows = await res.json()
       const created = Array.isArray(rows) ? rows[0] : null
-      return json({ ok: true, id: created?.id || null })
+      // 危机干预：投稿内容命中高危词 → 返回 crisis 标志（非阻断，前端弹援助资源）
+      const crisis = detectCrisis(`${title} ${content}`)
+      return json({ ok: true, id: created?.id || null, crisis })
     } catch (e) {
       return json({ ok: false, error: e.message }, 500)
     }

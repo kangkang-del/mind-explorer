@@ -23,6 +23,9 @@
 //   SUPABASE_URL                Supabase 项目地址（启用服务端记忆）
 //   SUPABASE_SERVICE_ROLE_KEY   服务端密钥（绕过 RLS 读写 companion_messages / user_profiles）
 
+// 全站危机干预统一中间件（与服务端其他函数、前端共享同一份关键词）
+import { detectCrisis, crisisReply } from './_lib/crisis.js'
+
 const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY || ''
 const DEEPSEEK_BASE_URL = process.env.DEEPSEEK_BASE_URL || 'https://api.deepseek.com/v1'
 
@@ -53,12 +56,6 @@ const SYSTEM_PROMPT = `你是「小木」，一位温柔的心理学家与哲学
 - 你不做医疗诊断，也不替代专业帮助。
 如果对方流露出强烈的痛苦或绝望，请在温柔回应的同时，温和地提醒他：寻求帮助是勇敢的事，并建议联系专业援助。`
 
-const CRISIS_KEYWORDS = [
-  '想死', '不想活', '活不下去', '活着的', '没意义', '自杀', '轻生', '结束生命',
-  '伤害自己', '伤害我自己', '割腕', '跳楼', '吃安眠药', '解脱', '不如死', '去死',
-  '活不下去了', '不想活了', '一了百了', '结束这一切',
-]
-
 const EMOTION_RULES = [
   { key: 'anxious', label: '有些焦虑', emoji: '😟', words: ['焦虑', '紧张', '害怕', '担心', '慌', '不安', '压力大', '睡不着', '失眠'] },
   { key: 'low', label: '有些低落', emoji: '🌧️', words: ['难过', '伤心', '低落', '抑郁', '累', '疲惫', '孤独', '空虚', '失落', '想哭'] },
@@ -71,9 +68,6 @@ const EMOJI = Object.fromEntries(EMOTION_RULES.map((r) => [r.key, r.emoji]))
 // 情绪 → 效价值（与 Mood.vue 曲线一致）：负值偏低落，正值偏温暖
 const MOOD_VAL = { anxious: -2, low: -2, angry: -1, lost: -1, calm: 0, grateful: 2 }
 
-function detectCrisis(text) {
-  return CRISIS_KEYWORDS.some((k) => text.includes(k))
-}
 function detectEmotion(text) {
   for (const rule of EMOTION_RULES) {
     if (rule.words.some((w) => text.includes(w))) {
@@ -283,16 +277,7 @@ function cbtTemplate({ thought, evidenceAgainst, alternative }) {
 
 // ---------- 模板兜底 ----------
 function templateReply(userText, crisis, emotion) {
-  if (crisis) {
-    return (
-      '我听到了你此刻很重的疲惫，也很心疼。我想轻轻告诉你：你不需要一个人扛着这些。\n' +
-      '寻求帮助不是软弱，而是对自己温柔的勇气。如果你愿意，可以拨打援助热线：\n' +
-      '· 全国 24 小时心理援助热线：400-161-9995\n' +
-      '· 北京心理危机研究与干预中心：010-82951332\n' +
-      '· 青少年心理咨询热线：12355\n' +
-      '我会一直在这里陪着你，但你值得被真实地接住。'
-    )
-  }
+  if (crisis) return crisisReply()
   if (emotion.key === 'anxious') return '听起来你心里绷着一根弦。先一起慢慢吐口气——你最担心的是哪一件事呢？我们可以一小块一小块地看。'
   if (emotion.key === 'low') return '我感觉到你有些累了。没关系，今天可以允许自己慢一点、甚至什么也不做。你愿意和我说说，是从什么时候开始觉得沉重的吗？'
   if (emotion.key === 'angry') return '这件事让你很不舒服，你的生气是有道理的。先不急着压下去——能跟我说说，最让你委屈的是哪一点吗？'

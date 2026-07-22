@@ -117,9 +117,12 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { useAuthStore } from '../stores/auth'
+import { useCrisisStore } from '../stores/crisisStore'
+import { detectCrisis } from '../lib/crisis'
 import { userCardsApi } from '../api/userCards'
 
 const auth = useAuthStore()
+const crisisStore = useCrisisStore()
 const categories = ['暖心', '成长', '小确幸', '树洞', '其他']
 
 const form = reactive({ title: '', category: '暖心', content: '', image: '', source: '' })
@@ -146,8 +149,10 @@ async function submit() {
   }
   submitting.value = true
   try {
-    await userCardsApi.submit({ ...authorInfo(), title: form.title.trim(), content: form.content.trim(), category: form.category, image: form.image.trim(), source: form.source.trim() })
+    const res = await userCardsApi.submit({ ...authorInfo(), title: form.title.trim(), content: form.content.trim(), category: form.category, image: form.image.trim(), source: form.source.trim() })
     success.value = true
+    // 非阻断：命中高危词则弹援助资源，不阻止内容正常提交
+    if (res && (res.crisis || detectCrisis(form.content))) crisisStore.open()
     form.title = ''
     form.content = ''
     form.image = ''

@@ -69,9 +69,12 @@ import { moodApi } from '../api/mood'
 import { checkinsApi } from '../api/checkins'
 import { useAuthStore } from '../stores/auth'
 import { useBadgeStore } from '../stores/badges'
+import { useCrisisStore } from '../stores/crisisStore'
+import { detectCrisis } from '../lib/crisis'
 
 const auth = useAuthStore()
 const badgesStore = useBadgeStore()
+const crisisStore = useCrisisStore()
 const selected = ref('')
 const note = ref('')
 const saving = ref(false)
@@ -155,6 +158,8 @@ async function save() {
   const res = await moodApi.add(userId.value, selected.value, note.value.trim())
   saving.value = false
   if (res.ok) {
+    // 心情备注命中高危词 → 弹援助资源（服务端标记 or 前端即时检测，二者取一即可）
+    if (res.crisis || detectCrisis(note.value)) crisisStore.open()
     savedTip.value = '已记下 ☀️'
     note.value = ''
     selected.value = ''
