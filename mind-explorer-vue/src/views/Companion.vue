@@ -235,8 +235,10 @@ import { companionApi } from '../api/companion'
 import { moodApi } from '../api/mood'
 import { checkinsApi } from '../api/checkins'
 import { useAuthStore } from '../stores/auth'
+import { useBadgeStore } from '../stores/badges'
 
 const auth = useAuthStore()
+const badgesStore = useBadgeStore()
 // 用户标识（服务端记忆用）：guest→g:{id}，github→gh:{username}；未登录为空（走本地 localStorage）
 const userId = computed(() => {
   const u = auth.currentUser
@@ -360,6 +362,7 @@ async function logMood() {
     moodTip.value = '已记入今天的心情 + 打卡 ✓'
     moodNote.value = ''
     checkinsApi.checkin({ userId: userId.value, source: 'mood' }).catch(() => {})
+    badgesStore.refresh(userId.value).catch(() => {})
   } else {
     moodTip.value = res.reason || '记录失败，稍后再试'
   }
@@ -420,6 +423,7 @@ async function submitCbtForm() {
   Object.assign(cbt, { situation: '', thought: '', emotion: '', evidenceFor: '', evidenceAgainst: '', alternative: '' })
   if (data.ok && data.suggestion) {
     saveCbtRecord({ ...rec, suggestion: data.suggestion, at: new Date().toISOString() })
+    badgesStore.refresh(userId.value).catch(() => {})
     await pushAssistant(data.suggestion)
   } else {
     await pushAssistant('小木暂时走神了，稍后再陪你看看好吗？')
@@ -429,7 +433,9 @@ async function submitCbtForm() {
 // 睡前仪式完成
 async function finishBedtime() {
   guide.value = ''
+  localStorage.setItem('bedtime_done_v1', '1')
   if (userId.value) checkinsApi.checkin({ userId: userId.value, source: 'practice' }).catch(() => {})
+  badgesStore.refresh(userId.value).catch(() => {})
   const g = bedtime.gratitude.map((x) => x.trim()).filter(Boolean)
   let line = '晚安。今天你为自己留出了这一刻安静，已经很了不起了。'
   if (g.length) line += `\n你记下的${g.length}件小确幸——${g.join('、')}——就让它们陪你入梦吧。`

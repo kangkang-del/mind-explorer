@@ -68,8 +68,10 @@ import { ref, computed, onMounted } from 'vue'
 import { moodApi } from '../api/mood'
 import { checkinsApi } from '../api/checkins'
 import { useAuthStore } from '../stores/auth'
+import { useBadgeStore } from '../stores/badges'
 
 const auth = useAuthStore()
+const badgesStore = useBadgeStore()
 const selected = ref('')
 const note = ref('')
 const saving = ref(false)
@@ -159,6 +161,8 @@ async function save() {
     await load()
     // 心情记录即打卡（优雅跳过，失败不影响主流程）
     checkinsApi.checkin({ userId: userId.value, source: 'mood' }).catch(() => {})
+    // 打卡后刷新成就，若解锁新徽章则弹庆祝
+    badgesStore.refresh(userId.value).catch(() => {})
   } else {
     savedTip.value = '保存失败，稍后再试'
   }

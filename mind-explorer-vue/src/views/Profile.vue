@@ -59,6 +59,12 @@
       </div>
     </section>
 
+    <!-- 我的成就 -->
+    <section v-if="auth.currentUser" class="bg-white rounded-2xl border border-[#eef2f7] p-5 mb-5">
+      <h2 class="text-[16px] font-bold text-[#3a4a5c] mb-3 m-0">🏅 我的成就</h2>
+      <BadgeWall :badges="badgesStore.badges" />
+    </section>
+
     <!-- 打卡热力图 -->
     <section v-if="auth.currentUser" class="bg-white rounded-2xl border border-[#eef2f7] p-5 mb-5">
       <h2 class="text-[16px] font-bold text-[#3a4a5c] mb-3 m-0">📅 打卡日历</h2>
@@ -120,10 +126,13 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useAuthStore } from '../stores/auth'
+import { useBadgeStore } from '../stores/badges'
 import { favoritesApi } from '../api/favorites'
 import { checkinsApi } from '../api/checkins'
+import BadgeWall from '../components/BadgeWall.vue'
 
 const auth = useAuthStore()
+const badgesStore = useBadgeStore()
 const favorites = ref([])
 const checkinStats = ref({ streak: 0, total: 0 })
 const checkinDates = ref([])
@@ -177,6 +186,8 @@ async function loadData() {
     checkinStats.value = { streak: 0, total: 0 }
     checkinDates.value = []
   }
+  // 成就徽章：合并服务端 + 客户端，检测新解锁（驱动庆祝弹窗）
+  badgesStore.refresh(uid).catch(() => {})
 }
 
 onMounted(() => {
