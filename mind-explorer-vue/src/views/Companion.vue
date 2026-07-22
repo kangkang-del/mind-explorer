@@ -14,16 +14,23 @@
     </header>
 
     <!-- 引导入口（陪伴深度） -->
-    <div class="flex flex-wrap gap-2 mb-3 shrink-0">
-      <button
-        v-for="g in guides"
-        :key="g.key"
-        @click="openGuide(g.key)"
-        class="px-3 py-1.5 rounded-full text-[12.5px] border transition"
-        :class="guide === g.key ? 'bg-[#eef4f9] border-[#c5d8ea] text-[#5a7d9a] font-semibold' : 'bg-white border-[#eef2f7] text-[#7a8a9a] hover:border-[#c5d8ea]'"
-      >
-        {{ g.emoji }} {{ g.label }}
-      </button>
+    <div class="mb-2 shrink-0">
+      <div v-if="showGuidesHint" class="flex items-center gap-2 bg-[#f0f4f9] rounded-xl px-3 py-1.5 mb-2">
+        <span class="text-[12px] text-[#5a7d9a] leading-5 flex-1">小木准备了几件可以一起做的事，点下面试试 👇</span>
+        <button @click="dismissGuidesHint" class="text-[#9aa6b2] hover:text-[#5a7d9a] text-[14px] leading-none">×</button>
+      </div>
+      <div class="flex flex-wrap gap-2">
+        <button
+          v-for="g in guides"
+          :key="g.key"
+          @click="openGuide(g.key)"
+          :title="g.desc"
+          class="px-3 py-1.5 rounded-full text-[12.5px] border transition"
+          :class="guide === g.key ? 'bg-[#eef4f9] border-[#c5d8ea] text-[#5a7d9a] font-semibold' : 'bg-white border-[#eef2f7] text-[#7a8a9a] hover:border-[#c5d8ea]'"
+        >
+          {{ g.emoji }} {{ g.label }}
+        </button>
+      </div>
     </div>
 
     <!-- 情绪命名引导（陪伴深度） -->
@@ -42,12 +49,13 @@
         </button>
       </div>
       <div v-if="pickedEmotion" class="flex items-center gap-2 flex-wrap">
+        <input v-model="moodNote" placeholder="想给今天的心情留句话？（可选）" class="flex-1 min-w-[160px] px-3 py-2 border border-[#e0e6ec] rounded-lg text-[13px] focus:outline-none focus:border-[#7c9cb8]" />
         <button
           @click="logMood"
           :disabled="moodLogging"
           class="px-4 py-2 rounded-lg bg-gradient-to-r from-[#7c9cb8] to-[#a8c3d6] text-white text-[13px] font-semibold disabled:opacity-50 transition hover:opacity-90"
         >
-          {{ moodLogging ? '记入中…' : '记入今天的心情 + 打卡' }}
+          {{ moodLogging ? '记入中…' : '记入心情 + 打卡' }}
         </button>
         <span class="text-[12px] text-[#9aa6b2]">{{ moodTip }}</span>
       </div>
@@ -75,7 +83,22 @@
         class="flex"
         :class="m.role === 'user' ? 'justify-end' : 'justify-start'"
       >
+        <!-- 复盘周报卡片（陪伴深度） -->
+        <div v-if="m.type === 'recap'" class="max-w-[90%] bg-white border border-[#e6efe9] rounded-2xl rounded-bl-sm p-4">
+          <div class="flex items-center gap-2 mb-2.5">
+            <span class="text-[16px]">📊</span>
+            <b class="text-[14px] text-[#3a4a5c]">本周情绪复盘</b>
+            <span class="ml-auto text-[11px] text-[#9aa6b2]">{{ m.recap?.count || 0 }} 条记录</span>
+          </div>
+          <div class="flex flex-wrap gap-1.5 mb-2.5">
+            <span class="px-2 py-0.5 rounded-full text-[11.5px] bg-[#eef4f9] text-[#5a7d9a]">高频 {{ m.recap?.topEmoji }} {{ moodLabelOf(m.recap?.topEmotion) }}</span>
+            <span class="px-2 py-0.5 rounded-full text-[11.5px]" :class="trendChipClass(m.recap?.trend)">{{ m.recap?.trendLabel }}</span>
+          </div>
+          <p class="text-[13.5px] text-[#5a6b7c] leading-7 m-0">{{ m.recap?.text }}</p>
+        </div>
+        <!-- 文字气泡 -->
         <div
+          v-else
           class="max-w-[78%] px-4 py-2.5 rounded-2xl text-[14px] leading-relaxed whitespace-pre-wrap break-words"
           :class="m.role === 'user'
             ? 'bg-gradient-to-r from-[#7c9cb8] to-[#a8c3d6] text-white rounded-br-sm'
@@ -162,6 +185,29 @@
       </div>
     </div>
 
+    <!-- 我的思录（CBT 历史回看，陪伴深度） -->
+    <div v-if="guide === 'cbt-history'" class="fixed inset-0 z-[110] flex items-center justify-center bg-black/40 px-4" @click.self="guide = ''">
+      <div class="bg-white rounded-2xl max-w-lg w-full p-5 shadow-xl max-h-[85vh] overflow-y-auto">
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="text-[16px] font-bold text-[#3a4a5c] m-0">📖 我的思录</h3>
+          <button @click="guide = ''" class="text-[#9aa6b2] hover:text-[#3a4a5c] text-xl leading-none">×</button>
+        </div>
+        <p v-if="!cbtHistory.length" class="text-[13px] text-[#9aa6b2] py-6 text-center m-0">还没有思维记录。做完一次「换个角度看」，这里会留下你的思录，方便回看。</p>
+        <div v-else class="space-y-3">
+          <div v-for="(r, idx) in cbtHistory" :key="idx" class="border border-[#eef2f7] rounded-xl p-3">
+            <div class="flex items-center gap-2 mb-1.5">
+              <span class="text-[11px] text-[#9aa6b2]">{{ fmtCbtTime(r.at) }}</span>
+              <span v-if="r.emotion" class="text-[11px] px-1.5 py-0.5 rounded-full bg-[#eef4f9] text-[#5a7d9a]">{{ moodLabelOf(r.emotion) }}</span>
+              <button @click="deleteCbtRecord(idx)" class="ml-auto text-[11px] text-[#b8c2cc] hover:text-[#e07a3f] transition">删除</button>
+            </div>
+            <p v-if="r.thought" class="text-[13px] text-[#3a4a5c] m-0 mb-1"><b>想法：</b>{{ r.thought }}</p>
+            <p v-if="r.alternative" class="text-[13px] text-[#4a8a5e] m-0 mb-1"><b>更平衡：</b>{{ r.alternative }}</p>
+            <p v-if="r.suggestion" class="text-[12.5px] text-[#5a6b7c] leading-6 m-0 mt-1.5 pt-1.5 border-t border-[#f0f4f9]">小木：{{ r.suggestion }}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- 输入区 -->
     <footer class="mt-3 shrink-0 flex items-end gap-2">
       <textarea
@@ -224,10 +270,11 @@ const MOODS = [
   { key: 'grateful', label: '温暖', emoji: '🌤️' },
 ]
 const guides = [
-  { key: 'mood', emoji: '🌤️', label: '此刻心情' },
-  { key: 'recap', emoji: '📊', label: '本周复盘' },
-  { key: 'cbt', emoji: '🧠', label: '换个角度看' },
-  { key: 'bedtime', emoji: '🌙', label: '睡前一刻' },
+  { key: 'mood', emoji: '🌤️', label: '此刻心情', desc: '点一个情绪，小木来接住你，并可记入今天的心情' },
+  { key: 'recap', emoji: '📊', label: '本周复盘', desc: '基于近7天心情，小木陪你回顾这一周' },
+  { key: 'cbt', emoji: '🧠', label: '换个角度看', desc: 'CBT思维记录，和小木一起做认知重构' },
+  { key: 'bedtime', emoji: '🌙', label: '睡前一刻', desc: '入睡前的小小收尾仪式' },
+  { key: 'cbt-history', emoji: '📖', label: '我的思录', desc: '回看过去的思维记录' },
 ]
 const guide = ref('')
 const pickedEmotion = ref('')
@@ -236,12 +283,55 @@ const moodLogging = ref(false)
 const cbt = reactive({ situation: '', thought: '', emotion: '', evidenceFor: '', evidenceAgainst: '', alternative: '' })
 const cbtLoading = ref(false)
 const bedtime = reactive({ gratitude: ['', '', ''] })
+const moodNote = ref('')
+const cbtHistory = ref([])
+const showGuidesHint = ref(false)
+const CBT_STORE_KEY = 'cbt_records_v1'
+
+const moodLabelOf = (k) => (MOODS.find((m) => m.key === k)?.label) || k
+const trendChipClass = (t) => (t === 'low' ? 'bg-[#fdecea] text-[#c0654a]' : t === 'bright' ? 'bg-[#e8f5ec] text-[#4a8a5e]' : 'bg-[#eef2f7] text-[#7a8a9a]')
+
+function loadCbtRecords() {
+  try {
+    const arr = JSON.parse(localStorage.getItem(CBT_STORE_KEY) || '[]')
+    return Array.isArray(arr) ? arr : []
+  } catch {
+    return []
+  }
+}
+function saveCbtRecord(record) {
+  try {
+    const arr = loadCbtRecords()
+    arr.unshift(record)
+    localStorage.setItem(CBT_STORE_KEY, JSON.stringify(arr.slice(0, 50)))
+  } catch {
+    /* 忽略 */
+  }
+}
+function deleteCbtRecord(idx) {
+  const arr = loadCbtRecords()
+  arr.splice(idx, 1)
+  try { localStorage.setItem(CBT_STORE_KEY, JSON.stringify(arr)) } catch {}
+  cbtHistory.value = arr
+}
+function fmtCbtTime(iso) {
+  if (!iso) return ''
+  const d = new Date(iso)
+  return `${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+}
+function dismissGuidesHint() {
+  showGuidesHint.value = false
+  try { localStorage.setItem('companion_guides_hint', '1') } catch {}
+}
 
 function openGuide(key) {
   if (key === 'recap') {
     guide.value = ''
     loadRecap()
     return
+  }
+  if (key === 'cbt-history') {
+    cbtHistory.value = loadCbtRecords()
   }
   guide.value = guide.value === key ? '' : key
 }
@@ -264,10 +354,11 @@ async function logMood() {
   if (!pickedEmotion.value) return
   moodLogging.value = true
   moodTip.value = ''
-  const res = await moodApi.add(userId.value, pickedEmotion.value, '')
+  const res = await moodApi.add(userId.value, pickedEmotion.value, moodNote.value.trim())
   moodLogging.value = false
   if (res.ok) {
     moodTip.value = '已记入今天的心情 + 打卡 ✓'
+    moodNote.value = ''
     checkinsApi.checkin({ userId: userId.value, source: 'mood' }).catch(() => {})
   } else {
     moodTip.value = res.reason || '记录失败，稍后再试'
@@ -290,23 +381,24 @@ async function pushAssistant(text) {
   saveHistory()
 }
 
-// 本周情绪复盘
+// 本周情绪复盘（结构化卡片）
 async function loadRecap() {
   if (!userId.value) {
-    await pushAssistant('先登录后，小木才能陪你看看���一周的心情～')
+    await pushAssistant('先登录后，小木才能陪你看看这一周的心情～')
     return
   }
-  await pushAssistant('小木在翻你这几天的心情记录，稍等一下……')
   const data = await companionApi.getRecap(userId.value)
   if (!data.ok) {
     await pushAssistant('小木暂时没能调出记录，稍后再试试。')
     return
   }
-  if (data.empty) {
+  if (data.empty || !data.recap) {
     await pushAssistant('这几天还没有心情记录呢。先去「心情日记」留几笔，小木才能陪你复盘～')
     return
   }
-  await pushAssistant(data.recap)
+  messages.push({ role: 'assistant', type: 'recap', recap: data.recap })
+  await scrollToBottom()
+  saveHistory()
 }
 
 // CBT 思维记录提交
@@ -324,8 +416,10 @@ async function submitCbtForm() {
     alternative: cbt.alternative,
   })
   cbtLoading.value = false
+  const rec = { situation: cbt.situation, thought: cbt.thought, emotion: cbt.emotion, evidenceFor: cbt.evidenceFor, evidenceAgainst: cbt.evidenceAgainst, alternative: cbt.alternative }
   Object.assign(cbt, { situation: '', thought: '', emotion: '', evidenceFor: '', evidenceAgainst: '', alternative: '' })
   if (data.ok && data.suggestion) {
+    saveCbtRecord({ ...rec, suggestion: data.suggestion, at: new Date().toISOString() })
     await pushAssistant(data.suggestion)
   } else {
     await pushAssistant('小木暂时走神了，稍后再陪你看看好吗？')
@@ -387,10 +481,15 @@ function loadHistory() {
 
 function saveHistory() {
   try {
-    // 仅持久化已完成（非 thinking）的消息
+    // 仅持久化已完成（非 thinking）的消息；保留复盘卡片的结构化数据
     const toSave = messages
       .filter((m) => !m.thinking)
-      .map((m) => ({ role: m.role, content: m.content }))
+      .map((m) => {
+        const o = { role: m.role, content: m.content || '' }
+        if (m.type) o.type = m.type
+        if (m.type === 'recap' && m.recap) o.recap = m.recap
+        return o
+      })
       .slice(-MAX_HISTORY * 2)
     localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave))
   } catch {
@@ -414,10 +513,10 @@ function clearChat() {
 }
 
 function getHistory() {
-  // 取最近若干条已完成消息作为上下文
+  // 取最近若干条已完成消息作为上下文（复盘卡片以其文字摘要参与上下文）
   return messages
     .filter((m) => !m.thinking)
-    .map((m) => ({ role: m.role, content: m.content }))
+    .map((m) => ({ role: m.role, content: m.type === 'recap' ? (m.recap?.text || '') : m.content }))
     .slice(-MAX_HISTORY)
 }
 
@@ -533,6 +632,9 @@ async function localFallback(text) {
 
 // 挂载时：若已登录，从服务端恢复对话（跨设备连续性）；失败则保留本地 localStorage
 onMounted(async () => {
+  try {
+    if (!localStorage.getItem('companion_guides_hint')) showGuidesHint.value = true
+  } catch {}
   if (!userId.value) return
   const serverMsgs = await companionApi.getHistory(userId.value)
   if (serverMsgs && serverMsgs.length) {

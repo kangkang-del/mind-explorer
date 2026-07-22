@@ -67,6 +67,7 @@ const EMOTION_RULES = [
   { key: 'grateful', label: '有些温暖', emoji: '🌤️', words: ['谢谢', '感谢', '开心', '幸福', '幸运', '温暖', '喜欢', '爱'] },
 ]
 const EMOTION_LABEL = Object.fromEntries(EMOTION_RULES.map((r) => [r.key, r.label]))
+const EMOJI = Object.fromEntries(EMOTION_RULES.map((r) => [r.key, r.emoji]))
 // 情绪 → 效价值（与 Mood.vue 曲线一致）：负值偏低落，正值偏温暖
 const MOOD_VAL = { anxious: -2, low: -2, angry: -1, lost: -1, calm: 0, grateful: 2 }
 
@@ -239,29 +240,33 @@ async function generateRecap(moods, useLLM) {
   const counts = {}
   for (const m of moods) counts[m.emotion] = (counts[m.emotion] || 0) + 1
   const top = Object.entries(counts).sort((a, b) => b[1] - a[1])[0][0]
-  const trend = avg < -0.5 ? '偏低落' : avg > 0.5 ? '偏明亮、温暖了一些' : '比较平稳'
+  const trendKey = avg < -0.5 ? 'low' : avg > 0.5 ? 'bright' : 'steady'
+  const trendLabel = avg < -0.5 ? '偏低落' : avg > 0.5 ? '偏明亮、温暖了一些' : '比较平稳'
   const n = moods.length
-  if (!useLLM) {
-    let line = `这 7 天你记录了 ${n} 次心情，整体${trend}。最常出现的是「${EMOTION_LABEL[top] || top}」。`
-    if (avg < 0) line += ' 已经有意识地照顾自己的情绪，这本身就很了不起。记得给自己一点喘息的空间。'
-    else if (avg > 0) line += ' 能感受到你心里的一些光，真好。把这些小确幸收进怀里吧。'
-    else line += ' 平稳也是一种力量。继续这样温柔地对待自己就好。'
-    return line
+  let line = `这 7 天你记录了 ${n} 次心情，整体${trendLabel}。最常出现的是「${EMOTION_LABEL[top] || top}」。`
+  if (avg < 0) line += ' 已经有意识地照顾自己的情绪，这本身就很了不起。记得给自己一点喘息的空间。'
+  else if (avg > 0) line += ' 能感受到你心里的一些光，真好。把这些小确幸收进怀里吧。'
+  else line += ' 平稳也是一种力量。继续这样温柔地对待自己就好。'
+  let text = line
+  if (useLLM) {
+    try {
+      const t = await callLLMOnce([
+        {
+          role: 'system',
+          content:
+            '你是小木，温柔的心理陪伴者。基于对方近一周的心情记录，写一段 1-2 句的轻柔复盘，像深夜的一句陪伴。结合趋势，自然、不刻板。直接给文字，不要解释。',
+        },
+        {
+          role: 'user',
+          content: `对方近 ${n} 次心情记录，整体${trendLabel}，最常出现「${EMOTION_LABEL[top] || top}」\n请写这段复盘。`,
+        },
+      ])
+      if (t) text = t
+    } catch {
+      /* 降级用模板 line */
+    }
   }
-  const trendInfo = `对方近 ${n} 次心情记录，整体${trend}，最常出现「${EMOTION_LABEL[top] || top}」`
-  try {
-    const text = await callLLMOnce([
-      {
-        role: 'system',
-        content:
-          '你是小木，温柔的心理陪伴者。基于对方近一周的心情记录，写一段 1-2 句的轻柔复盘，像深夜的一句陪伴。结合趋势，自然、不刻板。直接给文字，不要解释。',
-      },
-      { role: 'user', content: trendInfo + '\n请写这段复盘。' },
-    ])
-    return text || `这 7 天你记录了 ${n} 次心情，整体${trend}。`
-  } catch {
-    return `这 7 天你记录了 ${n} 次心情，整体${trend}。`
-  }
+  return { text, topEmotion: top, topEmoji: EMOJI[top] || '🍃', trend: trendKey, trendLabel, count: n, avg }
 }
 
 function cbtTemplate({ thought, evidenceAgainst, alternative }) {
@@ -412,13 +417,18 @@ export const handler = async (event) => {
     }
   }
 
-  // 情绪复盘（陪伴深度）：基于近 7 天心情，生成一段轻柔回顾
+  // 情绪复盘（陪伴深度）：基于近 7 天心情，生成结构化回顾 + 入小木记忆
   if (body.action === 'recap') {
     if (!memoryEnabled || !userId) return json({ ok: false, reason: '未启用存储' })
     try {
       const moods = await loadRecentMoods(userId, 7)
-      if (!moods.length) return json({ ok: true, empty: true, recap: '' })
+      if (!moods.length) return json({ ok: true, empty: true })
       const recap = await generateRecap(moods, !!DEEPSEEK_API_KEY)
+      // 入记忆：让小木跨设备记住这次复盘
+      await Promise.all([
+        saveMessage(userId, 'user', '[本周情绪复盘]', null),
+        saveMessage(userId, 'assistant', recap.text, null),
+      ])
       return json({ ok: true, recap })
     } catch (e) {
       console.error('复盘生成失败:', e.message)
@@ -426,32 +436,41 @@ export const handler = async (event) => {
     }
   }
 
-  // CBT 思维记录（陪伴深度）：基于思录字段，给出认知重构引导
+  // CBT 思维记录（陪伴深度）：认知重构引导 + 入小木记忆
   if (body.action === 'cbt') {
     const { situation, thought, emotion, evidenceFor, evidenceAgainst, alternative } = body
+    let suggestion = ''
     try {
-      if (!DEEPSEEK_API_KEY) {
-        return json({ ok: true, suggestion: cbtTemplate({ thought, evidenceAgainst, alternative }) })
+      if (DEEPSEEK_API_KEY) {
+        suggestion = await callLLMOnce([
+          { role: 'system', content: CBT_SYSTEM },
+          {
+            role: 'user',
+            content:
+              `情境：${situation || '（未填写）'}\n` +
+              `自动思维：${thought || '（未填写）'}\n` +
+              `情绪：${EMOTION_LABEL[emotion] || emotion || '（未填写）'}\n` +
+              `支持它的证据：${evidenceFor || '（无）'}\n` +
+              `反对它的证据：${evidenceAgainst || '（无）'}\n` +
+              `我想到的更平衡想法：${alternative || '（无）'}\n` +
+              `请温柔地帮我做一次认知重构引导（2-4 句，口语、温暖，像朋友）。`,
+          },
+        ])
       }
-      const text = await callLLMOnce([
-        { role: 'system', content: CBT_SYSTEM },
-        {
-          role: 'user',
-          content:
-            `情境：${situation || '（未填写）'}\n` +
-            `自动思维：${thought || '（未填写）'}\n` +
-            `情绪：${EMOTION_LABEL[emotion] || emotion || '（未填写）'}\n` +
-            `支持它的证据：${evidenceFor || '（无）'}\n` +
-            `反对它的证据：${evidenceAgainst || '（无）'}\n` +
-            `我想到的更平衡想法：${alternative || '（无）'}\n` +
-            `请温柔地帮我做一次认知重构引导（2-4 句，口语、温暖，像朋友）。`,
-        },
-      ])
-      return json({ ok: true, suggestion: text || cbtTemplate({ thought, evidenceAgainst, alternative }) })
+      if (!suggestion) suggestion = cbtTemplate({ thought, evidenceAgainst, alternative })
     } catch (e) {
       console.error('CBT 生成失败:', e.message)
-      return json({ ok: true, suggestion: cbtTemplate({ thought, evidenceAgainst, alternative }) })
+      suggestion = cbtTemplate({ thought, evidenceAgainst, alternative })
     }
+    // 入记忆：跨设备保留这次思维记录与小木的引导
+    if (memoryEnabled && userId) {
+      const userMsg = `[CBT思维记录] ${thought || ''}`.slice(0, 200)
+      await Promise.all([
+        saveMessage(userId, 'user', userMsg, emotion || null),
+        saveMessage(userId, 'assistant', suggestion, null),
+      ])
+    }
+    return json({ ok: true, suggestion })
   }
 
   const message = (body.message || '').toString().trim()
