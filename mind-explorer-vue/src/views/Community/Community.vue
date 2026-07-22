@@ -42,9 +42,11 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useAuthStore } from '../../stores/auth'
+import { useCrisisStore } from '../../stores/crisisStore'
 import { communityApi } from '../../api/community'
 
 const auth = useAuthStore()
+const crisisStore = useCrisisStore()
 const posts = ref([])
 const newTitle = ref('')
 const newContent = ref('')
@@ -75,7 +77,9 @@ async function submitPost() {
   posting.value = true
   try {
     if (auth.user && !auth.user.type) auth.user.type = 'github'
-    await communityApi.addPost(newTitle.value, newContent.value, auth.currentUser)
+    const created = await communityApi.addPost(newTitle.value, newContent.value, auth.currentUser)
+    // 非阻断：命中高危词则弹援助资源，不阻止内容正常发布
+    if (created && created.crisis) crisisStore.open()
     newTitle.value = ''
     newContent.value = ''
     await loadPosts()

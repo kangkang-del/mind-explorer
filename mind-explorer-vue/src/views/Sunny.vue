@@ -93,9 +93,11 @@
 import { ref, computed, onMounted } from 'vue'
 import { communityApi } from '../api/community'
 import { useAuthStore } from '../stores/auth'
+import { useCrisisStore } from '../stores/crisisStore'
 import FavoriteButton from '../components/FavoriteButton.vue'
 
 const auth = useAuthStore()
+const crisisStore = useCrisisStore()
 
 const categories = [
   { key: 'cat', label: '🐱 猫狗' },
@@ -118,7 +120,6 @@ function catLabel(k) {
 const loading = ref(true)
 const publishing = ref(false)
 const posts = ref([])
-const myLikes = ref({}) // postId -> 是否已认同
 
 const visiblePosts = computed(() => {
   return active.value === 'all'
@@ -167,8 +168,7 @@ async function loadPosts() {
     const me = auth.currentUser
     if (me) {
       const myId = me.type === 'github' ? me.username : me.id
-      const { data } = await supabaseLikeList(ids)
-      const likedIds = new Set((data || []).filter((r) => r.user_identifier === myId).map((r) => r.post_id))
+      const likedIds = new Set(await communityApi.myLikes(ids, myId))
       list.forEach((p) => (p.liked = likedIds.has(p.id)))
     }
 
@@ -179,16 +179,6 @@ async function loadPosts() {
   } finally {
     loading.value = false
   }
-}
-
-// 取当前用户在所有帖子上的认同记录（一次查询）
-async function supabaseLikeList(ids) {
-  const { supabase } = await import('../api/supabase')
-  const { data, error } = await supabase
-    .from('post_likes')
-    .select('post_id, user_identifier')
-    .in('post_id', ids)
-  return { data, error }
 }
 
 // 兜底懒触发：每日首次打开若今日尚无自动推送，则即时拉取
@@ -217,6 +207,8 @@ async function publish() {
       type: 'user',
       category: draft.value.category,
     })
+    // 非阻断：命中高危词则弹援助资源，不阻止内容正常发布
+    if (created && created.crisis) crisisStore.open()
     posts.value.unshift(normalize({ ...created, username: user.name || '我' }))
     draft.value.content = ''
   } catch (e) {
