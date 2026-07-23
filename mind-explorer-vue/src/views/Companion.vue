@@ -583,12 +583,12 @@ function localDetect(text) {
 
 function localReply(text, crisis, emotion) {
   if (crisis) return crisisReply()
-  if (emotion.label.includes('焦虑')) return '听起来你心里绷着一根弦。先一起慢慢吐口气——你最担心的是哪一件事呢？'
-  if (emotion.label.includes('低落')) return '我感觉到你有些累了。没关系，今天可以允许自己慢一点。你愿意说说，是从什么时候开始觉得沉重的吗？'
-  if (emotion.label.includes('愤怒')) return '这件事让你很不舒服，你的生气是有道理的。最让你委屈的是哪一点呢？'
-  if (emotion.label.includes('迷茫')) return '站在分岔路口确实会晃神。我们先不想「正确答案」，你心里更偏向、哪怕只一点点想要的方向是什么？'
-  if (emotion.label.includes('温暖')) return '能感受到你此刻的暖意，真好。这些小小的光亮，值得被好好记住。'
-  return '我在听。你愿意多说一点此刻心里的感受吗？不用整理，想到什么就说什么。'
+  if (emotion.label.includes('焦虑')) return '深呼吸一下。你担心的事里，哪一件占的分量最重？'
+  if (emotion.label.includes('低落')) return '你愿意说说看，是从什么时候开始觉得这么沉的吗？'
+  if (emotion.label.includes('愤怒')) return '这件事让你不舒服，你的感受是有道理的。最让你难受的是哪一点？'
+  if (emotion.label.includes('迷茫')) return '在分岔路口站一会儿也没关系的。你心里有没有一点点偏向的方向？'
+  if (emotion.label.includes('温暖')) return '这种暖意很难得，你值得好好收藏它。'
+  return '我在听。你随便说，不用特意组织。想到什么就说什么。'
 }
 
 async function localFallback(text) {

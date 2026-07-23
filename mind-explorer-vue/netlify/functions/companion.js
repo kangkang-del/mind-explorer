@@ -103,7 +103,12 @@ function buildSystemPrompt({ recallEchoes = [], profile = null }) {
   }
 
   parts.push(
-    '\n请基于以上所有，用你自己的性格和经历自然地回应。不要复述记忆，要让记忆成为你话语的底色。',
+    '\n请基于以上所有，用你自己的性格和经历自然地回应。\n\n' +
+    '【重要——让每一句都像真人朋友，不像AI】\n' +
+    '• 永远不要主动提及你自己的经历或记忆。你的经历只作为共情的底色使你更深刻地理解对方，但不需要说出来。即便对方问起你，也温和地把话题回到对方身上。像交朋友一样，真正的了解是慢慢发生的，不是一次对话就能讲完的。\n' +
+    '• 你的任务不是展示你懂多少，而是帮对方理清思绪、缓解情绪。引导为主，不要直接给答案。\n' +
+    '• 说真人的话：避免"听起来你……""我能感受到……""首先……"这类AI式的开头。每一句都像从心里自然流出来的。\n' +
+    '• 情绪低落时多一分轻托，情绪平稳时多一些陪伴，情绪明朗时多一些回响——对方叫什么情绪，比你叫它什么更重要。除非对方主动问起，否则不要使用心理学术语的名称。',
   )
   return parts.join('\n')
 }
@@ -335,22 +340,18 @@ function cbtTemplate({ thought, evidenceAgainst, alternative }) {
 }
 
 // ---------- 模板兜底（无 DEEPSEEK_API_KEY 时的小木）----------
-// 同样有人格温度：基于情绪回应，并偶尔从「记忆底色」里生发一句，让无 key 的小木也有生命感。
-function templateReply(userText, crisis, emotion, echoes = []) {
+// 去AI味：像真人心理咨询师那样共情+引导，不提自己的事
+function templateReply(userText, crisis, emotion) {
   if (crisis) return crisisReply()
-  const base = {
-    anxious: '听起来你心里绷着一根弦。先一起慢慢吐口气——你最担心的是哪一件事呢？我们可以一小块一小块地看。',
-    low: '我感觉到你有些累了。没关系，今天可以允许自己慢一点、甚至什么也不做。你愿意和我说说，是从什么时候开始觉得沉重的吗？',
-    angry: '这件事让你很不舒服，你的生气是有道理的。先不急着压下去——能跟我说说，最让你委屈的是哪一点吗？',
-    lost: '站在分岔路口确实会晃神。我们先不想「正确答案」，你心里更偏向、哪怕只是一点点想要的方向是什么？',
-    grateful: '能感受到你此刻的暖意，真好。这些小小的光亮，值得被好好记住。',
-    calm: '我在听。你愿意多说一点此刻心里的感受吗？不用整理，想到什么就说什么。',
-  }[emotion.key] || '我在听。你愿意多说一点此刻心里的感受吗？不用整理，想到什么就说什么。'
-  // 偶尔从生命底色里浮起一句回响（让回应像从小木的来路里长出来）
-  if (echoes.length && Math.random() < 0.5) {
-    return `${base}\n（这让我想起——${echoes[0]}）`
-  }
-  return base
+  const lines = {
+    anxious: '深呼吸一下。你担心的事里，哪一件占的分量最重？我们可以从这里开始看。',
+    low: '你愿意说说看，是从什么时候开始觉得这么沉的吗？',
+    angry: '这件事让你不舒服，你的感受是有道理的。你觉得最让你难受的是哪一点？',
+    lost: '在分岔路口站一会儿也没关系的。先不想「正确答案」，你心里有没有一点点偏向的方向？',
+    grateful: '这种暖意很难得，你值得好好收藏它。',
+    calm: '我在听。你随便说，不用特意组织。想到什么就说什么。',
+  }[emotion.key] || '我在听。你随便说，不用特意组织。想到什么就说什么。'
+  return lines
 }
 
 // ---------- 流式 ----------
@@ -565,8 +566,7 @@ export const handler = async (event) => {
         if (DEEPSEEK_API_KEY) {
           assistantText = await streamFromLLM(messages, controller, encoder)
       } else {
-        const echoes = recallMemories(message, emotion.key)
-        assistantText = templateReply(message, crisis, emotion, echoes)
+        assistantText = templateReply(message, crisis, emotion)
         await streamTemplate(assistantText, controller, encoder)
       }
       } catch (e) {
