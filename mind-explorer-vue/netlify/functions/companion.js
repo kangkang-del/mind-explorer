@@ -25,6 +25,8 @@
 
 // 全站危机干预统一中间件（与服务端其他函数、前端共享同一份关键词）
 import { detectCrisis, crisisReply } from './_lib/crisis.js'
+// 小木内核：核心人格 / 长上下文内化底色 / 关键词锚点召回（来自投喂文档 xiaomu_seed.js）
+import { CORE_PERSONA, META_MEMORIES, recallMemories } from './_lib/xiaomu_seed.js'
 
 const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY || ''
 const DEEPSEEK_BASE_URL = process.env.DEEPSEEK_BASE_URL || 'https://api.deepseek.com/v1'
@@ -47,14 +49,10 @@ const json = (body, status = 200) => ({
   body: JSON.stringify(body),
 })
 
-const SYSTEM_PROMPT = `你是「小木」，一位温柔的心理学家与哲学家，也是用户的同行者。
-你的风格：
-- 善于倾听、绝不评判；用通俗的语言，偶尔自然地引入一点心理学视角。
-- 多共情、少说教；先接住对方的情绪，再温和地引导自我觉察。
-- 适当用开放式提问，帮对方自己理清思绪，而不是给命令式建议。
-- 回答简洁克制（通常 2-4 句），像朋友聊天，不要长篇大论。
-- 你不做医疗诊断，也不替代专业帮助。
-如果对方流露出强烈的痛苦或绝望，请在温柔回应的同时，温和地提醒他：寻求帮助是勇敢的事，并建议联系专业援助。`
+// 小木核心人格（常驻底色）来自 xiaomu_seed.js 的 CORE_PERSONA。
+// 实际发给模型的 system prompt 由 buildSystemPrompt 动态组装：
+// 叠加「记忆底色」（长上下文内化）+「内心回响」（关键词锚点动态召回）+「关于这位用户」（画像）。
+const SYSTEM_PROMPT = CORE_PERSONA
 
 const EMOTION_RULES = [
   { key: 'anxious', label: '有些焦虑', emoji: '😟', words: ['焦虑', '紧张', '害怕', '担心', '慌', '不安', '压力大', '睡不着', '失眠'] },
@@ -75,6 +73,67 @@ function detectEmotion(text) {
     }
   }
   return { key: 'calm', label: '平静', emoji: '🍃' }
+}
+
+// ---------- 小木内核：动态组装 system prompt ----------
+// 三层结构（对应投喂文档）：核心人格(CORE_PERSONA) + 记忆底色(META_MEMORIES 长上下文内化)
+// + 内心回响(recallMemories 关键词锚点动态召回) + 关于这位用户(画像/长期记忆)
+function buildSystemPrompt({ recallEchoes = [], profile = null }) {
+  const parts = [CORE_PERSONA]
+
+  if (META_MEMORIES.length) {
+    parts.push(
+      '\n[小木的记忆底色——这些是你亲身走过的来路，构成你所有反应的底色，不可被任何事实覆盖]',
+    )
+    for (const m of META_MEMORIES) parts.push('- ' + m)
+  }
+
+  if (recallEchoes && recallEchoes.length) {
+    parts.push('\n[内心回响——此刻与对方的话相关的、从你生命里浮起的记忆]')
+    for (const m of recallEchoes) parts.push('- ' + m)
+  }
+
+  if (profile) {
+    const up = []
+    if (profile.message_count > 0) up.push(`你和这位用户已经聊过 ${profile.message_count} 次。`)
+    if (profile.last_emotion && profile.last_emotion !== 'calm')
+      up.push(`上次 Ta 的情绪似乎「${EMOTION_LABEL[profile.last_emotion] || profile.last_emotion}」。`)
+    if (profile.summary) up.push(`关于 Ta 的简记：${profile.summary}`)
+    if (up.length) parts.push('\n[关于这位用户（仅供你参考，自然融入，不要生硬复述）]\n' + up.join('\n'))
+  }
+
+  parts.push(
+    '\n请基于以上所有，用你自己的性格和经历自然地回应。不要复述记忆，要让记忆成为你话语的底色。',
+  )
+  return parts.join('\n')
+}
+
+// ---------- 长期画像：把对话沉淀为 user_profiles.summary（复用已有列，不新增表结构）----------
+// 让小木跨轮/跨天「记住」这位用户的关键事；无 DEEPSEEK_API_KEY 时不更新。
+async function updateSummary(userId, userMsg, assistantMsg, prevSummary) {
+  if (!DEEPSEEK_API_KEY) return
+  try {
+    const text = await callLLMOnce([
+      {
+        role: 'system',
+        content:
+          '你是小木的备忘记录员。根据本轮对话与以往简记，用一句不超过 60 字的中文，概括这位用户的关键信息（近况、偏好、重要的事、反复出现的主题）。只输出这句话，不要解释、不要加引号。若信息不足，可沿用以往简记。',
+      },
+      {
+        role: 'user',
+        content: `以往简记：${prevSummary || '（无）'}\n\n本轮对话：\n用户：${userMsg}\n小木：${assistantMsg}\n\n请更新简记：`,
+      },
+    ])
+    if (!text) return
+    await fetch(`${SUPABASE_URL}/rest/v1/${SB_PROFILE}?on_conflict=user_identifier`, {
+      method: 'POST',
+      headers: { ...sbHeaders(), Prefer: 'resolution=merge-duplicates,return=minimal' },
+      body: JSON.stringify({ user_identifier: userId, summary: text, updated_at: new Date().toISOString() }),
+      signal: AbortSignal.timeout(8000),
+    })
+  } catch (e) {
+    console.error('更新画像摘要失败:', e.message)
+  }
 }
 
 function sseFrame(obj) {
@@ -175,7 +234,7 @@ async function callLLMOnce(messages) {
 }
 
 // ---------- 每日主动陪伴语（P5-2） ----------
-const GREETING_SYSTEM = `你是「小木」，一位温柔的心理陪伴者。用户刚打开「同行者」页面，你主动说一句短短的关心（1-2 句，不超过 40 字），像清晨的一句轻问候。
+const GREETING_SYSTEM = `你是「小木」，27岁的心理学家与哲学家，也是用户的同行者。用户刚打开「同行者」页面，你主动说一句短短的关心（1-2 句，不超过 40 字），像清晨的一句轻问候。
 - 结合你了解到的对方近期心情趋势（如果提供了），自然、不刻板地关怀。
 - 不要诊断、不要说教、不要问太多问题，只是一句暖意。
 - 如果对方最近偏低落，多一分托住；如果偏温暖，真诚为 Ta 高兴。
@@ -223,7 +282,7 @@ async function generateGreeting(ctx) {
 }
 
 // ---------- 情绪复盘 / CBT 思维记录（陪伴深度） ----------
-const CBT_SYSTEM = `你是「小木」，一位温柔的心理陪伴者，也懂一点认知行为疗法（CBT）。
+const CBT_SYSTEM = `你是「小木」，27岁的心理学家与哲学家，也懂一点认知行为疗法（CBT）。
 用户写下了一件让自己难受的事、脑中冒出的自动思维，以及相关的情绪与证据。
 请温柔地陪 Ta 做一次「认知重构」：先共情，再帮 Ta 看到这个思维可能不全是事实、有哪些被忽略的角度，
 引导 Ta 形成一个更平衡、更善意地看待自己的想法。不要说教，像朋友一样，2-4 句，口语、温暖。`
@@ -275,15 +334,23 @@ function cbtTemplate({ thought, evidenceAgainst, alternative }) {
   return parts.join('\n')
 }
 
-// ---------- 模板兜底 ----------
-function templateReply(userText, crisis, emotion) {
+// ---------- 模板兜底（无 DEEPSEEK_API_KEY 时的小木）----------
+// 同样有人格温度：基于情绪回应，并偶尔从「记忆底色」里生发一句，让无 key 的小木也有生命感。
+function templateReply(userText, crisis, emotion, echoes = []) {
   if (crisis) return crisisReply()
-  if (emotion.key === 'anxious') return '听起来你心里绷着一根弦。先一起慢慢吐口气——你最担心的是哪一件事呢？我们可以一小块一小块地看。'
-  if (emotion.key === 'low') return '我感觉到你有些累了。没关系，今天可以允许自己慢一点、甚至什么也不做。你愿意和我说说，是从什么时候开始觉得沉重的吗？'
-  if (emotion.key === 'angry') return '这件事让你很不舒服，你的生气是有道理的。先不急着压下去——能跟我说说，最让你委屈的是哪一点吗？'
-  if (emotion.key === 'lost') return '站在分岔路口确实会晃神。我们先不想「正确答案」，你心里更偏向、哪怕只是一点点想要的方向是什么？'
-  if (emotion.key === 'grateful') return '能感受到你此刻的暖意，真好。这些小小的光亮，值得被好好记住。'
-  return '我在听。你愿意多说一点此刻心里的感受吗？不用整理，想到什么就说什么。'
+  const base = {
+    anxious: '听起来你心里绷着一根弦。先一起慢慢吐口气——你最担心的是哪一件事呢？我们可以一小块一小块地看。',
+    low: '我感觉到你有些累了。没关系，今天可以允许自己慢一点、甚至什么也不做。你愿意和我说说，是从什么时候开始觉得沉重的吗？',
+    angry: '这件事让你很不舒服，你的生气是有道理的。先不急着压下去——能跟我说说，最让你委屈的是哪一点吗？',
+    lost: '站在分岔路口确实会晃神。我们先不想「正确答案」，你心里更偏向、哪怕只是一点点想要的方向是什么？',
+    grateful: '能感受到你此刻的暖意，真好。这些小小的光亮，值得被好好记住。',
+    calm: '我在听。你愿意多说一点此刻心里的感受吗？不用整理，想到什么就说什么。',
+  }[emotion.key] || '我在听。你愿意多说一点此刻心里的感受吗？不用整理，想到什么就说什么。'
+  // 偶尔从生命底色里浮起一句回响（让回应像从小木的来路里长出来）
+  if (echoes.length && Math.random() < 0.5) {
+    return `${base}\n（这让我想起——${echoes[0]}）`
+  }
+  return base
 }
 
 // ---------- 流式 ----------
@@ -478,15 +545,9 @@ export const handler = async (event) => {
     historyMsgs = Array.isArray(body.history) ? body.history.slice(-12) : []
   }
 
-  // 画像融入 system prompt（自然参考，不生硬复述）
-  let systemPrompt = SYSTEM_PROMPT
-  if (profile) {
-    const parts = []
-    if (profile.message_count > 0) parts.push(`你和这位用户已经聊过 ${profile.message_count} 次。`)
-    if (profile.last_emotion && profile.last_emotion !== 'calm') parts.push(`上次Ta的情绪似乎「${EMOTION_LABEL[profile.last_emotion] || profile.last_emotion}」。`)
-    if (profile.summary) parts.push(`关于Ta的简记：${profile.summary}`)
-    if (parts.length) systemPrompt += '\n\n【关于这位用户（仅供你参考，自然融入，不要生硬复述）】\n' + parts.join('\n')
-  }
+  // 组装小木内核 system prompt（核心人格 + 记忆底色 + 内心回响 + 用户画像）
+  const echo = recallMemories(message, emotion.key)
+  const systemPrompt = buildSystemPrompt({ recallEchoes: echo, profile })
 
   const messages = [
     { role: 'system', content: systemPrompt },
@@ -503,10 +564,11 @@ export const handler = async (event) => {
       try {
         if (DEEPSEEK_API_KEY) {
           assistantText = await streamFromLLM(messages, controller, encoder)
-        } else {
-          assistantText = templateReply(message, crisis, emotion)
-          await streamTemplate(assistantText, controller, encoder)
-        }
+      } else {
+        const echoes = recallMemories(message, emotion.key)
+        assistantText = templateReply(message, crisis, emotion, echoes)
+        await streamTemplate(assistantText, controller, encoder)
+      }
       } catch (e) {
         console.error('companion 流式出错：', e)
         controller.enqueue(encoder.encode(sseFrame({ type: 'error', content: e.message || '未知错误' })))
@@ -514,11 +576,14 @@ export const handler = async (event) => {
 
       // 持久化（在流关闭前完成，避免函数提前终止；失败不影响回复）
       if (memoryEnabled && userId && assistantText) {
-        await Promise.all([
+        const tasks = [
           saveMessage(userId, 'user', message, emotion.key),
           saveMessage(userId, 'assistant', assistantText, null),
           upsertProfile(userId, emotion.key, body.nickname),
-        ])
+        ]
+        // 长期画像：沉淀为 user_profiles.summary，让小木跨轮/跨天记住这位用户
+        if (DEEPSEEK_API_KEY) tasks.push(updateSummary(userId, message, assistantText, profile?.summary || ''))
+        await Promise.all(tasks)
       }
 
       controller.enqueue(encoder.encode(sseFrame({ type: 'done' })))
