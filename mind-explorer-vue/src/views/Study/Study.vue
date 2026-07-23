@@ -61,17 +61,44 @@
 
     <!-- ============ 用户贡献卡片 ============ -->
     <div v-else>
+      <div class="user-toolbar">
+        <input
+          v-model="userSearch"
+          class="search-input"
+          type="text"
+          placeholder="🔍 搜索标题 / 内容 / 作者…"
+        />
+      </div>
+      <div class="filter-bar">
+        <button
+          class="filter-tag"
+          :class="{ active: !userCategory }"
+          @click="userCategory = ''"
+        >
+          全部 ({{ userCards.length }})
+        </button>
+        <button
+          class="filter-tag"
+          v-for="cat in userCategories"
+          :key="cat.name"
+          :class="{ active: userCategory === cat.name }"
+          @click="userCategory = userCategory === cat.name ? '' : cat.name"
+        >
+          {{ cat.name }} ({{ cat.count }})
+        </button>
+      </div>
+
       <div v-if="loading" class="loading-state">
         <span class="spinner"></span> 加载中...
       </div>
-      <div v-else-if="!userCards.length" class="empty-state">
+      <div v-else-if="!filteredUserCards.length" class="empty-state">
         <p>暂无用户贡献卡片。</p>
         <RouterLink to="/upload" class="upload-link">去上传第一张 →</RouterLink>
       </div>
       <div v-else class="card-grid">
         <div
           class="card-wrap"
-          v-for="(uc, i) in userCards"
+          v-for="(uc, i) in filteredUserCards"
           :key="uc.id"
           :style="{ '--i': i }"
         >
@@ -87,12 +114,17 @@ import { ref, computed, onMounted } from 'vue'
 import CardItem from '../../components/Card/CardItem.vue'
 import cards from '../../data/cards.json'
 import { userCardsApi } from '../../api/userCards'
+import { useAuthStore } from '../../stores/auth'
+
+const auth = useAuthStore()
 
 /* ====== 状态 ====== */
 const activeTab = ref('official')
 const selectedCategory = ref('')  // 当前选中的分类
 const userCards = ref([])
 const loading = ref(false)
+const userCategory = ref('')     // 用户贡献的分类筛选
+const userSearch = ref('')       // 用户贡献的关键词搜索
 
 /* ====== 分类统计（带排序） ====== */
 const categories = computed(() => {
@@ -103,10 +135,39 @@ const categories = computed(() => {
     .sort((a, b) => b.count - a.count)  // 按数量降序
 })
 
+// 用户贡献的分类统计
+const userCategories = computed(() => {
+  const map = {}
+  userCards.value.forEach(c => {
+    const k = c.category || '未分类'
+    map[k] = (map[k] || 0) + 1
+  })
+  return Object.entries(map)
+    .map(([name, count]) => ({ name, count }))
+    .sort((a, b) => b.count - a.count)
+})
+
 /* ====== 过滤后的卡片列表 ====== */
 const filteredCards = computed(() => {
   if (!selectedCategory.value) return cards
   return cards.filter(c => c.category === selectedCategory.value)
+})
+
+// 用户贡献：分类 + 关键词（标题/内容/作者）过滤
+const filteredUserCards = computed(() => {
+  let list = userCards.value
+  if (userCategory.value) {
+    list = list.filter(c => (c.category || '未分类') === userCategory.value)
+  }
+  const q = userSearch.value.trim().toLowerCase()
+  if (q) {
+    list = list.filter(c =>
+      (c.title || '').toLowerCase().includes(q) ||
+      (c.content || '').toLowerCase().includes(q) ||
+      (c.author_name || '').toLowerCase().includes(q)
+    )
+  }
+  return list
 })
 
 /* ====== 操作方法 ====== */
@@ -119,7 +180,7 @@ function selectCategory(name) {
   selectedCategory.value = selectedCategory.value === name ? '' : name  // 再次点击取消选中
 }
 
-// 把 user_cards 映射成 CardItem 兼容结构
+// 把 user_cards 映射成 CardItem 兼容结构（含精选/抱抱字段）
 function mapUserCard(uc) {
   return {
     id: uc.id,
@@ -127,14 +188,26 @@ function mapUserCard(uc) {
     title: uc.title,
     proponent: uc.author_name || '匿名用户',
     summary: uc.summary || (uc.content ? uc.content.slice(0, 80) + '...' : '暂无摘要'),
-    isUserCard: true
+    isUserCard: true,
+    featured: !!uc.featured,
+    hugs: uc.hugs || 0,
+    hugged: !!uc.hugged,
   }
 }
 
 async function loadUserCards() {
   loading.value = true
   try {
-    userCards.value = await userCardsApi.getApproved(100)
+    const list = await userCardsApi.getApproved(100)
+    userCards.value = list
+    // 标记当前用户已抱抱的卡片（登录态下）
+    const u = auth.currentUser
+    if (u) {
+      const uid = u.type === 'github' ? `gh:${u.username}` : `g:${u.id}`
+      const liked = await userCardsApi.myHugs(list.map(c => c.id), uid).catch(() => [])
+      const set = new Set(liked)
+      userCards.value.forEach(c => { c.hugged = set.has(c.id) })
+    }
   } catch (e) {
     userCards.value = []
   } finally {
@@ -224,6 +297,26 @@ onMounted(() => {
   color: #fff;
   box-shadow: 0 3px 10px rgba(126, 184, 165, 0.25);
   border-color: transparent;
+}
+
+/* ====== 用户贡献搜索框 ====== */
+.user-toolbar {
+  margin-bottom: 16px;
+}
+.search-input {
+  width: 100%;
+  padding: 11px 16px;
+  border: 1.5px solid var(--border, #e0e6ec);
+  border-radius: 12px;
+  font-size: 0.9rem;
+  color: var(--text, #3a4a5c);
+  background: var(--card-bg, #fff);
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.search-input:focus {
+  border-color: #7eb8a5;
+  box-shadow: 0 0 0 3px rgba(126, 184, 165, 0.18);
 }
 
 /* ====== 筛选提示 ====== */

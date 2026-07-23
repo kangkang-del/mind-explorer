@@ -67,6 +67,8 @@ function shape(row) {
     status: row.status || 'pending',
     views: row.views || 0,
     likes: row.likes || 0,
+    hugs: row.hugs || 0,
+    featured: !!row.featured,
     created_at: row.created_at,
     reviewed_at: row.reviewed_at || null,
     reviewer: row.reviewer || '',
@@ -86,6 +88,111 @@ async function listCards(filter) {
   return Array.isArray(rows) ? rows.map(shape) : []
 }
 
+// ---------- 策展（精选） ----------
+
+async function setFeatured(id, on) {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${SB}?id=eq.${encodeURIComponent(id)}`, {
+    method: 'PATCH',
+    headers: { ...sbHeaders(), Prefer: 'return=minimal' },
+    body: JSON.stringify({ featured: !!on }),
+    signal: AbortSignal.timeout(8000),
+  })
+  if (!res.ok) throw new Error(`操作失败 ${res.status}`)
+  return { ok: true }
+}
+
+// ---------- 抱抱（card_hugs） ----------
+
+async function hugCounts(ids) {
+  if (!ids || !ids.length) return {}
+  const params = new URLSearchParams({
+    select: 'card_id',
+    card_id: `in.(${ids.join(',')})`,
+  })
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/card_hugs?${params}`, {
+    headers: sbHeaders(),
+    signal: AbortSignal.timeout(8000),
+  })
+  if (!res.ok) throw new Error(`读取抱抱失败 ${res.status}`)
+  const rows = await res.json()
+  const map = {}
+  for (const r of Array.isArray(rows) ? rows : []) {
+    if (r.card_id) map[r.card_id] = (map[r.card_id] || 0) + 1
+  }
+  return map
+}
+
+async function myHugs(ids, uid) {
+  if (!ids || !ids.length || !uid) return []
+  const params = new URLSearchParams({
+    select: 'card_id',
+    card_id: `in.(${ids.join(',')})`,
+    user_identifier: `eq.${uid}`,
+  })
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/card_hugs?${params}`, {
+    headers: sbHeaders(),
+    signal: AbortSignal.timeout(8000),
+  })
+  if (!res.ok) throw new Error(`读取抱抱失败 ${res.status}`)
+  const rows = await res.json()
+  return (Array.isArray(rows) ? rows : []).map((r) => r.card_id)
+}
+
+async function hugCountOf(cardId) {
+  const res = await fetch(
+    `${SUPABASE_URL}/rest/v1/${SB}?select=hugs&id=eq.${encodeURIComponent(cardId)}&limit=1`,
+    { headers: sbHeaders(), signal: AbortSignal.timeout(8000) }
+  )
+  if (!res.ok) return 0
+  const rows = await res.json()
+  return (Array.isArray(rows) && rows[0]?.hugs) || 0
+}
+
+// 去规范化计数同步（低并发下读改写可接受；如需更强一致可改 RPC）
+async function bumpHug(cardId, delta) {
+  const cur = await hugCountOf(cardId)
+  const next = Math.max(0, cur + delta)
+  await fetch(`${SUPABASE_URL}/rest/v1/${SB}?id=eq.${encodeURIComponent(cardId)}`, {
+    method: 'PATCH',
+    headers: { ...sbHeaders(), Prefer: 'return=minimal' },
+    body: JSON.stringify({ hugs: next }),
+    signal: AbortSignal.timeout(8000),
+  })
+}
+
+async function toggleHug(body) {
+  const { cardId, user_identifier: uid, user_type: ut } = body
+  if (!cardId || !uid) throw new Error('缺少卡片或用户标识')
+
+  const checkRes = await fetch(
+    `${SUPABASE_URL}/rest/v1/card_hugs?select=id&card_id=eq.${encodeURIComponent(cardId)}&user_identifier=eq.${encodeURIComponent(uid)}&limit=1`,
+    { headers: sbHeaders(), signal: AbortSignal.timeout(8000) }
+  )
+  if (!checkRes.ok) throw new Error(`查询抱抱失败 ${checkRes.status}`)
+  const existing = await checkRes.json()
+  const has = Array.isArray(existing) && existing.length > 0
+
+  if (has) {
+    const del = await fetch(
+      `${SUPABASE_URL}/rest/v1/card_hugs?card_id=eq.${encodeURIComponent(cardId)}&user_identifier=eq.${encodeURIComponent(uid)}`,
+      { method: 'DELETE', headers: sbHeaders(), signal: AbortSignal.timeout(8000) }
+    )
+    if (!del.ok && del.status !== 204) throw new Error('取消抱抱失败')
+    await bumpHug(cardId, -1)
+    return { hugged: false, count: await hugCountOf(cardId) }
+  } else {
+    const ins = await fetch(`${SUPABASE_URL}/rest/v1/card_hugs`, {
+      method: 'POST',
+      headers: { ...sbHeaders(), Prefer: 'return=minimal' },
+      body: JSON.stringify({ card_id: cardId, user_identifier: uid, user_type: ut || null }),
+      signal: AbortSignal.timeout(8000),
+    })
+    if (!ins.ok) throw new Error(`抱抱失败 ${ins.status}`)
+    await bumpHug(cardId, 1)
+    return { hugged: true, count: await hugCountOf(cardId) }
+  }
+}
+
 export const handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') return { statusCode: 204, headers: CORS, body: '' }
   if (event.httpMethod !== 'POST') return json({ error: '方法不允许，请使用 POST' }, 405)
@@ -99,11 +206,15 @@ export const handler = async (event) => {
 
   const action = body.action
 
-  // 公开列表：已通过的治愈瞬间
+  // 公开列表：已通过的治愈瞬间（精选优先，其次最新）
   if (action === 'approved') {
     if (!memoryEnabled) return json({ cards: [] })
     try {
-      const cards = await listCards({ 'status': 'eq.approved', limit: String(body.limit || 50) })
+      const cards = await listCards({
+        'status': 'eq.approved',
+        'order': 'featured.desc,created_at.desc',
+        limit: String(body.limit || 100),
+      })
       return json({ cards })
     } catch (e) {
       return json({ error: e.message }, 500)
@@ -204,6 +315,49 @@ export const handler = async (event) => {
       return json({ ok: true, id: created?.id || null, crisis })
     } catch (e) {
       return json({ ok: false, error: e.message }, 500)
+    }
+  }
+
+  // —— 以下为策展（精选）与抱抱，需管理员或登录用户 ——
+  if (action === 'feature' || action === 'unfeature') {
+    if (!isAdmin(body.adminPwd)) return json({ error: '无管理员权限' }, 403)
+    if (!memoryEnabled) return json({ error: '未启用存储' }, 200)
+    try {
+      const on = action === 'feature'
+      const r = await setFeatured(body.id, on)
+      return json(r)
+    } catch (e) {
+      return json({ error: e.message }, 500)
+    }
+  }
+
+  if (action === 'hugBatch') {
+    if (!memoryEnabled) return json({ map: {} })
+    try {
+      const map = await hugCounts(body.ids)
+      return json({ map })
+    } catch (e) {
+      return json({ error: e.message }, 500)
+    }
+  }
+
+  if (action === 'hugMine') {
+    if (!memoryEnabled) return json({ liked: [] })
+    try {
+      const liked = await myHugs(body.ids, body.user_identifier)
+      return json({ liked })
+    } catch (e) {
+      return json({ error: e.message }, 500)
+    }
+  }
+
+  if (action === 'hugToggle') {
+    if (!memoryEnabled) return json({ error: '未启用存储' }, 200)
+    try {
+      const r = await toggleHug(body)
+      return json(r)
+    } catch (e) {
+      return json({ error: e.message }, 500)
     }
   }
 

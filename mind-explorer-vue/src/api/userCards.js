@@ -79,4 +79,30 @@ export const userCardsApi = {
     const data = await post({ action: 'get', id })
     return data?.card || null
   },
+
+  // 管理员：设为/取消精选
+  async setFeatured(id, on, adminPwd) {
+    const data = await post({ action: on ? 'feature' : 'unfeature', id, adminPwd })
+    if (!data.ok) throw new Error(data.error || '操作失败')
+    return data
+  },
+
+  // 批量抱抱数：传入 card id 数组，返回 { [id]: count }
+  async hugBatch(ids) {
+    const data = await post({ action: 'hugBatch', ids: ids || [] })
+    return data?.map || {}
+  },
+
+  // 当前用户在给定卡片里的已抱抱集合：返回 [card_id,...]
+  async myHugs(ids, userIdentifier) {
+    const data = await post({ action: 'hugMine', ids: ids || [], user_identifier: userIdentifier })
+    return data?.liked || []
+  },
+
+  // 切换抱抱状态，返回 { hugged, count }
+  async toggleHug(cardId, uid, type) {
+    const data = await post({ action: 'hugToggle', cardId, user_identifier: uid, user_type: type })
+    if (!data || typeof data.count === 'undefined') throw new Error(data?.error || '操作失败')
+    return data
+  },
 }

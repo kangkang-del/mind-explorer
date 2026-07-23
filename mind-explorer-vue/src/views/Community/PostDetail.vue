@@ -17,6 +17,12 @@
         <button @click="toggleLike" class="like-btn" :class="{ liked: isLiked }" :disabled="!auth.isLoggedIn">
           👍 {{ likeCount }} <span v-if="!auth.isLoggedIn" class="like-hint">（登录后认同）</span>
         </button>
+        <button
+          @click="reportOpen = true"
+          class="text-[13px] text-[#9aa6b2] hover:text-[#e07a3f] transition ml-4 align-middle"
+        >
+          ⚠️ 举报
+        </button>
       </div>
 
       <!-- 评论 -->
@@ -63,6 +69,14 @@
       <h2>帖子未找到</h2>
       <RouterLink to="/community">返回社区</RouterLink>
     </div>
+
+    <ReportDialog
+      :open="reportOpen"
+      target-type="community_post"
+      :target-id="post.id"
+      @close="reportOpen = false"
+      @submitted="onReported"
+    />
   </main>
 </template>
 
@@ -71,6 +85,8 @@ import { ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { useAuthStore } from '../../stores/auth'
 import { communityApi } from '../../api/community'
+import { reportsApi } from '../../api/reports'
+import ReportDialog from '../../components/ReportDialog.vue'
 
 const route = useRoute()
 const auth = useAuthStore()
@@ -82,6 +98,12 @@ const guestName = ref('')
 const likeCount = ref(0)
 const isLiked = ref(false)
 const liking = ref(false)
+const reportOpen = ref(false)
+
+function onReported() {
+  reportOpen.value = false
+  alert('已收到你的举报，我们会尽快核实，谢谢你的守护 💛')
+}
 
 onMounted(async () => {
   auth.restoreUser()
