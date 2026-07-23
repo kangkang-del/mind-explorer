@@ -7,7 +7,7 @@
         <h1 class="text-xl font-bold text-[#3a4a5c] m-0 leading-tight">同行者·小木</h1>
         <p class="text-[12px] text-[#9aa6b2] m-0">
           <span v-if="emotionLabel">此刻你似乎{{ emotionLabel }}{{ emotionEmoji }}</span>
-          <span v-else>温柔的心理学家与哲学家，随时陪你聊聊</span>
+          <span v-else>27岁的心理学家与哲学家，随时陪你聊聊</span>
         </p>
       </div>
       <button v-if="messages.length" @click="clearChat" class="text-[12px] text-[#9aa6b2] hover:text-[#e07a3f] transition px-2 py-1">清空</button>
@@ -72,7 +72,7 @@
 
       <!-- 欢迎语 -->
       <div v-if="!messages.length" class="text-center text-[#9aa6b2] text-[14px] leading-8 py-10">
-        <p>🌿 我是小木，这里没有对错，只有被认真听见的你。</p>
+        <p>🌿 我是小木，27岁的心理学家与哲学家。这里没有对错，只有被认真听见的你。</p>
         <p>随便说点什么，或试着聊聊今天的心情。</p>
       </div>
 
