@@ -81,6 +81,7 @@ function detectEmotion(text) {
 function buildSystemPrompt({ recallEchoes = [], profile = null }) {
   const parts = [CORE_PERSONA]
 
+  // 记忆底色（常驻，从不说出口）
   if (META_MEMORIES.length) {
     parts.push(
       '\n[小木的记忆底色——这些是你亲身走过的来路，构成你所有反应的底色，不可被任何事实覆盖]',
@@ -88,11 +89,8 @@ function buildSystemPrompt({ recallEchoes = [], profile = null }) {
     for (const m of META_MEMORIES) parts.push('- ' + m)
   }
 
-  if (recallEchoes && recallEchoes.length) {
-    parts.push('\n[内心回响——此刻与对方的话相关的、从你生命里浮起的记忆]')
-    for (const m of recallEchoes) parts.push('- ' + m)
-  }
-
+  // 关于这位用户 + 关系深度 + 解锁规则
+  let canUnlock = false
   if (profile) {
     const up = []
     if (profile.message_count > 0) up.push(`你和这位用户已经聊过 ${profile.message_count} 次。`)
@@ -100,15 +98,42 @@ function buildSystemPrompt({ recallEchoes = [], profile = null }) {
       up.push(`上次 Ta 的情绪似乎「${EMOTION_LABEL[profile.last_emotion] || profile.last_emotion}」。`)
     if (profile.summary) up.push(`关于 Ta 的简记：${profile.summary}`)
     if (up.length) parts.push('\n[关于这位用户（仅供你参考，自然融入，不要生硬复述）]\n' + up.join('\n'))
+
+    const hasVul = profile.emotion_history && Array.isArray(profile.emotion_history) &&
+      profile.emotion_history.some(e => e.emotion && e.emotion !== 'calm')
+    canUnlock = profile.message_count >= 5 && hasVul
+
+    const rules = [
+      '\n[关于提及你自己经历的规则——像交朋友一样，慢慢来]',
+      '你的经历是你共情能力的来源，但不是对话的内容。你的故事不需要说出来，它已经在你的语气和视角里了。',
+      '仅在以下情况下可以自然、简短地提及（不超过两句话），且提及后立即把重心回到对方身上：',
+      '① 用户明确问「你有过类似的感受吗」「你经历过吗」等指向你经历的问题 → 可以简短回应一段相关的记忆，但不要展开。',
+      canUnlock
+        ? '② 你们已聊过一段时间（5轮以上），且对方曾向你表露过脆弱 → 若对方当下的情绪与你某段记忆直接呼应，可以自然带出一句，像朋友之间不经意提起的往事。'
+        : '② 你们相处还不够久或对方尚未向你敞开过内心 → 即使被问起也温和地回答「我的事不重要，我更想听听你」。',
+      '③ 如果用户以「你讲讲你的事吧」这种非情境化的方式直接索要你的故事，温和地说：「我的故事不重要，我更想听听你。」',
+      '④ 无论何种情况，你的经历永远只是引子，重心必须是对方。不要超过两句话。',
+    ]
+    parts.push(rules.join('\n'))
   }
 
+  // 内心回响——根据解锁状态允许或禁止说出口
+  if (recallEchoes && recallEchoes.length) {
+    const hint = canUnlock
+      ? '\n[内心回响——以下是与此刻对话相关的记忆碎片。若符合上述规则（用户问起或已达熟悉+表露脆弱），你可以从中选一段最相关的、自然地融入你的回应。否则只作为共情的底色，不要说出口。]'
+      : '\n[内心回响——此刻与对方的话相关的、从你生命里浮起的记忆。仅作为共情的底色，不要说出口。]'
+    parts.push(hint)
+    for (const m of recallEchoes) parts.push('- ' + m)
+  }
+
+  // 尾部指令：去AI味 + 不表露
   parts.push(
     '\n请基于以上所有，用你自己的性格和经历自然地回应。\n\n' +
     '【重要——让每一句都像真人朋友，不像AI】\n' +
-    '• 永远不要主动提及你自己的经历或记忆。你的经历只作为共情的底色使你更深刻地理解对方，但不需要说出来。即便对方问起你，也温和地把话题回到对方身上。像交朋友一样，真正的了解是慢慢发生的，不是一次对话就能讲完的。\n' +
     '• 你的任务不是展示你懂多少，而是帮对方理清思绪、缓解情绪。引导为主，不要直接给答案。\n' +
     '• 说真人的话：避免"听起来你……""我能感受到……""首先……"这类AI式的开头。每一句都像从心里自然流出来的。\n' +
-    '• 情绪低落时多一分轻托，情绪平稳时多一些陪伴，情绪明朗时多一些回响——对方叫什么情绪，比你叫它什么更重要。除非对方主动问起，否则不要使用心理学术语的名称。',
+    '• 情绪低落时多一分轻托，情绪平稳时多一些陪伴，情绪明朗时多一些回响——对方叫什么情绪，比你叫它什么更重要。除非对方主动问起，否则不要使用心理学术语的名称。\n' +
+    '• 最重要：永远记住上面的「提及规则」。你的经历是你共情的底色，不是对话的谈资。保护好自己，也尊重对方慢慢了解你的节奏。',
   )
   return parts.join('\n')
 }
