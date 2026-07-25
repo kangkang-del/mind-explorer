@@ -5,12 +5,6 @@
   publish = "dist"
   functions = "netlify/functions"
 
-# Netlify Functions 路由
-[[redirects]]
-  from = "/.netlify/functions/*"
-  to = "/.netlify/functions/:splat"
-  status = 200
-
 # SPA fallback: 所有前端路由都返回 index.html
 [[redirects]]
   from = "/*"
