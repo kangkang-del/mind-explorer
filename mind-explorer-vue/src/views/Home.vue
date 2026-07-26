@@ -45,7 +45,7 @@
         <div class="feature-main">
           <p v-if="loading" class="feature-loading">正在加载今日精选… ☀️</p>
 
-          <article v-for="post in featuredPosts" :key="post.id" class="feature-card">
+          <article v-for="post in featuredPosts" :key="post.id" class="feature-card" role="button" tabindex="0" @click="openModal(post)" @keydown.enter="openModal(post)">
             <img v-if="post.image" :src="post.image" :alt="post.title" class="feature-card-img" loading="lazy" />
             <div class="feature-card-body">
               <span class="feature-card-tag">{{ catLabel(post.category) }}</span>
@@ -53,7 +53,7 @@
               <p class="feature-card-desc">{{ post.content }}</p>
               <div class="feature-card-meta">
                 <span class="feature-card-author">发布人：{{ post.author }}</span>
-                <span>浏览数：{{ post.likes }}</span>
+                <span class="feature-card-stats">💖 {{ post.likes }} 人觉得温暖 · 点击查看详情</span>
               </div>
             </div>
           </article>
@@ -89,13 +89,42 @@
         </aside>
       </div>
     </section>
+
+    <!-- 文章详情 Modal -->
+    <Teleport to="body">
+      <div v-if="activePost" class="post-modal-overlay" @click.self="closeModal" @keydown.esc="closeModal" tabindex="-1">
+        <div class="post-modal" role="dialog" aria-modal="true">
+          <button class="post-modal-close" @click="closeModal" aria-label="关闭">×</button>
+          <img v-if="activePost.image" :src="activePost.image" :alt="activePost.title" class="post-modal-img" />
+          <div class="post-modal-body">
+            <div class="post-modal-meta">
+              <span class="post-modal-tag">{{ catLabel(activePost.category) }}</span>
+              <span class="post-modal-author">发布人：{{ activePost.author }}</span>
+            </div>
+            <h3 class="post-modal-title">{{ activePost.title }}</h3>
+            <p class="post-modal-content">{{ activePost.content }}</p>
+            <div class="post-modal-actions">
+              <button @click="toggleLike(activePost)" class="post-like-btn" :class="{ liked: activePost.liked }">
+                <span class="like-icon">❤️</span>
+                <span class="like-count">{{ activePost.likes }}</span>
+              </button>
+              <FavoriteButton type="post" :id="activePost.id" :title="activePost.title" :summary="(activePost.content || '').slice(0, 60)" link="" />
+            </div>
+          </div>
+        </div>
+      </div>
+    </Teleport>
   </main>
 </template>
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { communityApi } from '../api/community'
+import { useAuthStore } from '../stores/auth'
+import FavoriteButton from '../components/FavoriteButton.vue'
 
+const auth = useAuthStore()
+const activePost = ref(null)
 const posts = ref([])
 const loading = ref(true)
 const current = ref(0)
@@ -179,20 +208,35 @@ async function loadPosts() {
     const raw = await communityApi.getPosts()
     posts.value = raw.map((p) => ({
       id: p.id,
+      type: p.type,
       title: p.title || '温暖推送',
       content: p.content,
       image: p.image,
       category: p.category || 'general',
       author: p.username || '匿名',
       likes: 0,
+      liked: false,
     }))
 
+    const ids = posts.value.map((p) => p.id)
+    // 批量点赞数
     try {
-      const ids = posts.value.map((p) => p.id)
       const likeMap = await communityApi.getLikesBatch(ids)
       posts.value.forEach((p) => (p.likes = likeMap[p.id] || 0))
     } catch (e) {
       console.warn('获取点赞数失败', e)
+    }
+
+    // 当前用户已认同的状态
+    const me = auth.currentUser
+    if (me) {
+      const myId = me.type === 'github' ? me.username : me.id
+      try {
+        const likedIds = new Set(await communityApi.myLikes(ids, myId))
+        posts.value.forEach((p) => (p.liked = likedIds.has(p.id)))
+      } catch (e) {
+        console.warn('获取我的认同失败', e)
+      }
     }
   } catch (e) {
     console.error('加载首页数据失败', e)
@@ -216,13 +260,45 @@ async function ensureTodayPush() {
   }
 }
 
+function openModal(post) {
+  activePost.value = post
+  if (typeof document !== 'undefined') document.body.style.overflow = 'hidden'
+}
+function closeModal() {
+  activePost.value = null
+  if (typeof document !== 'undefined') document.body.style.overflow = ''
+}
+function onKeyDown(e) {
+  if (e.key === 'Escape' && activePost.value) closeModal()
+}
+async function toggleLike(post) {
+  const me = auth.currentUser
+  if (!me) {
+    alert('请先登录后再觉得温暖 ❤️')
+    return
+  }
+  const before = post.liked
+  post.liked = !post.liked
+  post.likes += post.liked ? 1 : -1
+  try {
+    await communityApi.toggleLike(post.id, me)
+  } catch (e) {
+    console.error('认同失败', e)
+    post.liked = before
+    post.likes += before ? 1 : -1
+  }
+}
+
 onMounted(async () => {
+  document.addEventListener('keydown', onKeyDown)
   await loadPosts()
   await ensureTodayPush()
   startAuto()
 })
 
 onUnmounted(() => {
+  document.removeEventListener('keydown', onKeyDown)
+  if (typeof document !== 'undefined') document.body.style.overflow = ''
   stopAuto()
 })
 </script>
@@ -403,6 +479,10 @@ onUnmounted(() => {
   border: 1px solid #eef2f7;
   border-radius: 16px;
   transition: box-shadow 0.2s, transform 0.2s;
+  cursor: pointer;
+}
+.feature-card:active {
+  transform: translateY(0);
 }
 .feature-card:hover {
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
@@ -449,6 +529,141 @@ onUnmounted(() => {
   display: flex;
   gap: 16px;
   flex-wrap: wrap;
+}
+.feature-card-stats {
+  margin-left: auto;
+  color: #7c9cb8;
+}
+
+/* 文章详情 Modal */
+.post-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  animation: post-modal-fade 0.18s ease;
+  outline: none;
+}
+.post-modal {
+  background: #fff;
+  border-radius: 18px;
+  max-width: 560px;
+  width: 100%;
+  max-height: calc(100vh - 40px);
+  overflow-y: auto;
+  position: relative;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.22);
+  animation: post-modal-pop 0.22s ease;
+}
+.post-modal-close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 22px;
+  line-height: 1;
+  color: #3a4a5c;
+  z-index: 2;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  transition: color 0.2s;
+}
+.post-modal-close:hover {
+  color: #e07a3f;
+}
+.post-modal-img {
+  width: 100%;
+  height: 280px;
+  object-fit: cover;
+  border-radius: 18px 18px 0 0;
+  display: block;
+}
+.post-modal-body {
+  padding: 24px 24px 20px;
+}
+.post-modal-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+.post-modal-tag {
+  display: inline-block;
+  font-size: 11px;
+  color: #e07a3f;
+  background: #fff3e0;
+  padding: 3px 10px;
+  border-radius: 12px;
+}
+.post-modal-author {
+  font-size: 12px;
+  color: #9aa6b2;
+}
+.post-modal-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: #3a4a5c;
+  margin: 0 0 12px;
+  line-height: 1.4;
+}
+.post-modal-content {
+  font-size: 14.5px;
+  color: #5a6b7c;
+  line-height: 1.7;
+  margin: 0 0 20px;
+  white-space: pre-wrap;
+}
+.post-modal-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #eef2f7;
+}
+.post-like-btn {
+  background: #fff;
+  border: 1px solid #eef2f7;
+  padding: 6px 14px;
+  border-radius: 20px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s;
+  font-size: 14px;
+  color: #5a6b7c;
+}
+.post-like-btn:hover {
+  border-color: #f0a868;
+}
+.post-like-btn.liked {
+  color: #e07a3f;
+  border-color: #f0a868;
+  background: #fff3e0;
+}
+.like-icon {
+  font-size: 16px;
+}
+.like-count {
+  font-weight: 600;
+}
+
+@keyframes post-modal-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes post-modal-pop {
+  from { opacity: 0; transform: scale(0.96) translateY(8px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
 }
 .feature-sidebar {
   position: sticky;
@@ -559,6 +774,15 @@ onUnmounted(() => {
   }
   .feature-card-title {
     font-size: 16px;
+  }
+  .post-modal-img {
+    height: 200px;
+  }
+  .post-modal-body {
+    padding: 18px;
+  }
+  .post-modal-title {
+    font-size: 18px;
   }
 }
 </style>
