@@ -1,5 +1,25 @@
 <template>
   <main class="home-main">
+    <!-- 核心转化路径：同行者·小木 CTA 入口（深色重色锚点 + 对角线布局，按钮在右下符合 F 形阅读与拇指自然落点） -->
+    <section class="xiaomu-hero">
+      <div class="hero-content">
+        <div class="hero-text">
+          <span class="hero-eyebrow">24h 在这听你说</span>
+          <h1 class="hero-title">不想一个人扛着吗？</h1>
+          <p class="hero-subtitle">小木，27岁的心理学家与哲学家。<br />陪你理一理、缓一缓、慢下来。</p>
+        </div>
+        <div class="hero-action">
+          <RouterLink to="/companion" class="hero-cta-btn">
+            <span>陪小木聊聊</span>
+            <span class="hero-arrow">→</span>
+          </RouterLink>
+          <p class="hero-hint">免费 · 无需注册 · 随时可走</p>
+        </div>
+      </div>
+      <div class="hero-orb" aria-hidden="true"></div>
+      <div class="hero-orb hero-orb-2" aria-hidden="true"></div>
+    </section>
+
     <!-- 轮播图：心理晴天每日推送/治愈图片 -->
     <section class="carousel" @mouseenter="pauseAuto" @mouseleave="resumeAuto">
       <div class="carousel-track" :style="trackStyle">
@@ -306,6 +326,128 @@ onUnmounted(() => {
 <style scoped>
 .home-main {
   width: 100%;
+}
+
+/* 小木 CTA Hero（核心转化锚点，深色重色 + 对角线布局） */
+.xiaomu-hero {
+  position: relative;
+  width: 100%;
+  margin: 0 auto 28px;
+  padding: 56px 40px 52px;
+  background: linear-gradient(135deg, #2d4258 0%, #3a5068 60%, #2c3e54 100%);
+  border-radius: 24px;
+  overflow: hidden;
+  color: #fff;
+  box-shadow: 0 14px 44px rgba(45, 66, 88, 0.28);
+}
+.hero-content {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 32px;
+  flex-wrap: wrap;
+}
+.hero-text {
+  flex: 1;
+  min-width: 280px;
+}
+.hero-eyebrow {
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 1.5px;
+  padding: 6px 12px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 999px;
+  margin-bottom: 16px;
+  backdrop-filter: blur(4px);
+}
+.hero-title {
+  font-size: 32px;
+  font-weight: 700;
+  margin: 0 0 14px;
+  line-height: 1.3;
+  letter-spacing: 0.5px;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+}
+.hero-subtitle {
+  font-size: 15.5px;
+  opacity: 0.88;
+  margin: 0;
+  line-height: 1.7;
+  max-width: 480px;
+}
+.hero-action {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
+}
+.hero-cta-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  background: linear-gradient(135deg, #e07a3f 0%, #f0a868 100%);
+  color: #fff;
+  padding: 16px 30px;
+  border-radius: 14px;
+  font-size: 16px;
+  font-weight: 700;
+  text-decoration: none;
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+  box-shadow: 0 8px 24px rgba(224, 122, 63, 0.4);
+}
+.hero-cta-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 32px rgba(224, 122, 63, 0.55);
+  background: linear-gradient(135deg, #e98a4f 0%, #f5b378 100%);
+}
+.hero-arrow {
+  font-size: 20px;
+  transition: transform 0.25s ease;
+}
+.hero-cta-btn:hover .hero-arrow {
+  transform: translateX(4px);
+}
+.hero-hint {
+  font-size: 12px;
+  opacity: 0.6;
+  margin: 0;
+}
+.hero-orb {
+  position: absolute;
+  top: -80px;
+  right: -80px;
+  width: 320px;
+  height: 320px;
+  background: radial-gradient(circle, rgba(224, 122, 63, 0.18) 0%, transparent 60%);
+  border-radius: 50%;
+  z-index: 1;
+  pointer-events: none;
+}
+.hero-orb-2 {
+  top: auto;
+  bottom: -120px;
+  left: -80px;
+  right: auto;
+  width: 240px;
+  height: 240px;
+  background: radial-gradient(circle, rgba(168, 213, 186, 0.16) 0%, transparent 60%);
+}
+@media (max-width: 768px) {
+  .xiaomu-hero {
+    padding: 36px 24px 32px;
+  }
+  .hero-title {
+    font-size: 24px;
+  }
+  .hero-action {
+    align-items: flex-start;
+    width: 100%;
+  }
 }
 
 /* 轮播图 */
