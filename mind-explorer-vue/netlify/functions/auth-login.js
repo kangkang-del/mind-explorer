@@ -1,5 +1,5 @@
 // Netlify Function: 处理 GitHub OAuth 登录（第一步：跳转授权）
-exports.handler = async (event, context) => {
+export const handler = async (event, context) => {
   const clientId = process.env.GITHUB_CLIENT_ID;
   const redirectUri = `${process.env.URL || 'http://localhost:8000'}/.netlify/functions/auth-callback`;
   const scope = 'read:user,public_repo';

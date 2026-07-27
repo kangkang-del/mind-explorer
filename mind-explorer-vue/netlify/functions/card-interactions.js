@@ -274,7 +274,7 @@ function corsEmptyResponse() {
   };
 }
 
-exports.handler = async (event) => {
+export const handler = async (event) => {
   // 处理 CORS 预检请求
   if (event.httpMethod === 'OPTIONS') {
     return corsEmptyResponse();

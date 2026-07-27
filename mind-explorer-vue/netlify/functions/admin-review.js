@@ -97,7 +97,7 @@ function parseUploadIssue(issue) {
   };
 }
 
-exports.handler = async (event) => {
+export const handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') {
     return handleOptions();
   }

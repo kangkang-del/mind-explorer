@@ -66,7 +66,7 @@ async function fetchLeaderboard(token, repoOwner, repoName) {
   }
 }
 
-exports.handler = async (event, context) => {
+export const handler = async (event, context) => {
   // OPTIONS 预检
   if (event.httpMethod === 'OPTIONS') {
     return handleOptions();

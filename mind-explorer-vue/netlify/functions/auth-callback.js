@@ -1,7 +1,5 @@
 // Netlify Function: 处理 GitHub OAuth 回调（用 code 换 access_token）
-const https = require('https');
-
-exports.handler = async (event, context) => {
+export const handler = async (event, context) => {
   const clientId = process.env.GITHUB_CLIENT_ID;
   const clientSecret = process.env.GITHUB_CLIENT_SECRET;
   const redirectUri = `${process.env.URL || 'http://localhost:8000'}/.netlify/functions/auth-callback`;
@@ -62,7 +60,7 @@ exports.handler = async (event, context) => {
       headers: {
         'Set-Cookie': `me_user=${encodedUser}; Path=/; Max-Age=2592000; SameSite=Lax${isSecure ? '; Secure' : ''}`,
         'Cache-Control': 'no-cache',
-        'Location': '/mind-explorer/?login=success'
+        'Location': '/?login=success'
       },
       body: ''
     };

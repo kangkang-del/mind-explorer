@@ -430,6 +430,7 @@ async function streamTemplate(text, controller, encoder) {
 
 // ---------- 主入口 ----------
 export const handler = async (event) => {
+try {
   if (event.httpMethod === 'OPTIONS') return { statusCode: 204, headers: CORS, body: '' }
   if (event.httpMethod !== 'POST') return json({ error: '方法不允许，请使用 POST' }, 405)
 
@@ -624,4 +625,22 @@ export const handler = async (event) => {
       ...CORS,
     },
   })
+} catch (e) {
+  // 顶层兜底：任何未捕获异常都返回 SSE error 流，避免返回 lambda: 0
+  console.error('companion handler crash:', e)
+  const encoder = new TextEncoder()
+  const stream = new ReadableStream({
+    start(controller) {
+      controller.enqueue(encoder.encode(sseFrame({ type: 'error', content: e.message || '服务器开小差了，稍后再试' })))
+      controller.enqueue(encoder.encode(sseFrame({ type: 'done' })))
+      controller.close()
+    }
+  })
+  return new Response(stream, {
+    headers: {
+      'Content-Type': 'text/event-stream; charset=utf-8',
+      ...CORS,
+    },
+  })
+}
 }

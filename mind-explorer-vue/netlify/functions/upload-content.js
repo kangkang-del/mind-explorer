@@ -114,7 +114,7 @@ async function addPointsToUser(username, token, delta) {
   return newPoints;
 }
 
-exports.handler = async (event) => {
+export const handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') {
     return { statusCode: 200, headers: corsHeadersBase, body: '' };
   }
