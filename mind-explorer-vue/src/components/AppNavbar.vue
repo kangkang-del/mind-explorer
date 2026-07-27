@@ -10,7 +10,10 @@
       <nav class="hidden md:flex items-center gap-1 ml-auto">
         <RouterLink to="/" class="px-3 py-2 rounded-lg text-[15px] text-[#5a6b7c] no-underline transition hover:bg-[#f0f4f9] hover:text-[#3a4a5c]">首页</RouterLink>
         <RouterLink to="/knowledge" class="px-3 py-2 rounded-lg text-[15px] text-[#5a6b7c] no-underline transition hover:bg-[#f0f4f9] hover:text-[#3a4a5c]">了解心理学知识</RouterLink>
-        <RouterLink to="/companion" class="px-3 py-2 rounded-lg text-[15px] text-[#5a6b7c] no-underline transition hover:bg-[#f0f4f9] hover:text-[#3a4a5c]">同行者</RouterLink>
+        <RouterLink to="/companion" class="px-3 py-2 rounded-lg text-[15px] font-semibold text-[#4a6a8a] no-underline transition hover:bg-[#eef4fa] hover:text-[#3a5a7a] relative">
+          同行者
+          <span class="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-[#e07a3f] border-2 border-white"></span>
+        </RouterLink>
         <RouterLink to="/mood" class="px-3 py-2 rounded-lg text-[15px] text-[#5a6b7c] no-underline transition hover:bg-[#f0f4f9] hover:text-[#3a4a5c]">心情日记</RouterLink>
         <RouterLink to="/upload" class="px-3 py-2 rounded-lg text-[15px] text-[#5a6b7c] no-underline transition hover:bg-[#f0f4f9] hover:text-[#3a4a5c]">治愈瞬间</RouterLink>
         <RouterLink to="/tools" class="px-3 py-2 rounded-lg text-[15px] text-[#5a6b7c] no-underline transition hover:bg-[#f0f4f9] hover:text-[#3a4a5c]">自助工具</RouterLink>
@@ -67,7 +70,10 @@
       <nav class="flex flex-col px-3 py-2 overflow-y-auto">
         <RouterLink to="/" @click="menuOpen=false" class="px-3 py-3.5 rounded-lg text-[16px] text-[#5a6b7c] no-underline transition hover:bg-[#f0f4f9]">首页</RouterLink>
         <RouterLink to="/knowledge" @click="menuOpen=false" class="px-3 py-3.5 rounded-lg text-[16px] text-[#5a6b7c] no-underline transition hover:bg-[#f0f4f9]">了解心理学知识</RouterLink>
-        <RouterLink to="/companion" @click="menuOpen=false" class="px-3 py-3.5 rounded-lg text-[16px] text-[#5a6b7c] no-underline transition hover:bg-[#f0f4f9]">同行者</RouterLink>
+        <RouterLink to="/companion" @click="menuOpen=false" class="px-3 py-3.5 rounded-lg text-[16px] font-semibold text-[#4a6a8a] no-underline transition hover:bg-[#eef4fa] relative">
+          同行者
+          <span class="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-[#e07a3f] border-2 border-white"></span>
+        </RouterLink>
         <RouterLink to="/mood" @click="menuOpen=false" class="px-3 py-3.5 rounded-lg text-[16px] text-[#5a6b7c] no-underline transition hover:bg-[#f0f4f9]">心情日记</RouterLink>
         <RouterLink to="/upload" @click="menuOpen=false" class="px-3 py-3.5 rounded-lg text-[16px] text-[#5a6b7c] no-underline transition hover:bg-[#f0f4f9]">治愈瞬间</RouterLink>
         <RouterLink to="/tools" @click="menuOpen=false" class="px-3 py-3.5 rounded-lg text-[16px] text-[#5a6b7c] no-underline transition hover:bg-[#f0f4f9]">自助工具</RouterLink>

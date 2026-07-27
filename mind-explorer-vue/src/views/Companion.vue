@@ -25,10 +25,13 @@
           :key="g.key"
           @click="openGuide(g.key)"
           :title="g.desc"
-          class="px-3 py-1.5 rounded-full text-[12.5px] border transition"
-          :class="guide === g.key ? 'bg-[#eef4f9] border-[#c5d8ea] text-[#5a7d9a] font-semibold' : 'bg-white border-[#eef2f7] text-[#7a8a9a] hover:border-[#c5d8ea]'"
+          class="px-3 py-1.5 rounded-full text-[12.5px] border transition flex items-center gap-1.5"
+          :class="guide === g.key ? 'font-semibold shadow-sm' : 'bg-white border-[#eef2f7] text-[#7a8a9a] hover:border-[#c5d8ea]'"
+          :style="guide === g.key ? { backgroundColor: g.bg, borderColor: g.color, color: g.color } : {}"
         >
-          {{ g.emoji }} {{ g.label }}
+          <span class="text-[15px] leading-none">{{ g.emoji }}</span>
+          <span>{{ g.label }}</span>
+          <span v-if="guide === g.key" class="inline-block w-[6px] h-[6px] rounded-full" :style="{ backgroundColor: g.color }"></span>
         </button>
       </div>
     </div>
@@ -252,11 +255,11 @@ const MOODS = [
   { key: 'grateful', label: '温暖', emoji: '🌤️' },
 ]
 const guides = [
-  { key: 'mood', emoji: '🌤️', label: '此刻心情', desc: '点一个情绪，小木来接住你，并可记入今天的心情' },
-  { key: 'recap', emoji: '📊', label: '本周复盘', desc: '基于近7天心情，小木陪你回顾这一周' },
-  { key: 'cbt', emoji: '🧠', label: '换个角度看', desc: 'CBT思维记录，和小木一起做认知重构' },
-  { key: 'bedtime', emoji: '🌙', label: '睡前一刻', desc: '入睡前的小小收尾仪式' },
-  { key: 'cbt-history', emoji: '📖', label: '我的思录', desc: '回看过去的思维记录' },
+  { key: 'mood', emoji: '🌤️', label: '此刻心情', desc: '点一个情绪，小木来接住你，并可记入今天的心情', color: '#7c9cb8', bg: '#eef4f9' },
+  { key: 'recap', emoji: '📊', label: '本周复盘', desc: '基于近7天心情，小木陪你回顾这一周', color: '#5a8a6a', bg: '#e6efe9' },
+  { key: 'cbt', emoji: '🧠', label: '换个角度看', desc: 'CBT思维记录，和小木一起做认知重构', color: '#9a6ab5', bg: '#f3eef8' },
+  { key: 'bedtime', emoji: '🌙', label: '睡前一刻', desc: '入睡前的小小收尾仪式', color: '#4a6a8a', bg: '#eef4fa' },
+  { key: 'cbt-history', emoji: '📖', label: '我的思录', desc: '回看过去的思维记录', color: '#9a7a4a', bg: '#faf3e6' },
 ]
 const guide = ref('')
 const pickedEmotion = ref('')

@@ -11,10 +11,13 @@
         v-for="tab in tabs"
         :key="tab.key"
         @click="active = tab.key"
-        class="px-4 py-1.5 rounded-[20px] text-[14px] border transition"
-        :class="active === tab.key ? 'bg-[#fff3e0] text-[#e07a3f] border-[#f0a868] font-semibold' : 'bg-white text-[#5a6b7c] border-[#eef2f7] hover:border-[#f5d2b0]'"
+        class="px-4 py-1.5 rounded-[20px] text-[14px] border transition flex items-center gap-1.5"
+        :class="active === tab.key ? 'font-semibold shadow-sm' : 'bg-white text-[#5a6b7c] border-[#eef2f7] hover:border-[#c5d8ea]'"
+        :style="active === tab.key ? { backgroundColor: tab.color + '14', borderColor: tab.color, color: tab.color } : {}"
       >
-        {{ tab.label }}
+        <span class="text-[16px] leading-none">{{ tab.emoji }}</span>
+        <span>{{ tab.key === 'all' ? '全部' : tab.label.replace(tab.emoji + ' ', '') }}</span>
+        <span v-if="tabCounts[tab.key] > 0" class="text-[11px] opacity-70">({{ tabCounts[tab.key] }})</span>
       </button>
     </nav>
 
@@ -105,12 +108,17 @@ const categories = [
   { key: 'nature', label: '🌅 环境' },
 ]
 const tabs = [
-  { key: 'all', label: '🌿 全部' },
-  { key: 'cat', label: '🐱 猫狗' },
-  { key: 'kindness', label: '🤝 善意' },
-  { key: 'nature', label: '🌅 环境' },
+  { key: 'all', label: '🌿 全部', emoji: '🌿', color: '#5a8a6a' },
+  { key: 'cat', label: '🐱 猫狗', emoji: '🐱', color: '#e07a3f' },
+  { key: 'kindness', label: '🤝 善意', emoji: '🤝', color: '#c9656b' },
+  { key: 'nature', label: '🌅 环境', emoji: '🌅', color: '#4a8a7a' },
 ]
 const active = ref('all')
+const tabCounts = computed(() => {
+  const map = {}
+  for (const t of tabs) map[t.key] = posts.value.filter(p => t.key === 'all' || p.category === t.key).length
+  return map
+})
 
 function catLabel(k) {
   const map = { cat: '猫狗', dog: '猫狗', kindness: '善意', nature: '环境', quote: '小木语录', general: '其他' }
