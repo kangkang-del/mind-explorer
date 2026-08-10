@@ -84,7 +84,7 @@ export const companionApi = {
     }
   },
 
-  // 流式对话；history 为最近若干条 {role, content}（仅在未启用服务端记忆时作回退）
+  // 对话；服务端为一次性 JSON 返回（Netlify v1 兼容），前端本地逐字打字机保持体验
   // userId / nickname 启用服务端记忆与画像
   streamChat({ message, history = [], userId, nickname, onMeta, onDelta, onDone, onError, signal }) {
     const controller = new AbortController()
@@ -98,38 +98,20 @@ export const companionApi = {
           body: JSON.stringify({ message, history, userId, nickname }),
           signal: abort,
         })
-        if (!res.ok || !res.body) {
+        if (!res.ok) {
           const txt = await res.text().catch(() => '')
           throw new Error(txt || `HTTP ${res.status}`)
         }
+        const data = await res.json().catch(() => ({}))
+        if (data.error) throw new Error(data.error)
 
-        const reader = res.body.getReader()
-        const decoder = new TextDecoder()
-        let buf = ''
+        onMeta?.({ crisis: !!data.crisis, emotion: data.emotion || null })
 
-        while (true) {
-          const { done, value } = await reader.read()
-          if (done) break
-          buf += decoder.decode(value, { stream: true })
-
-          let nl
-          while ((nl = buf.indexOf('\n')) >= 0) {
-            const line = buf.slice(0, nl).trim()
-            buf = buf.slice(nl + 1)
-            if (!line.startsWith('data:')) continue
-            const payload = line.slice(5).trim()
-            if (!payload) continue
-            let evt
-            try {
-              evt = JSON.parse(payload)
-            } catch {
-              continue
-            }
-            if (evt.type === 'meta') onMeta?.(evt)
-            else if (evt.type === 'delta') onDelta?.(evt.content || '')
-            else if (evt.type === 'error') onError?.(evt.content || '未知错误')
-            else if (evt.type === 'done') onDone?.()
-          }
+        const reply = data.reply || data.content || ''
+        for (const ch of reply) {
+          if (abort.aborted) break
+          onDelta?.(ch)
+          await new Promise((r) => setTimeout(r, 30))
         }
         onDone?.()
       } catch (e) {

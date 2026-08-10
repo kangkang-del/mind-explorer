@@ -263,6 +263,22 @@ async function callLLMOnce(messages) {
   return (j.choices?.[0]?.message?.content || '').trim()
 }
 
+// 一次性完整生成（对话回复用；Netlify Functions v1 非流式，避免 lambda: 0）
+async function callLLMFull(messages) {
+  const res = await fetch(`${DEEPSEEK_BASE_URL}/chat/completions`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${DEEPSEEK_API_KEY}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ model: 'deepseek-chat', messages, stream: false, temperature: 0.85, max_tokens: 300 }),
+    signal: AbortSignal.timeout(30000),
+  })
+  if (!res.ok) {
+    const txt = await res.text().catch(() => '')
+    throw new Error(`大模型返回 ${res.status}: ${txt.slice(0, 200)}`)
+  }
+  const j = await res.json()
+  return (j.choices?.[0]?.message?.content || '').trim()
+}
+
 // ---------- 每日主动陪伴语（P5-2） ----------
 const GREETING_SYSTEM = `你是「小木」，27岁的心理学家与哲学家，也是用户的同行者。用户刚打开「同行者」页面，你主动说一句短短的关心（1-2 句，不超过 40 字），像清晨的一句轻问候。
 - 结合你了解到的对方近期心情趋势（如果提供了），自然、不刻板地关怀。
@@ -377,55 +393,6 @@ function templateReply(userText, crisis, emotion) {
     calm: '我在听。你随便说，不用特意组织。想到什么就说什么。',
   }[emotion.key] || '我在听。你随便说，不用特意组织。想到什么就说什么。'
   return lines
-}
-
-// ---------- 流式 ----------
-async function streamFromLLM(messages, controller, encoder) {
-  const res = await fetch(`${DEEPSEEK_BASE_URL}/chat/completions`, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${DEEPSEEK_API_KEY}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ model: 'deepseek-chat', messages, stream: true, temperature: 0.85 }),
-    signal: AbortSignal.timeout(55000),
-  })
-  if (!res.ok) {
-    const txt = await res.text().catch(() => '')
-    throw new Error(`大模型返回 ${res.status}: ${txt.slice(0, 200)}`)
-  }
-  const reader = res.body.getReader()
-  const decoder = new TextDecoder()
-  let buf = ''
-  let full = ''
-  while (true) {
-    const { done, value } = await reader.read()
-    if (done) break
-    buf += decoder.decode(value, { stream: true })
-    let nl
-    while ((nl = buf.indexOf('\n')) >= 0) {
-      const line = buf.slice(0, nl).trim()
-      buf = buf.slice(nl + 1)
-      if (!line.startsWith('data:')) continue
-      const payload = line.slice(5).trim()
-      if (payload === '[DONE]') continue
-      try {
-        const j = JSON.parse(payload)
-        const token = j.choices?.[0]?.delta?.content || ''
-        if (token) {
-          full += token
-          controller.enqueue(encoder.encode(sseFrame({ type: 'delta', content: token })))
-        }
-      } catch {
-        /* 跳过非 JSON 行 */
-      }
-    }
-  }
-  return full
-}
-
-async function streamTemplate(text, controller, encoder) {
-  for (const ch of text) {
-    controller.enqueue(encoder.encode(sseFrame({ type: 'delta', content: ch })))
-    if ('，。、；：！？\n'.includes(ch)) await new Promise((r) => setTimeout(r, 60))
-  }
 }
 
 // ---------- 主入口 ----------
@@ -582,65 +549,39 @@ try {
     { role: 'user', content: message },
   ]
 
-  const encoder = new TextEncoder()
-  const stream = new ReadableStream({
-    async start(controller) {
-      controller.enqueue(encoder.encode(sseFrame({ type: 'meta', crisis, emotion })))
-
-      let assistantText = ''
-      try {
-        if (DEEPSEEK_API_KEY) {
-          assistantText = await streamFromLLM(messages, controller, encoder)
-      } else {
-        assistantText = templateReply(message, crisis, emotion)
-        await streamTemplate(assistantText, controller, encoder)
-      }
-      } catch (e) {
-        console.error('companion 流式出错：', e)
-        controller.enqueue(encoder.encode(sseFrame({ type: 'error', content: e.message || '未知错误' })))
-      }
-
-      // 持久化（在流关闭前完成，避免函数提前终止；失败不影响回复）
-      if (memoryEnabled && userId && assistantText) {
-        const tasks = [
-          saveMessage(userId, 'user', message, emotion.key),
-          saveMessage(userId, 'assistant', assistantText, null),
-          upsertProfile(userId, emotion.key, body.nickname),
-        ]
-        // 长期画像：沉淀为 user_profiles.summary，让小木跨轮/跨天记住这位用户
-        if (DEEPSEEK_API_KEY) tasks.push(updateSummary(userId, message, assistantText, profile?.summary || ''))
-        await Promise.all(tasks)
-      }
-
-      controller.enqueue(encoder.encode(sseFrame({ type: 'done' })))
-      controller.close()
-    },
-  })
-
-  return new Response(stream, {
-    headers: {
-      'Content-Type': 'text/event-stream; charset=utf-8',
-      'Cache-Control': 'no-cache, no-transform',
-      Connection: 'keep-alive',
-      ...CORS,
-    },
-  })
-} catch (e) {
-  // 顶层兜底：任何未捕获异常都返回 SSE error 流，避免返回 lambda: 0
-  console.error('companion handler crash:', e)
-  const encoder = new TextEncoder()
-  const stream = new ReadableStream({
-    start(controller) {
-      controller.enqueue(encoder.encode(sseFrame({ type: 'error', content: e.message || '服务器开小差了，稍后再试' })))
-      controller.enqueue(encoder.encode(sseFrame({ type: 'done' })))
-      controller.close()
+  // 一次性生成完整回复（Netlify Functions v1 兼容，不再用 SSE 流式，杜绝 lambda: 0）
+  let assistantText = ''
+  try {
+    if (DEEPSEEK_API_KEY) {
+      assistantText = await callLLMFull(messages)
+    } else {
+      assistantText = templateReply(message, crisis, emotion)
     }
-  })
-  return new Response(stream, {
-    headers: {
-      'Content-Type': 'text/event-stream; charset=utf-8',
-      ...CORS,
-    },
-  })
+  } catch (e) {
+    console.error('companion 生成出错：', e)
+    assistantText = templateReply(message, crisis, emotion)
+  }
+
+  // 持久化（失败不影响回复）
+  if (memoryEnabled && userId && assistantText) {
+    try {
+      const tasks = [
+        saveMessage(userId, 'user', message, emotion.key),
+        saveMessage(userId, 'assistant', assistantText, null),
+        upsertProfile(userId, emotion.key, body.nickname),
+      ]
+      // 长期画像：沉淀为 user_profiles.summary，让小木跨轮/跨天记住这位用户
+      if (DEEPSEEK_API_KEY) tasks.push(updateSummary(userId, message, assistantText, profile?.summary || ''))
+      await Promise.all(tasks)
+    } catch (e) {
+      console.error('持久化失败:', e.message)
+    }
+  }
+
+  return json({ reply: assistantText, crisis, emotion })
+} catch (e) {
+  // 顶层兜底：任何未捕获异常都返回 JSON 错误，避免 lambda: 0
+  console.error('companion handler crash:', e)
+  return json({ error: e.message || '服务器开小差了，稍后再试' }, 500)
 }
 }
