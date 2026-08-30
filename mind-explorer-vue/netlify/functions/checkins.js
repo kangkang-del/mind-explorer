@@ -10,7 +10,7 @@
 //
 // 「今天」以北京时间（UTC+8）为基准，贴合国内用户；连续天数从今天往前数。
 
-const SUPABASE_URL = process.env.SUPABASE_URL || 'https://acadcmanqsldwrmysqcb.supabase.co'
+const SUPABASE_URL = process.env.SUPABASE_URL || ''
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || ''
 const SB = 'user_checkins'
 const memoryEnabled = !!(SUPABASE_URL && SUPABASE_SERVICE_KEY)

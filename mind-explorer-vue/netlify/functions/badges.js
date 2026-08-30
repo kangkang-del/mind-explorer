@@ -8,7 +8,7 @@
 // 返回：{ ok, badges: [{ id, name, emoji, desc, goal, metric, tier, value, earned, progress }] }
 //       未配置 SUPABASE_SERVICE_ROLE_KEY 时优雅降级：返回目录 + 全 0 进度（前端仍展示「目标墙」）。
 
-const SUPABASE_URL = process.env.SUPABASE_URL || 'https://acadcmanqsldwrmysqcb.supabase.co'
+const SUPABASE_URL = process.env.SUPABASE_URL || ''
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || ''
 const memoryEnabled = !!(SUPABASE_URL && SUPABASE_SERVICE_KEY)
 
