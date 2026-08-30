@@ -13,7 +13,7 @@
 //   SUPABASE_SERVICE_ROLE_KEY    服务端密钥（绕过 RLS 读写 reports）
 
 const SUPABASE_URL = process.env.SUPABASE_URL || ''
-const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || ''
+const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || ''
 const ADMIN_PWD = process.env.ADMIN_PWD || 'mind2024'
 const TABLE = 'reports'
 const memoryEnabled = !!(SUPABASE_URL && SUPABASE_SERVICE_KEY)

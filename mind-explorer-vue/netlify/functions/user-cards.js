@@ -19,7 +19,7 @@
 //   ADMIN_PWD                    审核后台密码（缺省 'mind2024'）
 
 const SUPABASE_URL = process.env.SUPABASE_URL || ''
-const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || ''
+const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || ''
 const ADMIN_PWD = process.env.ADMIN_PWD || 'mind2024'
 const SB = 'user_cards'
 const memoryEnabled = !!(SUPABASE_URL && SUPABASE_SERVICE_KEY)
