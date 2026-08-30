@@ -23,7 +23,7 @@
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://acadcmanqsldwrmysqcb.supabase.co'
 const SUPABASE_KEY =
-  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || 'sb_publishable_cQdWdavPKrSJZw_GuNByyg_Eb9_v5vg'
+  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || 'sb_publishable_SYLleHEdnZB0tzl6hhpGig_uCTVA3Ud'
 const TABLE = 'community_posts'
 
 const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY || ''
