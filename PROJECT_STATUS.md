@@ -264,7 +264,7 @@ Auth Store (Pinia)
 
 | 配置项 | 值 |
 |--------|-----|
-| Project URL | `https://bbdfeiceezcbcbsbnznr.supabase.co` |
+| Project URL | `https://acadcmanqsldwrmysqcb.supabase.co` |
 | Publishable Key | `sb_publishable_cQdWdavPKrSJZw_GuNByyg_Eb9_v5vg` |
 | 评论表名 | `guest_comments` |
 | RLS | 允许匿名读/写 |

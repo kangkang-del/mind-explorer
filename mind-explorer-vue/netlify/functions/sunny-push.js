@@ -21,7 +21,7 @@
 //   DEEPSEEK_API_KEY              [可选] 大模型 key，设置后用于生成善意文案与小木语录，失败自动降级模板
 //   DEEPSEEK_BASE_URL             [可选] 大模型兼容 OpenAI 的 base url，默认 DeepSeek 官方
 
-const SUPABASE_URL = process.env.SUPABASE_URL || 'https://bbdfeiceezcbcbsbnznr.supabase.co'
+const SUPABASE_URL = process.env.SUPABASE_URL || 'https://acadcmanqsldwrmysqcb.supabase.co'
 const SUPABASE_KEY =
   process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || 'sb_publishable_cQdWdavPKrSJZw_GuNByyg_Eb9_v5vg'
 const TABLE = 'community_posts'
