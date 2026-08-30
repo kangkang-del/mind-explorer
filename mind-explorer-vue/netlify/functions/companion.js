@@ -32,7 +32,7 @@ const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY || ''
 const DEEPSEEK_BASE_URL = process.env.DEEPSEEK_BASE_URL || 'https://api.deepseek.com/v1'
 
 const SUPABASE_URL = process.env.SUPABASE_URL || ''
-const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || ''
+const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || ''
 const SB_MSG = 'companion_messages'
 const SB_PROFILE = 'user_profiles'
 const MEMORY_LIMIT = 12 // 加载最近 N 条作为上下文

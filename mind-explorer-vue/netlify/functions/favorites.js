@@ -13,7 +13,7 @@
 // 环境变量：SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY（与 companion 一致）
 
 const SUPABASE_URL = process.env.SUPABASE_URL || ''
-const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || ''
+const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || ''
 const SB = 'user_favorites'
 const memoryEnabled = !!(SUPABASE_URL && SUPABASE_SERVICE_KEY)
 

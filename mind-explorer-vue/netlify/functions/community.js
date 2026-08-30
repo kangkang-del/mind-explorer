@@ -24,7 +24,7 @@
 //   SUPABASE_SERVICE_ROLE_KEY    服务端密钥（绕过 RLS 读写社区表）
 
 const SUPABASE_URL = process.env.SUPABASE_URL || ''
-const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || ''
+const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || ''
 const memoryEnabled = !!(SUPABASE_URL && SUPABASE_SERVICE_KEY)
 
 // 全站危机干预统一中间件
