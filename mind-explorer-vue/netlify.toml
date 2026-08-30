@@ -3,6 +3,12 @@
   publish = "dist"
   functions = "netlify/functions"
 
+# 每日定时推送「心灵晴天」内容（同时让免费版 Supabase 保持活跃，避免 7 天不活跃被暂停）
+# cron 为 UTC 时区：0 1 * * * = 每天 UTC 01:00（北京时间 09:00）
+# 注意：定时触发时没有 HTTP 请求，函数内已兼容；且仅生产部署真正执行（见 sunny-push.js 环境闸门）
+[functions."sunny-push"]
+  schedule = "0 1 * * *"
+
 # SPA fallback: 所有前端路由都返回 index.html
 [[redirects]]
   from = "/*"

@@ -21,9 +21,9 @@
 //   DEEPSEEK_API_KEY              [可选] 大模型 key，设置后用于生成善意文案与小木语录，失败自动降级模板
 //   DEEPSEEK_BASE_URL             [可选] 大模型兼容 OpenAI 的 base url，默认 DeepSeek 官方
 
-const SUPABASE_URL = process.env.SUPABASE_URL || 'https://acadcmanqsldwrmysqcb.supabase.co'
+const SUPABASE_URL = process.env.SUPABASE_URL || ''
 const SUPABASE_KEY =
-  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || 'sb_publishable_SYLleHEdnZB0tzl6hhpGig_uCTVA3Ud'
+  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || ''
 const TABLE = 'community_posts'
 
 const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY || ''
@@ -311,8 +311,23 @@ async function savePosts(posts) {
 
 // ---------- 主入口 ----------
 export const handler = async (event) => {
-  if (event.httpMethod === 'OPTIONS') return { statusCode: 204, headers: CORS, body: '' }
-  if (event.httpMethod !== 'POST') return json({ error: '方法不允许，请使用 POST' }, 405)
+  // Netlify Scheduled Function 定时触发时没有 HTTP 请求（无 httpMethod），需放行
+  const isScheduled = !event || !event.httpMethod
+
+  if (!isScheduled && event.httpMethod === 'OPTIONS') return { statusCode: 204, headers: CORS, body: '' }
+  if (!isScheduled && event.httpMethod !== 'POST') return json({ error: '方法不允许，请使用 POST' }, 405)
+
+  // 环境闸门：定时触发仅在「生产部署」真正推送，
+  // 避免 Deploy Preview / Branch Deploy 的定时任务把内容写进生产库。
+  const context = process.env.CONTEXT || ''
+  if (isScheduled && context && context !== 'production') {
+    console.log(`[sunny-push] 非生产环境（${context}），跳过定时推送`)
+    return json({ ok: true, skipped: true, reason: `非生产环境（${context}）跳过定时推送，避免污染生产库` })
+  }
+
+  if (!SUPABASE_URL || !SUPABASE_KEY) {
+    return json({ ok: false, error: '未配置 SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY，跳过推送' }, 500)
+  }
 
   try {
     let body = {}

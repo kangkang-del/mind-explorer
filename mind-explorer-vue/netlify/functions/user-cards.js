@@ -18,7 +18,7 @@
 //   SUPABASE_SERVICE_ROLE_KEY    服务端密钥（绕过 RLS 读写 user_cards）
 //   ADMIN_PWD                    审核后台密码（缺省 'mind2024'）
 
-const SUPABASE_URL = process.env.SUPABASE_URL || 'https://acadcmanqsldwrmysqcb.supabase.co'
+const SUPABASE_URL = process.env.SUPABASE_URL || ''
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || ''
 const ADMIN_PWD = process.env.ADMIN_PWD || 'mind2024'
 const SB = 'user_cards'

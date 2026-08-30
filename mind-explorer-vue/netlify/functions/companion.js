@@ -31,7 +31,7 @@ import { CORE_PERSONA, META_MEMORIES, recallMemories } from './_lib/xiaomu_seed.
 const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY || ''
 const DEEPSEEK_BASE_URL = process.env.DEEPSEEK_BASE_URL || 'https://api.deepseek.com/v1'
 
-const SUPABASE_URL = process.env.SUPABASE_URL || 'https://acadcmanqsldwrmysqcb.supabase.co'
+const SUPABASE_URL = process.env.SUPABASE_URL || ''
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || ''
 const SB_MSG = 'companion_messages'
 const SB_PROFILE = 'user_profiles'
