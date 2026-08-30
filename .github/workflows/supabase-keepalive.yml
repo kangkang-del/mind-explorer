@@ -1,0 +1,61 @@
+name: Supabase 保活（生产 + Staging）
+
+# 直接调用 Supabase REST API 做一次最轻量查询，避免免费项目因「7 天无活动」被自动暂停。
+#
+# 与 sunny-push.yml 的区别：
+#   - sunny-push.yml 通过已部署站点间接写入（依赖 secrets.SITE_URL，未配置则每天空转跳过）
+#   - 本任务直连数据库 REST API，不依赖站点部署，仅一次 select 即可算作一次 API 调用
+#
+# ⚠️ 注意：GitHub 会自动禁用「连续 60 天无任何活动」的仓库的定时任务。
+#    若长期不提交代码，本任务会失效——届时可用外部 cron 服务（cron-job.org / UptimeRobot）替代。
+
+on:
+  schedule:
+    - cron: '17 2 * * *'      # UTC 02:17 = 北京时间 10:17（避开整点拥堵，与 sunny-push 的 00:00 错开）
+  workflow_dispatch: {}       # 允许在 Actions 页面手动触发验证
+
+permissions:
+  contents: read
+
+jobs:
+  keepalive:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: 唤醒生产库
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then
+            echo "::error::未配置 secrets.SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY，生产库保活未执行"
+            echo "请到仓库 Settings → Secrets and variables → Actions 添加后重跑。"
+            exit 1
+          fi
+          code=$(curl -s -o /dev/null -w "%{http_code}" \
+            "$SUPABASE_URL/rest/v1/community_posts?select=id&limit=1" \
+            -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" \
+            -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY")
+          echo "生产库响应 HTTP $code"
+          if [ "$code" != "200" ]; then
+            echo "::warning::生产库保活未返回 200，请检查 URL 与 service_role key"
+          fi
+
+      - name: 唤醒 Staging 库
+        env:
+          SUPABASE_STAGING_URL: ${{ secrets.SUPABASE_STAGING_URL }}
+          SUPABASE_STAGING_ANON_KEY: ${{ secrets.SUPABASE_STAGING_ANON_KEY }}
+        run: |
+          if [ -z "$SUPABASE_STAGING_URL" ] || [ -z "$SUPABASE_STAGING_ANON_KEY" ]; then
+            echo "::error::未配置 secrets.SUPABASE_STAGING_URL / SUPABASE_STAGING_ANON_KEY，Staging 保活未执行"
+            echo "请到仓库 Settings → Secrets and variables → Actions 添加后重跑。"
+            exit 1
+          fi
+          code=$(curl -s -o /dev/null -w "%{http_code}" \
+            "$SUPABASE_STAGING_URL/rest/v1/community_posts?select=id&limit=1" \
+            -H "apikey: $SUPABASE_STAGING_ANON_KEY" \
+            -H "Authorization: Bearer $SUPABASE_STAGING_ANON_KEY")
+          echo "Staging 库响应 HTTP $code"
+          if [ "$code" != "200" ]; then
+            echo "::warning::Staging 库保活未返回 200，请检查 URL 与 anon key"
+          fi
