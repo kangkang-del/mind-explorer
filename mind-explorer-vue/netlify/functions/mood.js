@@ -8,7 +8,7 @@
 // 隐私：mood_diary 表 RLS 仅放行 service_role；前端不直连，全部经本函数中转。
 // 未配置 SUPABASE_SERVICE_ROLE_KEY 时优雅降级（add 返回未启用、list 返回空）。
 
-const SUPABASE_URL = process.env.SUPABASE_URL || 'https://bbdfeiceezcbcbsbnznr.supabase.co'
+const SUPABASE_URL = process.env.SUPABASE_URL || 'https://acadcmanqsldwrmysqcb.supabase.co'
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || ''
 const SB = 'mood_diary'
 const memoryEnabled = !!(SUPABASE_URL && SUPABASE_SERVICE_KEY)
