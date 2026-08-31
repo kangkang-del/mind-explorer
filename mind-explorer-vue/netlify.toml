@@ -14,6 +14,12 @@
   node_bundler = "none"
   included_files = ["netlify/functions/_lib/**", "netlify/functions/package.json"]
 
+# 「小木」陪伴对话函数：DeepSeek API 推理含长 system prompt（CORE_PERSONA + 记忆底色 +
+# 内心回响 + 用户画像）+ 300 token 回复，默认 10s 必超时。显式拉到 26s（Pro 计划上限）。
+# 免费版若仍超时，把 max_tokens 在 companion.js 里降到 150，并降 temperature 到 0.7。
+[functions."companion"]
+  timeout = 26
+
 # 每日定时推送「心灵晴天」内容（同时让免费版 Supabase 保持活跃，避免 7 天不活跃被暂停）
 # cron 为 UTC 时区：0 1 * * * = 每天 UTC 01:00（北京时间 09:00）
 # 注意：定时触发时没有 HTTP 请求，函数内已兼容；且仅生产部署真正执行（见 sunny-push.js 环境闸门）
