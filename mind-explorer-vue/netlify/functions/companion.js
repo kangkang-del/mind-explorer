@@ -35,7 +35,12 @@ const SUPABASE_URL = process.env.SUPABASE_URL || ''
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || ''
 const SB_MSG = 'companion_messages'
 const SB_PROFILE = 'user_profiles'
-const MEMORY_LIMIT = 12 // 加载最近 N 条作为上下文
+// 加载最近 N 条作为上下文（短期记忆窗口）。
+// 性能：每条 history 约 60-150 字，N=12 时最高占单次请求输入的 32%（约 1,800 字），
+// 是 prompt 第一大头，也是 DeepSeek 推理超时（Netlify 函数 10s/26s 上限）主因之一。
+// 小木回复本就 2-4 句，第 5 轮之前的上下文对当前回复贡献极小；长期记忆由
+// user_profiles.summary 兜底（见 updateSummary），故短期窗口压到 4 条。
+const MEMORY_LIMIT = 4
 const memoryEnabled = !!(SUPABASE_URL && SUPABASE_SERVICE_KEY)
 
 const CORS = {
@@ -103,16 +108,14 @@ function buildSystemPrompt({ recallEchoes = [], profile = null }) {
       profile.emotion_history.some(e => e.emotion && e.emotion !== 'calm')
     canUnlock = profile.message_count >= 5 && hasVul
 
+    // 精简：原 4 条规则（约 450 字）中 ② 与 ③ 语义重复、④ 与核心句重复，
+    // 合并为 2 条（约 140 字），语义零损失，省下的输入配额留给 CORE_PERSONA 与 META_MEMORIES。
     const rules = [
-      '\n[关于提及你自己经历的规则——像交朋友一样，慢慢来]',
-      '你的经历是你共情能力的来源，但不是对话的内容。你的故事不需要说出来，它已经在你的语气和视角里了。',
-      '仅在以下情况下可以自然、简短地提及（不超过两句话），且提及后立即把重心回到对方身上：',
-      '① 用户明确问「你有过类似的感受吗」「你经历过吗」等指向你经历的问题 → 可以简短回应一段相关的记忆，但不要展开。',
+      '\n[关于提及你自己经历的规则]',
+      '你的经历是共情的底色，不是谈资——重心永远是对方，提及不超过两句。',
       canUnlock
-        ? '② 你们已聊过一段时间（5轮以上），且对方曾向你表露过脆弱 → 若对方当下的情绪与你某段记忆直接呼应，可以自然带出一句，像朋友之间不经意提起的往事。'
-        : '② 你们相处还不够久或对方尚未向你敞开过内心 → 即使被问起也温和地回答「我的事不重要，我更想听听你」。',
-      '③ 如果用户以「你讲讲你的事吧」这种非情境化的方式直接索要你的故事，温和地说：「我的故事不重要，我更想听听你。」',
-      '④ 无论何种情况，你的经历永远只是引子，重心必须是对方。不要超过两句话。',
+        ? '被直接问起、或对方已表露脆弱且当下情绪与你某段记忆呼应时，可自然带出一句，随即交还重心。'
+        : '相处尚浅或对方未敞开心扉时（含被直接索要故事），温和回答「我的事不重要，我更想听听你」。',
     ]
     parts.push(rules.join('\n'))
   }
@@ -268,7 +271,10 @@ async function callLLMFull(messages) {
   const res = await fetch(`${DEEPSEEK_BASE_URL}/chat/completions`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${DEEPSEEK_API_KEY}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ model: 'deepseek-chat', messages, stream: false, temperature: 0.85, max_tokens: 300 }),
+    // temperature 保持 0.85（小木的"人味儿"来源，对推理耗时几乎无影响，勿降）。
+    // max_tokens 300 -> 250：2-4 句回复约 80-180 token，250 既留出"多陪一会儿"的余地，
+    // 又避免 300 时偶发的长尾生成拖到超时。
+    body: JSON.stringify({ model: 'deepseek-chat', messages, stream: false, temperature: 0.85, max_tokens: 250 }),
     signal: AbortSignal.timeout(30000),
   })
   if (!res.ok) {
@@ -280,7 +286,7 @@ async function callLLMFull(messages) {
 }
 
 // ---------- 每日主动陪伴语（P5-2） ----------
-const GREETING_SYSTEM = `你是「小木」，27岁的心理学家与哲学家，也是用户的同行者。用户刚打开「同行者」页面，你主动说一句短短的关心（1-2 句，不超过 40 字），像清晨的一句轻问候。
+const GREETING_SYSTEM = `你是「小木」，心理学家与哲学家，也是用户的同行者。用户刚打开「同行者」页面，你主动说一句短短的关心（1-2 句，不超过 40 字），像清晨的一句轻问候。
 - 结合你了解到的对方近期心情趋势（如果提供了），自然、不刻板地关怀。
 - 不要诊断、不要说教、不要问太多问题，只是一句暖意。
 - 如果对方最近偏低落，多一分托住；如果偏温暖，真诚为 Ta 高兴。
@@ -328,7 +334,7 @@ async function generateGreeting(ctx) {
 }
 
 // ---------- 情绪复盘 / CBT 思维记录（陪伴深度） ----------
-const CBT_SYSTEM = `你是「小木」，27岁的心理学家与哲学家，也懂一点认知行为疗法（CBT）。
+const CBT_SYSTEM = `你是「小木」，心理学家与哲学家，也懂一点认知行为疗法（CBT）。
 用户写下了一件让自己难受的事、脑中冒出的自动思维，以及相关的情绪与证据。
 请温柔地陪 Ta 做一次「认知重构」：先共情，再帮 Ta 看到这个思维可能不全是事实、有哪些被忽略的角度，
 引导 Ta 形成一个更平衡、更善意地看待自己的想法。不要说教，像朋友一样，2-4 句，口语、温暖。`
@@ -558,8 +564,12 @@ try {
       assistantText = templateReply(message, crisis, emotion)
     }
   } catch (e) {
+    // 与「未配 DEEPSEEK_API_KEY」的模板降级区分开：此处是 key 配了但调用失败
+    // （超时 / 401 / 429 / 网络）。若同样返回 templateReply，用户会感觉小木
+    // 「突然变笨了」——用一句自然的"走神"话术掩盖故障，不破坏人设。
+    // 危机场景仍优先返回援助信息，安全不降级。
     console.error('companion 生成出错：', e)
-    assistantText = templateReply(message, crisis, emotion)
+    assistantText = crisis ? crisisReply() : '刚才走神了，你再说一次？'
   }
 
   // 持久化（失败不影响回复）

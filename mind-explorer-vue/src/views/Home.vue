@@ -6,7 +6,7 @@
         <div class="hero-text">
           <span class="hero-eyebrow">24h 在这听你说</span>
           <h1 class="hero-title">不想一个人扛着吗？</h1>
-          <p class="hero-subtitle">小木，27岁的心理学家与哲学家。<br />陪你理一理、缓一缓、慢下来。</p>
+          <p class="hero-subtitle">小木，心理学家与哲学家。<br />陪你理一理、缓一缓、慢下来。</p>
         </div>
         <div class="hero-action">
           <RouterLink to="/companion" class="hero-cta-btn">
@@ -94,7 +94,7 @@
               </li>
               <li>
                 <strong>【小木 AI 上线】</strong><br />
-                与小木——27岁的心理学家与哲学家聊聊，获得温柔而坚韧的陪伴
+                与小木——心理学家与哲学家聊聊，获得温柔而坚韧的陪伴
               </li>
               <li>
                 <strong>【社区交流开启】</strong><br />
