@@ -12,7 +12,7 @@
     <section v-if="!auth.isLoggedIn" class="bg-white rounded-2xl border border-[#eef2f7] p-8 text-center">
       <p class="text-[#5a6b7c] text-[15px] m-0 mb-4">登录后即可分享你的治愈瞬间</p>
       <button
-        @click="auth.login()"
+        @click="auth.openLogin('register')"
         class="px-6 py-2.5 bg-gradient-to-r from-[#7c9cb8] to-[#a8c3d6] text-white rounded-xl text-[14px] font-semibold hover:opacity-90 transition"
       >
         登录 / 注册

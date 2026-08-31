@@ -6,7 +6,10 @@ export const useAuthStore = defineStore('auth', {
   state: () => ({
     user: null,
     guest: null,
-    isLoading: false
+    isLoading: false,
+    // 全局登录/注册弹窗（AppNavbar 挂载 LoginModal，任意页面可唤起）
+    showLoginModal: false,
+    loginMode: 'login'  // 'login' | 'register'
   }),
 
   getters: {
@@ -78,6 +81,16 @@ export const useAuthStore = defineStore('auth', {
       }
       localStorage.setItem('guest_info', JSON.stringify(this.guest))
       return this.guest
+    },
+
+    // 全局打开登录/注册弹窗（mode: 'login' | 'register'）
+    openLogin(mode = 'login') {
+      this.loginMode = mode
+      this.showLoginModal = true
+    },
+
+    closeLogin() {
+      this.showLoginModal = false
     },
 
     login() {
