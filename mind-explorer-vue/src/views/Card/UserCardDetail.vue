@@ -89,7 +89,8 @@ async function onHug() {
   if (hugging.value) return
   const uid = uidOf()
   if (!uid) {
-    alert('请先登录或成为游客后再抱抱 🤗')
+    // 未登录：唤起全局登录/注册弹窗，不再 alert 打断
+    auth.openLogin('register')
     return
   }
   hugging.value = true

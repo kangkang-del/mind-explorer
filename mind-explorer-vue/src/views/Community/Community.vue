@@ -16,10 +16,9 @@
 
     <div v-else class="login-options">
       <p>参与社区：</p>
-      <button @click="auth.login()" class="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#7c9cb8] text-white text-sm font-medium transition hover:bg-[#6b8aa6]">GitHub 登录</button>
+      <button @click="auth.openLogin('register')" class="px-4 py-2 rounded-lg bg-[#7c9cb8] text-white text-sm font-medium transition hover:bg-[#6b8aa6]">游客注册 / 登录</button>
       <span class="divider">或</span>
-      <input v-model="guestName" placeholder="输入昵称" class="w-[150px] px-3 py-2 rounded-lg border border-[#e2e8f0] bg-white text-sm text-[#3a4a5c] outline-none transition focus:border-[#7c9cb8] focus:ring-2 focus:ring-[#7c9cb8]/20 placeholder:text-[#b8c2cc]" />
-      <button @click="becomeGuest" class="px-4 py-2 rounded-lg border border-[#e2e8f0] bg-white text-[#5a6b7c] text-sm transition hover:bg-[#f0f4f9]">游客模式</button>
+      <button @click="auth.login()" class="px-4 py-2 rounded-lg border border-[#e2e8f0] bg-white text-[#5a6b7c] text-sm transition hover:bg-[#f0f4f9]">GitHub 登录</button>
     </div>
 
     <!-- 帖子列表 -->
@@ -51,7 +50,6 @@ const posts = ref([])
 const newTitle = ref('')
 const newContent = ref('')
 const posting = ref(false)
-const guestName = ref('')
 
 onMounted(async () => {
   auth.restoreUser()
@@ -65,11 +63,6 @@ async function loadPosts() {
     console.log('帖子加载失败', e)
     posts.value = []
   }
-}
-
-async function becomeGuest() {
-  if (!guestName.value.trim()) { alert('请输入昵称'); return }
-  auth.createGuest(guestName.value)
 }
 
 async function submitPost() {

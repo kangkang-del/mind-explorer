@@ -18,7 +18,7 @@
         </p>
         <button
           v-if="!auth.currentUser"
-          @click="auth.login()"
+          @click="auth.openLogin('register')"
           class="px-4 py-1.5 bg-[#7c9cb8] text-white border-0 rounded-md text-[13px] cursor-pointer hover:opacity-90"
         >
           登录 / 注册

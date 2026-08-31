@@ -29,13 +29,23 @@
         </ul>
       </div>
 
+      <div class="study-links-box">
+        <h3>🔎 延伸学习</h3>
+        <p class="study-links-tip">去视频与百科平台，看别人怎么讲「{{ searchKeyword }}」：</p>
+        <div class="study-links">
+          <a v-for="l in studyLinks" :key="l.name" :href="l.url" target="_blank" rel="noopener" class="study-link">
+            <span>{{ l.icon }}</span> {{ l.name }}
+          </a>
+        </div>
+      </div>
+
       <div class="card-interact-section">
         <h3>💬 互动</h3>
 
-        <!-- 点赞按钮 -->
+        <!-- 同感按钮 -->
         <div class="like-area">
-          <button @click="toggleLike" class="like-btn" :class="{ liked: isLiked }" :disabled="!auth.isLoggedIn">
-            👍 {{ likeCount }} <span v-if="!auth.isLoggedIn" class="like-hint">（登录后点赞）</span>
+          <button @click="toggleLike" class="like-btn" :class="{ liked: isLiked }" :disabled="liking">
+            🤝 同感 {{ likeCount }} <span v-if="!auth.isLoggedIn" class="like-hint">（点一下，登录后同感）</span>
           </button>
         </div>
 
@@ -53,10 +63,9 @@
 
           <div v-else class="login-options">
             <p>参与评论：</p>
-            <button @click="auth.login()" class="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#7c9cb8] text-white text-sm font-medium transition hover:bg-[#6b8aa6]">GitHub 登录</button>
+            <button @click="auth.openLogin('register')" class="px-4 py-2 rounded-lg bg-[#7c9cb8] text-white text-sm font-medium transition hover:bg-[#6b8aa6]">游客注册 / 登录</button>
             <span class="divider">或</span>
-            <input v-model="guestName" placeholder="输入昵称" class="w-[150px] px-3 py-2 rounded-lg border border-[#e2e8f0] bg-white text-sm text-[#3a4a5c] outline-none transition focus:border-[#7c9cb8] focus:ring-2 focus:ring-[#7c9cb8]/20 placeholder:text-[#b8c2cc]" />
-            <button @click="becomeGuest" class="px-4 py-2 rounded-lg border border-[#e2e8f0] bg-white text-[#5a6b7c] text-sm transition hover:bg-[#f0f4f9]">游客评论</button>
+            <button @click="auth.login()" class="px-4 py-2 rounded-lg border border-[#e2e8f0] bg-white text-[#5a6b7c] text-sm transition hover:bg-[#f0f4f9]">GitHub 登录</button>
           </div>
 
           <div v-if="comments.length" class="comment-list" style="margin-top: 20px">
@@ -87,7 +96,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { useAuthStore } from '../../stores/auth'
 import { cardApi } from '../../api/card'
@@ -100,10 +109,24 @@ const card = ref({})
 const comments = ref([])
 const newComment = ref('')
 const submitting = ref(false)
-const guestName = ref('')
 const likeCount = ref(0)
 const isLiked = ref(false)
 const liking = ref(false)
+
+// 延伸学习：从卡片标题提取中文主词（去掉英文括号注释），生成平台搜索链接
+const searchKeyword = computed(() => {
+  const raw = card.value.title || card.value.summary || '心理学'
+  return raw.replace(/（[^）]*）|\([^)]*\)/g, '').trim() || raw.trim()
+})
+const studyLinks = computed(() => {
+  const kw = encodeURIComponent(searchKeyword.value)
+  const kwPsy = encodeURIComponent(searchKeyword.value + ' 心理学')
+  return [
+    { icon: '📺', name: 'B站 · 讲解视频', url: `https://search.bilibili.com/all?keyword=${kwPsy}` },
+    { icon: '💬', name: '知乎 · 相关文章', url: `https://www.zhihu.com/search?type=content&q=${kwPsy}` },
+    { icon: '📖', name: '维基百科 · 词条', url: `https://zh.wikipedia.org/wiki/Special:Search?search=${kw}` },
+  ]
+})
 
 onMounted(async () => {
   auth.restoreUser()
@@ -132,7 +155,8 @@ async function loadLikes(id) {
 
 async function toggleLike() {
   if (!auth.isLoggedIn) {
-    alert('请先登录或成为游客后再点赞')
+    // 未登录：唤起全局登录/注册弹窗（默认注册模式），不再强制跳 GitHub
+    auth.openLogin('register')
     return
   }
   if (liking.value) return
@@ -144,7 +168,7 @@ async function toggleLike() {
     isLiked.value = result.liked
     likeCount.value += result.liked ? 1 : -1
   } catch (e) {
-    alert('点赞失败：' + (e.message || '请稍后再试'))
+    alert('同感失败：' + (e.message || '请稍后再试'))
   } finally {
     liking.value = false
   }
@@ -157,11 +181,6 @@ async function loadComments(id) {
     console.log('评论加载失败', e)
     comments.value = []
   }
-}
-
-async function becomeGuest() {
-  if (!guestName.value.trim()) { alert('请输入昵称'); return }
-  auth.createGuest(guestName.value)
 }
 
 async function submitComment() {
@@ -192,11 +211,22 @@ function formatTime(time) {
   padding: 8px 20px; border: 2px solid #ddd; border-radius: 20px;
   background: #fff; font-size: 1rem; cursor: pointer; transition: all 0.2s;
 }
-.like-btn:hover:not(:disabled) { border-color: #4CAF50; }
-.like-btn.liked { background: #4CAF50; color: #fff; border-color: #4CAF50; }
+.like-btn:hover:not(:disabled) { border-color: #7c9cb8; color: #4a6a8a; }
+.like-btn.liked { background: #7c9cb8; color: #fff; border-color: #7c9cb8; }
 .like-btn:disabled { opacity: 0.6; cursor: not-allowed; }
 .like-hint { font-size: 0.8rem; font-weight: normal; }
 .divider { color: #999; margin: 0 4px; }
+.study-links-box { margin: 28px 0; padding: 20px 22px; background: #f6f9fc; border: 1px solid #eef2f7; border-radius: 14px; }
+.study-links-box h3 { margin: 0 0 6px; color: #3a4a5c; font-size: 1.05rem; }
+.study-links-tip { margin: 0 0 14px; color: #9aa6b2; font-size: 0.88rem; }
+.study-links { display: flex; gap: 10px; flex-wrap: wrap; }
+.study-link {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 9px 16px; border-radius: 20px; background: #fff;
+  border: 1.5px solid #e2e8f0; color: #4a6a8a; font-size: 0.92rem;
+  text-decoration: none; transition: all 0.2s;
+}
+.study-link:hover { border-color: #7c9cb8; background: #eef4fa; transform: translateY(-1px); }
 .current-user { margin-bottom: 8px; color: #666; font-size: 0.9rem; }
 .user-avatar-sm { width: 24px; height: 24px; border-radius: 50%; vertical-align: middle; }
 .guest-avatar { background: #e0e0e0; color: #666; display: flex; align-items: center; justify-content: center; font-weight: bold; }

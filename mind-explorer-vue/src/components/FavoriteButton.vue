@@ -34,7 +34,8 @@ onMounted(() => ensureLoaded())
 
 async function onClick() {
   if (!auth.currentUser) {
-    auth.login()
+    // 未登录：唤起全局登录/注册弹窗（游客注册 或 GitHub），不再强制跳 GitHub
+    auth.openLogin('register')
     return
   }
   await ensureLoaded()

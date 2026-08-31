@@ -40,10 +40,9 @@
 
         <div v-else class="login-options">
           <p>参与评论：</p>
-          <button @click="auth.login()" class="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#7c9cb8] text-white text-sm font-medium transition hover:bg-[#6b8aa6]">GitHub 登录</button>
+          <button @click="auth.openLogin('register')" class="px-4 py-2 rounded-lg bg-[#7c9cb8] text-white text-sm font-medium transition hover:bg-[#6b8aa6]">游客注册 / 登录</button>
           <span class="divider">或</span>
-          <input v-model="guestName" placeholder="输入昵称" class="w-[150px] px-3 py-2 rounded-lg border border-[#e2e8f0] bg-white text-sm text-[#3a4a5c] outline-none transition focus:border-[#7c9cb8] focus:ring-2 focus:ring-[#7c9cb8]/20 placeholder:text-[#b8c2cc]" />
-          <button @click="becomeGuest" class="px-4 py-2 rounded-lg border border-[#e2e8f0] bg-white text-[#5a6b7c] text-sm transition hover:bg-[#f0f4f9]">游客评论</button>
+          <button @click="auth.login()" class="px-4 py-2 rounded-lg border border-[#e2e8f0] bg-white text-[#5a6b7c] text-sm transition hover:bg-[#f0f4f9]">GitHub 登录</button>
         </div>
 
         <div v-if="comments.length" class="comment-list" style="margin-top: 20px;">
@@ -94,7 +93,6 @@ const post = ref({})
 const comments = ref([])
 const newComment = ref('')
 const submitting = ref(false)
-const guestName = ref('')
 const likeCount = ref(0)
 const isLiked = ref(false)
 const liking = ref(false)
@@ -160,11 +158,6 @@ async function loadComments(id) {
     console.log('评论加载失败', e)
     comments.value = []
   }
-}
-
-async function becomeGuest() {
-  if (!guestName.value.trim()) { alert('请输入昵称'); return }
-  auth.createGuest(guestName.value)
 }
 
 async function submitComment() {

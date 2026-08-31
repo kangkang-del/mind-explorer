@@ -25,16 +25,23 @@
       <!-- 桌面用户头像 -->
       <div class="hidden md:block relative ml-2">
         <button class="border-0 bg-transparent cursor-pointer p-0" @click="userMenuOpen = !userMenuOpen">
-          <span class="inline-flex items-center justify-center w-9 h-9 rounded-full bg-gradient-to-br from-[#7c9cb8] to-[#a8c3d6] text-white text-[13px]">访客</span>
+          <span v-if="auth.isLoggedIn && auth.guest" class="inline-flex items-center justify-center w-9 h-9 rounded-full bg-gradient-to-br from-[#e0a868] to-[#f0c990] text-white text-[13px]">🏠</span>
+          <img v-else-if="auth.isLoggedIn && auth.user?.avatar" :src="auth.user.avatar" class="w-9 h-9 rounded-full object-cover" />
+          <span v-else-if="auth.isLoggedIn" class="inline-flex items-center justify-center w-9 h-9 rounded-full bg-gradient-to-br from-[#7c9cb8] to-[#a8c3d6] text-white text-[13px]">🐙</span>
+          <span v-else class="inline-flex items-center justify-center w-9 h-9 rounded-full bg-gradient-to-br from-[#7c9cb8] to-[#a8c3d6] text-white text-[13px]">访客</span>
         </button>
         <div v-if="userMenuOpen" class="absolute right-0 top-[44px] min-w-[160px] bg-white border border-[#eef2f7] rounded-xl shadow-lg p-1.5 flex flex-col z-50">
+          <div v-if="auth.isLoggedIn" class="px-3 py-2 text-[13px] text-[#9aa6b2] border-b border-[#eef2f7] mb-1">
+            你好，{{ auth.displayName || '朋友' }}{{ auth.isGuest ? '（游客）' : '' }}
+          </div>
           <RouterLink to="/profile" class="px-3 py-2 rounded-md text-[14px] text-[#5a6b7c] no-underline hover:bg-[#f0f4f9]" @click="userMenuOpen=false">个人中心</RouterLink>
           <RouterLink to="/mood" class="px-3 py-2 rounded-md text-[14px] text-[#5a6b7c] no-underline hover:bg-[#f0f4f9]" @click="userMenuOpen=false">心情日记</RouterLink>
           <RouterLink to="/upload" class="px-3 py-2 rounded-md text-[14px] text-[#5a6b7c] no-underline hover:bg-[#f0f4f9]" @click="userMenuOpen=false">治愈瞬间</RouterLink>
           <RouterLink to="/tools" class="px-3 py-2 rounded-md text-[14px] text-[#5a6b7c] no-underline hover:bg-[#f0f4f9]" @click="userMenuOpen=false">自助工具</RouterLink>
           <RouterLink to="/admin" class="px-3 py-2 rounded-md text-[14px] text-[#5a6b7c] no-underline hover:bg-[#f0f4f9]" @click="userMenuOpen=false">审核后台</RouterLink>
           <RouterLink to="/feedback" class="px-3 py-2 rounded-md text-[14px] text-[#5a6b7c] no-underline hover:bg-[#f0f4f9]" @click="userMenuOpen=false">反馈与建议</RouterLink>
-          <button class="px-3 py-2 rounded-md text-left text-[14px] text-[#7c9cb8] font-semibold hover:bg-[#f0f4f9]" @click="userMenuOpen=false">登录 / 注册</button>
+          <button v-if="!auth.isLoggedIn" class="px-3 py-2 rounded-md text-left text-[14px] text-[#7c9cb8] font-semibold hover:bg-[#f0f4f9]" @click="openLogin()">登录 / 注册</button>
+          <button v-else class="px-3 py-2 rounded-md text-left text-[14px] text-[#c97b7b] hover:bg-[#fdf2f2]" @click="auth.logout()">退出登录</button>
         </div>
       </div>
 
@@ -80,15 +87,34 @@
         <RouterLink to="/sunny" @click="menuOpen=false" class="px-3 py-3.5 rounded-lg text-[16px] text-[#5a6b7c] no-underline transition hover:bg-[#f0f4f9]">心灵晴天</RouterLink>
         <RouterLink to="/feedback" @click="menuOpen=false" class="px-3 py-3.5 rounded-lg text-[16px] text-[#5a6b7c] no-underline transition hover:bg-[#f0f4f9]">反馈与建议</RouterLink>
         <div class="border-t border-[#eef2f7] my-2"></div>
-        <RouterLink to="/profile" @click="menuOpen=false" class="px-3 py-3.5 rounded-lg text-[16px] text-[#5a6b7c] no-underline transition hover:bg-[#f0f4f9]">个人中心</RouterLink>
-        <button class="px-3 py-3.5 rounded-lg text-left text-[16px] text-[#7c9cb8] font-semibold transition hover:bg-[#f0f4f9]" @click="menuOpen=false">登录 / 注册</button>
+        <template v-if="auth.isLoggedIn">
+          <div class="px-3 py-2 text-[13px] text-[#9aa6b2]">你好，{{ auth.displayName || '朋友' }}{{ auth.isGuest ? '（游客）' : '' }}</div>
+          <RouterLink to="/profile" @click="menuOpen=false" class="px-3 py-3.5 rounded-lg text-[16px] text-[#5a6b7c] no-underline transition hover:bg-[#f0f4f9]">个人中心</RouterLink>
+          <button class="px-3 py-3.5 rounded-lg text-left text-[16px] text-[#c97b7b] transition hover:bg-[#fdf2f2]" @click="auth.logout()">退出登录</button>
+        </template>
+        <template v-else>
+          <button class="px-3 py-3.5 rounded-lg text-left text-[16px] text-[#7c9cb8] font-semibold transition hover:bg-[#f0f4f9]" @click="openLogin()">登录 / 注册</button>
+        </template>
       </nav>
     </aside>
+
+    <!-- 全局登录 / 注册弹窗 -->
+    <LoginModal />
   </header>
 </template>
 
 <script setup>
 import { ref } from 'vue'
+import { useAuthStore } from '../stores/auth'
+import LoginModal from './LoginModal.vue'
+
+const auth = useAuthStore()
 const menuOpen = ref(false)
 const userMenuOpen = ref(false)
+
+function openLogin(mode = 'login') {
+  userMenuOpen.value = false
+  menuOpen.value = false
+  auth.openLogin(mode)
+}
 </script>
