@@ -259,7 +259,7 @@ async function callLLMOnce(messages) {
     method: 'POST',
     headers: { Authorization: `Bearer ${DEEPSEEK_API_KEY}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({ model: 'deepseek-chat', messages, stream: false, temperature: 0.9, max_tokens: 80 }),
-    signal: AbortSignal.timeout(20000),
+    signal: AbortSignal.timeout(8000),
   })
   if (!res.ok) throw new Error(`大模型返回 ${res.status}`)
   const j = await res.json()
@@ -271,11 +271,12 @@ async function callLLMFull(messages) {
   const res = await fetch(`${DEEPSEEK_BASE_URL}/chat/completions`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${DEEPSEEK_API_KEY}`, 'Content-Type': 'application/json' },
-    // temperature 保持 0.85（小木的"人味儿"来源，对推理耗时几乎无影响，勿降）。
-    // max_tokens 300 -> 250：2-4 句回复约 80-180 token，250 既留出"多陪一会儿"的余地，
-    // 又避免 300 时偶发的长尾生成拖到超时。
-    body: JSON.stringify({ model: 'deepseek-chat', messages, stream: false, temperature: 0.85, max_tokens: 250 }),
-    signal: AbortSignal.timeout(30000),
+    // 关键修复（Free/旧计划 10s 函数上限）：abort 设为 8s 而非 30s。
+    // 旧逻辑 30s 的 AbortSignal 永远来不及触发——Netlify 在 10s 就杀掉进程，
+    // 导致 "lambda: 0" / 502。8s 主动 abort 会进入下方 catch，走兜底话术而非崩溃。
+    // max_tokens 250 -> 180：减短生成，确保 8s 内完成（2-4 句回复约 80-180 token）。
+    body: JSON.stringify({ model: 'deepseek-chat', messages, stream: false, temperature: 0.85, max_tokens: 180 }),
+    signal: AbortSignal.timeout(8000),
   })
   if (!res.ok) {
     const txt = await res.text().catch(() => '')
