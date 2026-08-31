@@ -19,7 +19,7 @@
           <strong>📚 仅供了解</strong> 请不要对号入座或自我诊断。如果你正在经历困难，请寻求专业帮助。
         </div>
 
-        <div v-for="(section, i) in item.sections" :key="i" class="health-section">
+        <div v-for="(section, i) in item.sections" :key="i" class="health-section" v-if="(section.content || '').trim()">
           <h2 class="health-section-title">{{ section.title }}</h2>
           <div class="health-section-content" v-html="section.content"></div>
 
@@ -38,6 +38,17 @@
           </div>
         </div>
 
+        <!-- 延伸学习：B站 / 知乎 / 维基百科 动态搜索 -->
+        <div v-if="item.title" class="study-links-box">
+          <h3 class="study-links-title">🔎 延伸学习</h3>
+          <p class="study-links-tip">去视频与百科平台，看别人怎么讲「{{ searchKeyword }}」：</p>
+          <div class="study-links">
+            <a v-for="l in studyLinks" :key="l.name" :href="l.url" target="_blank" rel="noopener" class="study-link">
+              <span>{{ l.icon }}</span> {{ l.name }}
+            </a>
+          </div>
+        </div>
+
         <div v-if="item.bottomNote" class="warm-seek-help">
           <p>{{ item.bottomNote }}</p>
           <p style="margin-top: 10px;">如需心理援助：<strong>400-161-9995</strong></p>
@@ -53,7 +64,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import healthData from '../../data/health.json'
 
@@ -64,6 +75,21 @@ onMounted(() => {
   const slug = route.params.slug
   const found = healthData.find(h => h.slug === slug)
   if (found) item.value = { ...found, sections: found.sections || [] }
+})
+
+// 延伸学习：从标题提取中文主词，生成平台搜索链接
+const searchKeyword = computed(() => {
+  const raw = (item.value.title || '').replace(/（[^）]*）|\([^)]*\)/g, '').trim()
+  return raw || item.value.title || '心理健康'
+})
+const studyLinks = computed(() => {
+  const kw = encodeURIComponent(searchKeyword.value)
+  const kwPsy = encodeURIComponent(searchKeyword.value + ' 心理健康')
+  return [
+    { icon: '📺', name: 'B站 · 讲解视频', url: `https://search.bilibili.com/all?keyword=${kwPsy}` },
+    { icon: '💬', name: '知乎 · 相关文章', url: `https://www.zhihu.com/search?type=content&q=${kwPsy}` },
+    { icon: '📖', name: '维基百科 · 词条', url: `https://zh.wikipedia.org/wiki/Special:Search?search=${kw}` },
+  ]
 })
 </script>
 
@@ -120,6 +146,26 @@ onMounted(() => {
 }
 
 .health-section { margin-bottom: 32px; }
+.study-links-box {
+  margin-top: 10px; padding: 18px 20px;
+  background: rgba(246, 165, 192, 0.08);
+  border: 1px solid rgba(246, 165, 192, 0.22);
+  border-radius: 14px;
+}
+.study-links-title {
+  font-family: 'Source Han Serif SC', 'Songti SC', serif;
+  font-size: 1.1rem; color: var(--warm-text); margin: 0 0 6px; font-weight: 500;
+}
+.study-links-tip { margin: 0 0 12px; color: var(--warm-text-sub); font-size: 0.88rem; }
+.study-links { display: flex; gap: 10px; flex-wrap: wrap; }
+.study-link {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 9px 16px; border-radius: 20px; background: #fff;
+  border: 1.5px solid rgba(246, 165, 192, 0.35);
+  color: var(--warm-text); font-size: 0.9rem; text-decoration: none;
+  transition: all 0.2s;
+}
+.study-link:hover { border-color: var(--warm-primary); background: #fff7fa; transform: translateY(-1px); }
 .health-section-title {
   font-family: 'Source Han Serif SC', 'Songti SC', serif;
   font-size: 1.3rem;

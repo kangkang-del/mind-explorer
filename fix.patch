@@ -1,0 +1,553 @@
+From 4f685bada3778dc6aed417ebcf763e8a92a9e430 Mon Sep 17 00:00:00 2001
+From: CodeBuddy <codebuddy@example.com>
+Date: Mon, 31 Aug 2026 13:14:25 +0800
+Subject: [PATCH] =?UTF-8?q?feat(ui):=20=E5=85=A8=E5=B1=80=E7=99=BB?=
+ =?UTF-8?q?=E5=BD=95=E5=BC=B9=E7=AA=97=20+=20=E6=B8=B8=E5=AE=A2=E5=85=A8?=
+ =?UTF-8?q?=E5=8A=9F=E8=83=BD=E6=89=93=E9=80=9A=20+=20=E7=9F=A5=E8=AF=86?=
+ =?UTF-8?q?=E5=8D=A1=E7=89=87=E3=80=8C=E5=90=8C=E6=84=9F=E3=80=8D=E4=B8=8E?=
+ =?UTF-8?q?=E5=BB=B6=E4=BC=B8=E5=AD=A6=E4=B9=A0=E5=A4=96=E9=93=BE?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+- 登录弹窗组件化（LoginModal.vue），由 auth store 全局控制，AppNavbar 挂载
+- AppNavbar 接入真实登录状态：头像区分 游客/GitHub/未登录，菜单含登出
+- 游客注册/登录入口全站打通（原来「登录/注册」按钮无事件、仅 GitHub 死路）：
+  FavoriteButton、CardDetail、CardItem、UserCardDetail、Community、PostDetail、
+  Profile、Upload 全部改为唤起统一弹窗（游客注册 或 GitHub）
+- 知识卡片「👍 点赞」更名「🤝 同感」，沿用 guest_likes 数据
+- 知识卡片新增「🔎 延伸学习」：一键跳 B站/知乎/维基百科 搜索讲解
+- 移除各页内嵌的一次性游客昵称输入（由统一弹窗替代）
+---
+ .../src/components/AppNavbar.vue              |  34 ++++-
+ .../src/components/Card/CardItem.vue          |   3 +-
+ .../src/components/FavoriteButton.vue         |   3 +-
+ .../src/components/LoginModal.vue             | 131 ++++++++++++++++++
+ mind-explorer-vue/src/stores/auth.js          |  15 +-
+ .../src/views/Card/CardDetail.vue             |  64 ++++++---
+ .../src/views/Card/UserCardDetail.vue         |   3 +-
+ .../src/views/Community/Community.vue         |  11 +-
+ .../src/views/Community/PostDetail.vue        |  11 +-
+ mind-explorer-vue/src/views/Profile.vue       |   2 +-
+ mind-explorer-vue/src/views/Upload.vue        |   2 +-
+ 11 files changed, 234 insertions(+), 45 deletions(-)
+ create mode 100644 mind-explorer-vue/src/components/LoginModal.vue
+
+diff --git a/mind-explorer-vue/src/components/AppNavbar.vue b/mind-explorer-vue/src/components/AppNavbar.vue
+index 75d2bfe..37485f4 100644
+--- a/mind-explorer-vue/src/components/AppNavbar.vue
++++ b/mind-explorer-vue/src/components/AppNavbar.vue
+@@ -25,16 +25,23 @@
+       <!-- 桌面用户头像 -->
+       <div class="hidden md:block relative ml-2">
+         <button class="border-0 bg-transparent cursor-pointer p-0" @click="userMenuOpen = !userMenuOpen">
+-          <span class="inline-flex items-center justify-center w-9 h-9 rounded-full bg-gradient-to-br from-[#7c9cb8] to-[#a8c3d6] text-white text-[13px]">访客</span>
++          <span v-if="auth.isLoggedIn && auth.guest" class="inline-flex items-center justify-center w-9 h-9 rounded-full bg-gradient-to-br from-[#e0a868] to-[#f0c990] text-white text-[13px]">🏠</span>
++          <img v-else-if="auth.isLoggedIn && auth.user?.avatar" :src="auth.user.avatar" class="w-9 h-9 rounded-full object-cover" />
++          <span v-else-if="auth.isLoggedIn" class="inline-flex items-center justify-center w-9 h-9 rounded-full bg-gradient-to-br from-[#7c9cb8] to-[#a8c3d6] text-white text-[13px]">🐙</span>
++          <span v-else class="inline-flex items-center justify-center w-9 h-9 rounded-full bg-gradient-to-br from-[#7c9cb8] to-[#a8c3d6] text-white text-[13px]">访客</span>
+         </button>
+         <div v-if="userMenuOpen" class="absolute right-0 top-[44px] min-w-[160px] bg-white border border-[#eef2f7] rounded-xl shadow-lg p-1.5 flex flex-col z-50">
++          <div v-if="auth.isLoggedIn" class="px-3 py-2 text-[13px] text-[#9aa6b2] border-b border-[#eef2f7] mb-1">
++            你好，{{ auth.displayName || '朋友' }}{{ auth.isGuest ? '（游客）' : '' }}
++          </div>
+           <RouterLink to="/profile" class="px-3 py-2 rounded-md text-[14px] text-[#5a6b7c] no-underline hover:bg-[#f0f4f9]" @click="userMenuOpen=false">个人中心</RouterLink>
+           <RouterLink to="/mood" class="px-3 py-2 rounded-md text-[14px] text-[#5a6b7c] no-underline hover:bg-[#f0f4f9]" @click="userMenuOpen=false">心情日记</RouterLink>
+           <RouterLink to="/upload" class="px-3 py-2 rounded-md text-[14px] text-[#5a6b7c] no-underline hover:bg-[#f0f4f9]" @click="userMenuOpen=false">治愈瞬间</RouterLink>
+           <RouterLink to="/tools" class="px-3 py-2 rounded-md text-[14px] text-[#5a6b7c] no-underline hover:bg-[#f0f4f9]" @click="userMenuOpen=false">自助工具</RouterLink>
+           <RouterLink to="/admin" class="px-3 py-2 rounded-md text-[14px] text-[#5a6b7c] no-underline hover:bg-[#f0f4f9]" @click="userMenuOpen=false">审核后台</RouterLink>
+           <RouterLink to="/feedback" class="px-3 py-2 rounded-md text-[14px] text-[#5a6b7c] no-underline hover:bg-[#f0f4f9]" @click="userMenuOpen=false">反馈与建议</RouterLink>
+-          <button class="px-3 py-2 rounded-md text-left text-[14px] text-[#7c9cb8] font-semibold hover:bg-[#f0f4f9]" @click="userMenuOpen=false">登录 / 注册</button>
++          <button v-if="!auth.isLoggedIn" class="px-3 py-2 rounded-md text-left text-[14px] text-[#7c9cb8] font-semibold hover:bg-[#f0f4f9]" @click="openLogin()">登录 / 注册</button>
++          <button v-else class="px-3 py-2 rounded-md text-left text-[14px] text-[#c97b7b] hover:bg-[#fdf2f2]" @click="auth.logout()">退出登录</button>
+         </div>
+       </div>
+ 
+@@ -80,15 +87,34 @@
+         <RouterLink to="/sunny" @click="menuOpen=false" class="px-3 py-3.5 rounded-lg text-[16px] text-[#5a6b7c] no-underline transition hover:bg-[#f0f4f9]">心灵晴天</RouterLink>
+         <RouterLink to="/feedback" @click="menuOpen=false" class="px-3 py-3.5 rounded-lg text-[16px] text-[#5a6b7c] no-underline transition hover:bg-[#f0f4f9]">反馈与建议</RouterLink>
+         <div class="border-t border-[#eef2f7] my-2"></div>
+-        <RouterLink to="/profile" @click="menuOpen=false" class="px-3 py-3.5 rounded-lg text-[16px] text-[#5a6b7c] no-underline transition hover:bg-[#f0f4f9]">个人中心</RouterLink>
+-        <button class="px-3 py-3.5 rounded-lg text-left text-[16px] text-[#7c9cb8] font-semibold transition hover:bg-[#f0f4f9]" @click="menuOpen=false">登录 / 注册</button>
++        <template v-if="auth.isLoggedIn">
++          <div class="px-3 py-2 text-[13px] text-[#9aa6b2]">你好，{{ auth.displayName || '朋友' }}{{ auth.isGuest ? '（游客）' : '' }}</div>
++          <RouterLink to="/profile" @click="menuOpen=false" class="px-3 py-3.5 rounded-lg text-[16px] text-[#5a6b7c] no-underline transition hover:bg-[#f0f4f9]">个人中心</RouterLink>
++          <button class="px-3 py-3.5 rounded-lg text-left text-[16px] text-[#c97b7b] transition hover:bg-[#fdf2f2]" @click="auth.logout()">退出登录</button>
++        </template>
++        <template v-else>
++          <button class="px-3 py-3.5 rounded-lg text-left text-[16px] text-[#7c9cb8] font-semibold transition hover:bg-[#f0f4f9]" @click="openLogin()">登录 / 注册</button>
++        </template>
+       </nav>
+     </aside>
++
++    <!-- 全局登录 / 注册弹窗 -->
++    <LoginModal />
+   </header>
+ </template>
+ 
+ <script setup>
+ import { ref } from 'vue'
++import { useAuthStore } from '../stores/auth'
++import LoginModal from './LoginModal.vue'
++
++const auth = useAuthStore()
+ const menuOpen = ref(false)
+ const userMenuOpen = ref(false)
++
++function openLogin(mode = 'login') {
++  userMenuOpen.value = false
++  menuOpen.value = false
++  auth.openLogin(mode)
++}
+ </script>
+diff --git a/mind-explorer-vue/src/components/Card/CardItem.vue b/mind-explorer-vue/src/components/Card/CardItem.vue
+index 21fd3bb..363d7f0 100644
+--- a/mind-explorer-vue/src/components/Card/CardItem.vue
++++ b/mind-explorer-vue/src/components/Card/CardItem.vue
+@@ -53,7 +53,8 @@ async function onHug() {
+   if (hugging.value) return
+   const uid = uidOf()
+   if (!uid) {
+-    alert('请先登录或成为游客后再抱抱 🤗')
++    // 未登录：唤起全局登录/注册弹窗，不再 alert 打断
++    auth.openLogin('register')
+     return
+   }
+   hugging.value = true
+diff --git a/mind-explorer-vue/src/components/FavoriteButton.vue b/mind-explorer-vue/src/components/FavoriteButton.vue
+index 0b405f4..4912c6d 100644
+--- a/mind-explorer-vue/src/components/FavoriteButton.vue
++++ b/mind-explorer-vue/src/components/FavoriteButton.vue
+@@ -34,7 +34,8 @@ onMounted(() => ensureLoaded())
+ 
+ async function onClick() {
+   if (!auth.currentUser) {
+-    auth.login()
++    // 未登录：唤起全局登录/注册弹窗（游客注册 或 GitHub），不再强制跳 GitHub
++    auth.openLogin('register')
+     return
+   }
+   await ensureLoaded()
+diff --git a/mind-explorer-vue/src/components/LoginModal.vue b/mind-explorer-vue/src/components/LoginModal.vue
+new file mode 100644
+index 0000000..0b1dd6e
+--- /dev/null
++++ b/mind-explorer-vue/src/components/LoginModal.vue
+@@ -0,0 +1,131 @@
++<template>
++  <div v-if="auth.showLoginModal" class="login-modal" @click.self="auth.closeLogin()">
++    <div class="login-modal-content">
++      <h3>{{ auth.loginMode === 'login' ? '登录' : '注册账号' }}</h3>
++      <p class="modal-sub">{{ auth.loginMode === 'login' ? '欢迎回来，继续你的心灵之旅' : '注册后可同步收藏、对话与互动记录' }}</p>
++
++      <button @click="auth.login()" class="github-login-btn">🔗 GitHub 登录</button>
++      <div class="divider"><span>或</span></div>
++
++      <input v-model="guestName" :placeholder="guestMode === 'login' ? '昵称' : '设置昵称（至少2位）'" class="guest-input" />
++      <input v-if="guestMode === 'register'" v-model="guestDisplay" placeholder="显示名称（可选）" class="guest-input" />
++      <input v-model="guestPwd" type="password" :placeholder="guestMode === 'login' ? '密码' : '设置密码（至少6位）'" class="guest-input" @keyup.enter="guestMode === 'login' ? guestSignIn() : guestSignUp()" />
++
++      <button v-if="guestMode === 'login'" @click="guestSignIn" :disabled="busy" class="guest-login-btn">👤 游客登录</button>
++      <button v-else @click="guestSignUp" :disabled="busy" class="guest-login-btn">👤 注册并登录</button>
++
++      <p class="login-tip">
++        <a href="#" @click.prevent="toggleGuestMode">
++          {{ guestMode === 'login' ? '没有账号？去注册' : '已有账号？去登录' }}
++        </a>
++      </p>
++      <button @click="auth.closeLogin()" class="close-btn">关闭</button>
++    </div>
++  </div>
++</template>
++
++<script setup>
++import { ref, watch } from 'vue'
++import { useAuthStore } from '../stores/auth'
++
++const auth = useAuthStore()
++const guestMode = ref('login')  // 'login' | 'register'（弹窗内小切换）
++const guestName = ref('')
++const guestDisplay = ref('')
++const guestPwd = ref('')
++const busy = ref(false)
++
++// 打开弹窗时同步 store 指定的模式，并清空表单
++watch(() => auth.showLoginModal, (v) => {
++  if (v) {
++    guestMode.value = auth.loginMode === 'register' ? 'register' : 'login'
++    guestName.value = ''
++    guestDisplay.value = ''
++    guestPwd.value = ''
++  }
++})
++
++function toggleGuestMode() {
++  guestMode.value = guestMode.value === 'login' ? 'register' : 'login'
++}
++
++async function guestSignUp() {
++  if (busy.value) return
++  if (guestName.value.trim().length < 2) {
++    alert('请输入至少 2 位的昵称')
++    return
++  }
++  if (guestPwd.value.length < 6) {
++    alert('密码至少 6 位')
++    return
++  }
++  busy.value = true
++  try {
++    await auth.guestRegister(guestName.value.trim(), guestPwd.value, guestDisplay.value.trim())
++    auth.closeLogin()
++  } catch (e) {
++    alert(e.message || '注册失败')
++  } finally {
++    busy.value = false
++  }
++}
++
++async function guestSignIn() {
++  if (busy.value) return
++  if (!guestName.value.trim() || !guestPwd.value) {
++    alert('请输入昵称和密码')
++    return
++  }
++  busy.value = true
++  try {
++    await auth.guestLogin(guestName.value.trim(), guestPwd.value)
++    auth.closeLogin()
++  } catch (e) {
++    alert(e.message || '登录失败')
++  } finally {
++    busy.value = false
++  }
++}
++</script>
++
++<style scoped>
++.login-modal {
++  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
++  background: rgba(30, 45, 60, 0.5); z-index: 2000;
++  display: flex; align-items: center; justify-content: center;
++}
++.login-modal-content {
++  background: #fff; border-radius: 16px; padding: 30px 28px;
++  width: 330px; text-align: center; box-shadow: 0 8px 32px rgba(0,0,0,0.2);
++}
++.login-modal-content h3 { margin: 0 0 6px; color: #3a4a5c; font-size: 18px; }
++.modal-sub { margin: 0 0 18px; color: #9aa6b2; font-size: 12px; }
++.github-login-btn {
++  width: 100%; padding: 12px; border: none; border-radius: 8px;
++  background: #24292e; color: #fff; font-size: 15px; cursor: pointer;
++  margin-bottom: 14px; transition: opacity 0.2s;
++}
++.github-login-btn:hover { opacity: 0.9; }
++.divider { margin: 12px 0; color: #999; position: relative; font-size: 12px; }
++.divider::before { content: ''; position: absolute; left: 0; top: 50%; width: 40%; height: 1px; background: #eef2f7; }
++.divider::after { content: ''; position: absolute; right: 0; top: 50%; width: 40%; height: 1px; background: #eef2f7; }
++.guest-input {
++  width: 100%; padding: 10px 12px; border: 1px solid #e2e8f0; border-radius: 8px;
++  margin-bottom: 12px; font-size: 14px; box-sizing: border-box; outline: none;
++  transition: border-color 0.2s;
++}
++.guest-input:focus { border-color: #7c9cb8; }
++.guest-login-btn {
++  width: 100%; padding: 12px; border: none; border-radius: 8px;
++  background: #7c9cb8; color: #fff; font-size: 15px; cursor: pointer;
++  margin-bottom: 8px; transition: opacity 0.2s;
++}
++.guest-login-btn:hover { opacity: 0.9; }
++.guest-login-btn:disabled { opacity: 0.6; cursor: not-allowed; }
++.login-tip { font-size: 12px; color: #999; margin: 8px 0 14px; }
++.login-tip a { color: #7c9cb8; text-decoration: none; }
++.close-btn {
++  width: 100%; padding: 8px; border: 1px solid #e2e8f0; border-radius: 8px;
++  background: #fff; color: #666; cursor: pointer; font-size: 14px;
++}
++</style>
+diff --git a/mind-explorer-vue/src/stores/auth.js b/mind-explorer-vue/src/stores/auth.js
+index 6a206b6..c2e4426 100644
+--- a/mind-explorer-vue/src/stores/auth.js
++++ b/mind-explorer-vue/src/stores/auth.js
+@@ -6,7 +6,10 @@ export const useAuthStore = defineStore('auth', {
+   state: () => ({
+     user: null,
+     guest: null,
+-    isLoading: false
++    isLoading: false,
++    // 全局登录/注册弹窗（AppNavbar 挂载 LoginModal，任意页面可唤起）
++    showLoginModal: false,
++    loginMode: 'login'  // 'login' | 'register'
+   }),
+ 
+   getters: {
+@@ -80,6 +83,16 @@ export const useAuthStore = defineStore('auth', {
+       return this.guest
+     },
+ 
++    // 全局打开登录/注册弹窗（mode: 'login' | 'register'）
++    openLogin(mode = 'login') {
++      this.loginMode = mode
++      this.showLoginModal = true
++    },
++
++    closeLogin() {
++      this.showLoginModal = false
++    },
++
+     login() {
+       const isNetlify = typeof NETLIFY !== 'undefined' || window.location.hostname.includes('netlify')
+       if (isNetlify) {
+diff --git a/mind-explorer-vue/src/views/Card/CardDetail.vue b/mind-explorer-vue/src/views/Card/CardDetail.vue
+index 6acf1c0..3c99e01 100644
+--- a/mind-explorer-vue/src/views/Card/CardDetail.vue
++++ b/mind-explorer-vue/src/views/Card/CardDetail.vue
+@@ -29,13 +29,23 @@
+         </ul>
+       </div>
+ 
++      <div class="study-links-box">
++        <h3>🔎 延伸学习</h3>
++        <p class="study-links-tip">去视频与百科平台，看别人怎么讲「{{ searchKeyword }}」：</p>
++        <div class="study-links">
++          <a v-for="l in studyLinks" :key="l.name" :href="l.url" target="_blank" rel="noopener" class="study-link">
++            <span>{{ l.icon }}</span> {{ l.name }}
++          </a>
++        </div>
++      </div>
++
+       <div class="card-interact-section">
+         <h3>💬 互动</h3>
+ 
+-        <!-- 点赞按钮 -->
++        <!-- 同感按钮 -->
+         <div class="like-area">
+-          <button @click="toggleLike" class="like-btn" :class="{ liked: isLiked }" :disabled="!auth.isLoggedIn">
+-            👍 {{ likeCount }} <span v-if="!auth.isLoggedIn" class="like-hint">（登录后点赞）</span>
++          <button @click="toggleLike" class="like-btn" :class="{ liked: isLiked }" :disabled="liking">
++            🤝 同感 {{ likeCount }} <span v-if="!auth.isLoggedIn" class="like-hint">（点一下，登录后同感）</span>
+           </button>
+         </div>
+ 
+@@ -53,10 +63,9 @@
+ 
+           <div v-else class="login-options">
+             <p>参与评论：</p>
+-            <button @click="auth.login()" class="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#7c9cb8] text-white text-sm font-medium transition hover:bg-[#6b8aa6]">GitHub 登录</button>
++            <button @click="auth.openLogin('register')" class="px-4 py-2 rounded-lg bg-[#7c9cb8] text-white text-sm font-medium transition hover:bg-[#6b8aa6]">游客注册 / 登录</button>
+             <span class="divider">或</span>
+-            <input v-model="guestName" placeholder="输入昵称" class="w-[150px] px-3 py-2 rounded-lg border border-[#e2e8f0] bg-white text-sm text-[#3a4a5c] outline-none transition focus:border-[#7c9cb8] focus:ring-2 focus:ring-[#7c9cb8]/20 placeholder:text-[#b8c2cc]" />
+-            <button @click="becomeGuest" class="px-4 py-2 rounded-lg border border-[#e2e8f0] bg-white text-[#5a6b7c] text-sm transition hover:bg-[#f0f4f9]">游客评论</button>
++            <button @click="auth.login()" class="px-4 py-2 rounded-lg border border-[#e2e8f0] bg-white text-[#5a6b7c] text-sm transition hover:bg-[#f0f4f9]">GitHub 登录</button>
+           </div>
+ 
+           <div v-if="comments.length" class="comment-list" style="margin-top: 20px">
+@@ -87,7 +96,7 @@
+ </template>
+ 
+ <script setup>
+-import { ref, onMounted } from 'vue'
++import { ref, computed, onMounted } from 'vue'
+ import { useRoute } from 'vue-router'
+ import { useAuthStore } from '../../stores/auth'
+ import { cardApi } from '../../api/card'
+@@ -100,11 +109,25 @@ const card = ref({})
+ const comments = ref([])
+ const newComment = ref('')
+ const submitting = ref(false)
+-const guestName = ref('')
+ const likeCount = ref(0)
+ const isLiked = ref(false)
+ const liking = ref(false)
+ 
++// 延伸学习：从卡片标题提取中文主词（去掉英文括号注释），生成平台搜索链接
++const searchKeyword = computed(() => {
++  const raw = card.value.title || card.value.summary || '心理学'
++  return raw.replace(/（[^）]*）|\([^)]*\)/g, '').trim() || raw.trim()
++})
++const studyLinks = computed(() => {
++  const kw = encodeURIComponent(searchKeyword.value)
++  const kwPsy = encodeURIComponent(searchKeyword.value + ' 心理学')
++  return [
++    { icon: '📺', name: 'B站 · 讲解视频', url: `https://search.bilibili.com/all?keyword=${kwPsy}` },
++    { icon: '💬', name: '知乎 · 相关文章', url: `https://www.zhihu.com/search?type=content&q=${kwPsy}` },
++    { icon: '📖', name: '维基百科 · 词条', url: `https://zh.wikipedia.org/wiki/Special:Search?search=${kw}` },
++  ]
++})
++
+ onMounted(async () => {
+   auth.restoreUser()
+   const id = route.params.id
+@@ -132,7 +155,8 @@ async function loadLikes(id) {
+ 
+ async function toggleLike() {
+   if (!auth.isLoggedIn) {
+-    alert('请先登录或成为游客后再点赞')
++    // 未登录：唤起全局登录/注册弹窗（默认注册模式），不再强制跳 GitHub
++    auth.openLogin('register')
+     return
+   }
+   if (liking.value) return
+@@ -144,7 +168,7 @@ async function toggleLike() {
+     isLiked.value = result.liked
+     likeCount.value += result.liked ? 1 : -1
+   } catch (e) {
+-    alert('点赞失败：' + (e.message || '请稍后再试'))
++    alert('同感失败：' + (e.message || '请稍后再试'))
+   } finally {
+     liking.value = false
+   }
+@@ -159,11 +183,6 @@ async function loadComments(id) {
+   }
+ }
+ 
+-async function becomeGuest() {
+-  if (!guestName.value.trim()) { alert('请输入昵称'); return }
+-  auth.createGuest(guestName.value)
+-}
+-
+ async function submitComment() {
+   if (!newComment.value.trim()) return
+   submitting.value = true
+@@ -192,11 +211,22 @@ function formatTime(time) {
+   padding: 8px 20px; border: 2px solid #ddd; border-radius: 20px;
+   background: #fff; font-size: 1rem; cursor: pointer; transition: all 0.2s;
+ }
+-.like-btn:hover:not(:disabled) { border-color: #4CAF50; }
+-.like-btn.liked { background: #4CAF50; color: #fff; border-color: #4CAF50; }
++.like-btn:hover:not(:disabled) { border-color: #7c9cb8; color: #4a6a8a; }
++.like-btn.liked { background: #7c9cb8; color: #fff; border-color: #7c9cb8; }
+ .like-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+ .like-hint { font-size: 0.8rem; font-weight: normal; }
+ .divider { color: #999; margin: 0 4px; }
++.study-links-box { margin: 28px 0; padding: 20px 22px; background: #f6f9fc; border: 1px solid #eef2f7; border-radius: 14px; }
++.study-links-box h3 { margin: 0 0 6px; color: #3a4a5c; font-size: 1.05rem; }
++.study-links-tip { margin: 0 0 14px; color: #9aa6b2; font-size: 0.88rem; }
++.study-links { display: flex; gap: 10px; flex-wrap: wrap; }
++.study-link {
++  display: inline-flex; align-items: center; gap: 6px;
++  padding: 9px 16px; border-radius: 20px; background: #fff;
++  border: 1.5px solid #e2e8f0; color: #4a6a8a; font-size: 0.92rem;
++  text-decoration: none; transition: all 0.2s;
++}
++.study-link:hover { border-color: #7c9cb8; background: #eef4fa; transform: translateY(-1px); }
+ .current-user { margin-bottom: 8px; color: #666; font-size: 0.9rem; }
+ .user-avatar-sm { width: 24px; height: 24px; border-radius: 50%; vertical-align: middle; }
+ .guest-avatar { background: #e0e0e0; color: #666; display: flex; align-items: center; justify-content: center; font-weight: bold; }
+diff --git a/mind-explorer-vue/src/views/Card/UserCardDetail.vue b/mind-explorer-vue/src/views/Card/UserCardDetail.vue
+index 73ddb76..18bdaca 100644
+--- a/mind-explorer-vue/src/views/Card/UserCardDetail.vue
++++ b/mind-explorer-vue/src/views/Card/UserCardDetail.vue
+@@ -89,7 +89,8 @@ async function onHug() {
+   if (hugging.value) return
+   const uid = uidOf()
+   if (!uid) {
+-    alert('请先登录或成为游客后再抱抱 🤗')
++    // 未登录：唤起全局登录/注册弹窗，不再 alert 打断
++    auth.openLogin('register')
+     return
+   }
+   hugging.value = true
+diff --git a/mind-explorer-vue/src/views/Community/Community.vue b/mind-explorer-vue/src/views/Community/Community.vue
+index d5603eb..f41fc13 100644
+--- a/mind-explorer-vue/src/views/Community/Community.vue
++++ b/mind-explorer-vue/src/views/Community/Community.vue
+@@ -16,10 +16,9 @@
+ 
+     <div v-else class="login-options">
+       <p>参与社区：</p>
+-      <button @click="auth.login()" class="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#7c9cb8] text-white text-sm font-medium transition hover:bg-[#6b8aa6]">GitHub 登录</button>
++      <button @click="auth.openLogin('register')" class="px-4 py-2 rounded-lg bg-[#7c9cb8] text-white text-sm font-medium transition hover:bg-[#6b8aa6]">游客注册 / 登录</button>
+       <span class="divider">或</span>
+-      <input v-model="guestName" placeholder="输入昵称" class="w-[150px] px-3 py-2 rounded-lg border border-[#e2e8f0] bg-white text-sm text-[#3a4a5c] outline-none transition focus:border-[#7c9cb8] focus:ring-2 focus:ring-[#7c9cb8]/20 placeholder:text-[#b8c2cc]" />
+-      <button @click="becomeGuest" class="px-4 py-2 rounded-lg border border-[#e2e8f0] bg-white text-[#5a6b7c] text-sm transition hover:bg-[#f0f4f9]">游客模式</button>
++      <button @click="auth.login()" class="px-4 py-2 rounded-lg border border-[#e2e8f0] bg-white text-[#5a6b7c] text-sm transition hover:bg-[#f0f4f9]">GitHub 登录</button>
+     </div>
+ 
+     <!-- 帖子列表 -->
+@@ -51,7 +50,6 @@ const posts = ref([])
+ const newTitle = ref('')
+ const newContent = ref('')
+ const posting = ref(false)
+-const guestName = ref('')
+ 
+ onMounted(async () => {
+   auth.restoreUser()
+@@ -67,11 +65,6 @@ async function loadPosts() {
+   }
+ }
+ 
+-async function becomeGuest() {
+-  if (!guestName.value.trim()) { alert('请输入昵称'); return }
+-  auth.createGuest(guestName.value)
+-}
+-
+ async function submitPost() {
+   if (!newTitle.value.trim() || !newContent.value.trim()) { alert('请填写标题和内容'); return }
+   posting.value = true
+diff --git a/mind-explorer-vue/src/views/Community/PostDetail.vue b/mind-explorer-vue/src/views/Community/PostDetail.vue
+index 9b1ad45..9898a7a 100644
+--- a/mind-explorer-vue/src/views/Community/PostDetail.vue
++++ b/mind-explorer-vue/src/views/Community/PostDetail.vue
+@@ -40,10 +40,9 @@
+ 
+         <div v-else class="login-options">
+           <p>参与评论：</p>
+-          <button @click="auth.login()" class="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#7c9cb8] text-white text-sm font-medium transition hover:bg-[#6b8aa6]">GitHub 登录</button>
++          <button @click="auth.openLogin('register')" class="px-4 py-2 rounded-lg bg-[#7c9cb8] text-white text-sm font-medium transition hover:bg-[#6b8aa6]">游客注册 / 登录</button>
+           <span class="divider">或</span>
+-          <input v-model="guestName" placeholder="输入昵称" class="w-[150px] px-3 py-2 rounded-lg border border-[#e2e8f0] bg-white text-sm text-[#3a4a5c] outline-none transition focus:border-[#7c9cb8] focus:ring-2 focus:ring-[#7c9cb8]/20 placeholder:text-[#b8c2cc]" />
+-          <button @click="becomeGuest" class="px-4 py-2 rounded-lg border border-[#e2e8f0] bg-white text-[#5a6b7c] text-sm transition hover:bg-[#f0f4f9]">游客评论</button>
++          <button @click="auth.login()" class="px-4 py-2 rounded-lg border border-[#e2e8f0] bg-white text-[#5a6b7c] text-sm transition hover:bg-[#f0f4f9]">GitHub 登录</button>
+         </div>
+ 
+         <div v-if="comments.length" class="comment-list" style="margin-top: 20px;">
+@@ -94,7 +93,6 @@ const post = ref({})
+ const comments = ref([])
+ const newComment = ref('')
+ const submitting = ref(false)
+-const guestName = ref('')
+ const likeCount = ref(0)
+ const isLiked = ref(false)
+ const liking = ref(false)
+@@ -162,11 +160,6 @@ async function loadComments(id) {
+   }
+ }
+ 
+-async function becomeGuest() {
+-  if (!guestName.value.trim()) { alert('请输入昵称'); return }
+-  auth.createGuest(guestName.value)
+-}
+-
+ async function submitComment() {
+   if (!newComment.value.trim()) return
+   submitting.value = true
+diff --git a/mind-explorer-vue/src/views/Profile.vue b/mind-explorer-vue/src/views/Profile.vue
+index a4eea98..9df3b63 100644
+--- a/mind-explorer-vue/src/views/Profile.vue
++++ b/mind-explorer-vue/src/views/Profile.vue
+@@ -18,7 +18,7 @@
+         </p>
+         <button
+           v-if="!auth.currentUser"
+-          @click="auth.login()"
++          @click="auth.openLogin('register')"
+           class="px-4 py-1.5 bg-[#7c9cb8] text-white border-0 rounded-md text-[13px] cursor-pointer hover:opacity-90"
+         >
+           登录 / 注册
+diff --git a/mind-explorer-vue/src/views/Upload.vue b/mind-explorer-vue/src/views/Upload.vue
+index 328f386..9fbe787 100644
+--- a/mind-explorer-vue/src/views/Upload.vue
++++ b/mind-explorer-vue/src/views/Upload.vue
+@@ -12,7 +12,7 @@
+     <section v-if="!auth.isLoggedIn" class="bg-white rounded-2xl border border-[#eef2f7] p-8 text-center">
+       <p class="text-[#5a6b7c] text-[15px] m-0 mb-4">登录后即可分享你的治愈瞬间</p>
+       <button
+-        @click="auth.login()"
++        @click="auth.openLogin('register')"
+         class="px-6 py-2.5 bg-gradient-to-r from-[#7c9cb8] to-[#a8c3d6] text-white rounded-xl text-[14px] font-semibold hover:opacity-90 transition"
+       >
+         登录 / 注册
+-- 
+2.43.0
+

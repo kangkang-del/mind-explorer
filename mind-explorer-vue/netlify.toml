@@ -3,6 +3,17 @@
   publish = "dist"
   functions = "netlify/functions"
 
+# 函数打包：node_bundler = "none" 让 ESM 源码原样部署（跳过 esbuild/zisi 打包器）
+# —— 修复线上「module is not defined in ES module scope」崩溃：打包器把 ESM 函数打成
+#    CJS bundle 后与 /var/task/package.json 的 type:module 冲突。源码本身是 ESM
+#    （export const handler），配合 functions/package.json 的 type:module 按 ESM 加载。
+# included_files 基准 = base 目录（mind-explorer-vue）：
+#   _lib/ 是 community/companion/mood/user-cards 的相对依赖，必须随包带上；
+#   functions/package.json 声明 ESM，避免 Node 按 CJS 解析 export 语法。
+[functions]
+  node_bundler = "none"
+  included_files = ["netlify/functions/_lib/**", "netlify/functions/package.json"]
+
 # 每日定时推送「心灵晴天」内容（同时让免费版 Supabase 保持活跃，避免 7 天不活跃被暂停）
 # cron 为 UTC 时区：0 1 * * * = 每天 UTC 01:00（北京时间 09:00）
 # 注意：定时触发时没有 HTTP 请求，函数内已兼容；且仅生产部署真正执行（见 sunny-push.js 环境闸门）
