@@ -25,6 +25,9 @@
 // 所需配置（Supabase Dashboard → Edge Functions → Secrets）：
 //   DEEPSEEK_API_KEY            大模型 key（不设置则降级模板语录）
 //   DEEPSEEK_BASE_URL           可选，兼容 OpenAI 的 base url，默认 DeepSeek 官方
+//   LLM_MODEL                   可选，模型 ID；默认 deepseek-chat。
+//                               例（智谱 GLM 免费档）：LLM_MODEL=glm-4.7-flash
+//                               且 DEEPSEEK_BASE_URL=https://open.bigmodel.cn/api/paas/v4
 //   SUPABASE_URL / SUPABASE_ANON_KEY / SUPABASE_SERVICE_ROLE_KEY
 //                               由 Edge Runtime 自动注入，无需手动配置
 
@@ -35,6 +38,12 @@ import { CORE_PERSONA, META_MEMORIES, recallMemories, ensureMemoriesLoaded, impo
 
 const DEEPSEEK_API_KEY = Deno.env.get('DEEPSEEK_API_KEY') ?? ''
 const DEEPSEEK_BASE_URL = Deno.env.get('DEEPSEEK_BASE_URL') ?? 'https://api.deepseek.com/v1'
+// 模型 ID 可切换（配合 DEEPSEEK_BASE_URL 可接入任何 OpenAI 兼容平台）
+const LLM_MODEL = Deno.env.get('LLM_MODEL') ?? 'deepseek-chat'
+// GLM-4.7+ 系列默认强制开启深度思考，思维链会耗尽 max_tokens 导致超时。
+// 对 glm 系模型注入 thinking: disabled（小木是情感陪伴场景，要秒级回应不要推理链）；
+// 其他平台（如 DeepSeek）不注入，保持行为不变。
+const GLM_THINKING = LLM_MODEL.toLowerCase().startsWith('glm') ? { thinking: { type: 'disabled' } } : {}
 
 // SUPABASE_URL 与 SERVICE_ROLE_KEY 由 Edge Runtime 自动注入（与数据库同机房，读写约几毫秒）
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? ''
@@ -264,7 +273,7 @@ async function callLLMOnce(messages) {
   const res = await fetch(`${DEEPSEEK_BASE_URL}/chat/completions`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${DEEPSEEK_API_KEY}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ model: 'deepseek-chat', messages, stream: false, temperature: 0.9, max_tokens: 80 }),
+    body: JSON.stringify({ model: LLM_MODEL, messages, stream: false, temperature: 0.9, max_tokens: 80, ...GLM_THINKING }),
     signal: AbortSignal.timeout(20000),
   })
   if (!res.ok) throw new Error(`大模型返回 ${res.status}`)
@@ -277,7 +286,7 @@ async function callLLMFull(messages) {
   const res = await fetch(`${DEEPSEEK_BASE_URL}/chat/completions`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${DEEPSEEK_API_KEY}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ model: 'deepseek-chat', messages, stream: false, temperature: 0.85, max_tokens: 300 }),
+    body: JSON.stringify({ model: LLM_MODEL, messages, stream: false, temperature: 0.85, max_tokens: 300, ...GLM_THINKING }),
     signal: AbortSignal.timeout(30000),
   })
   if (!res.ok) {
