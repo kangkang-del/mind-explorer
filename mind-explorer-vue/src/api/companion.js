@@ -1,12 +1,25 @@
 // 同行者「小木」对话前端封装
-// 以流式方式消费 companion 函数返回的 SSE，逐帧回调：
-//   onMeta({ crisis, emotion })   首帧：危机/情绪
-//   onDelta(content)             内容增量（打字机）
+// 后端已自 Netlify Functions 迁移至 Supabase Edge Functions（Deno）：
+//   - 免费版 wall clock 150s（原 Netlify Free 10s 硬超时导致小木频繁"走神"）
+//   - 函数与数据库同机房（新加坡），记忆读写 ~5ms
+// 返回一次性 JSON（reply/crisis/emotion），前端本地逐字打字机保持体验：
+//   onMeta({ crisis, emotion })   情绪/危机标志
+//   onDelta(content)             打字机内容增量
 //   onDone()                     结束
 //   onError(msg)                 错误
 // 返回 AbortController，调用方可在用户停止时 abort。
 
-const ENDPOINT = '/.netlify/functions/companion'
+const ENDPOINT = 'https://acadcmanqsldwrmysqcb.supabase.co/functions/v1/companion'
+
+// Supabase Edge Functions 开启了 verify_jwt：请求必须带 apikey 头（网关校验用）。
+// anon key 是公开的浏览器端密钥，不是私密凭证；写库权限在函数内部走 service role。
+const ANON_KEY =
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFjYWRjbWFucXNsZHdybXlzcWNiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgwNjY4NTQsImV4cCI6MjEwMzY0Mjg1NH0.bd9HRJpYX0hD0sStRCTLeEvPYeq0PcV8S27tr2-JxLA'
+const baseHeaders = () => ({
+  'Content-Type': 'application/json',
+  apikey: ANON_KEY,
+  Authorization: `Bearer ${ANON_KEY}`,
+})
 
 export const companionApi = {
   // 拉取服务端最近对话（跨设备恢复）；无 userId 或函数未启用记忆时返回空
@@ -15,7 +28,7 @@ export const companionApi = {
     try {
       const res = await fetch(ENDPOINT, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: baseHeaders(),
         body: JSON.stringify({ action: 'history', userId }),
       })
       if (!res.ok) return []
@@ -32,7 +45,7 @@ export const companionApi = {
     try {
       await fetch(ENDPOINT, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: baseHeaders(),
         body: JSON.stringify({ action: 'clear', userId }),
       })
     } catch {
@@ -46,7 +59,7 @@ export const companionApi = {
     try {
       const res = await fetch(ENDPOINT, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: baseHeaders(),
         body: JSON.stringify({ action: 'greeting', userId }),
       })
       return await res.json().catch(() => ({ ok: false }))
@@ -61,7 +74,7 @@ export const companionApi = {
     try {
       const res = await fetch(ENDPOINT, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: baseHeaders(),
         body: JSON.stringify({ action: 'recap', userId }),
       })
       return await res.json().catch(() => ({ ok: false }))
@@ -75,7 +88,7 @@ export const companionApi = {
     try {
       const res = await fetch(ENDPOINT, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: baseHeaders(),
         body: JSON.stringify({ action: 'cbt', ...payload }),
       })
       return await res.json().catch(() => ({ ok: false }))
@@ -94,7 +107,7 @@ export const companionApi = {
       try {
         const res = await fetch(ENDPOINT, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: baseHeaders(),
           body: JSON.stringify({ message, history, userId, nickname }),
           signal: abort,
         })
