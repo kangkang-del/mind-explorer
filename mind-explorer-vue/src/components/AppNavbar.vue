@@ -45,9 +45,9 @@
         </div>
       </div>
 
-      <!-- 手机汉堡按钮（三横线 → X 动画） -->
+      <!-- 手机汉堡按钮（X 动画） -->
       <button
-        class="md:hidden ml-auto flex flex-col justify-center gap-[5px] w-9 h-9 border-0 bg-transparent cursor-pointer relative z-[60]"
+        class="md:hidden ml-auto flex flex-col justify-center gap-[5px] w-10 h-10 border-0 bg-transparent cursor-pointer relative z-[60] items-center"
         @click="menuOpen = !menuOpen"
         :aria-expanded="menuOpen ? 'true' : 'false'"
         aria-label="切换菜单"
@@ -58,45 +58,105 @@
       </button>
     </div>
 
-    <!-- 手机遮罩 -->
-    <div
-      class="md:hidden fixed inset-0 bg-black/40 z-[55] transition-opacity duration-300"
-      :class="menuOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'"
-      @click="menuOpen = false"
-    ></div>
+    <!--
+      手机抽屉：用 Teleport 脱离 header 的 stacking context，避免父级 backdrop-blur /
+      sticky 引起的 fixed 子元素高度/层级异常；用 v-if 替代 translate 动画，更可靠。
+    -->
+    <Teleport to="body">
+      <Transition name="drawer">
+        <!-- 遮罩 -->
+        <div
+          v-if="menuOpen"
+          class="md:hidden fixed inset-0 bg-black/45 z-[998]"
+          @click="menuOpen = false"
+        ></div>
+      </Transition>
+      <Transition name="drawer-slide">
+        <!-- 抽屉主体（md 以下独占） -->
+        <aside
+          v-if="menuOpen"
+          class="md:hidden fixed top-0 right-0 h-[100dvh] w-[84%] max-w-[340px] bg-white z-[999] shadow-[-8px_0_24px_rgba(0,0,0,0.12)] flex flex-col"
+          role="dialog"
+          aria-modal="true"
+          aria-label="主菜单"
+        >
+          <!-- 抽屉头部 -->
+          <div class="flex items-center justify-between px-5 h-[56px] border-b border-[#eef2f7] shrink-0">
+            <span class="flex items-center gap-1.5 font-bold text-[16px] text-[#3a4a5c]">
+              <span class="text-[20px]">🧠</span>
+              心灵探索
+            </span>
+            <button
+              class="border-0 bg-transparent text-[26px] text-[#9aa6b2] cursor-pointer w-9 h-9 -mr-2 flex items-center justify-center active:bg-[#f0f4f9] rounded-full"
+              @click="menuOpen = false"
+              aria-label="关闭菜单"
+            >×</button>
+          </div>
 
-    <!-- 手机右侧滑入抽屉 -->
-    <aside
-      class="md:hidden fixed top-0 right-0 h-full w-[80%] max-w-[320px] bg-white z-[56] shadow-2xl transition-transform duration-300 ease-out flex flex-col"
-      :class="menuOpen ? 'translate-x-0' : 'translate-x-full'"
-    >
-      <div class="flex items-center justify-between px-5 h-[60px] border-b border-[#eef2f7] shrink-0">
-        <span class="font-bold text-[17px] text-[#3a4a5c]">心灵探索</span>
-        <button class="border-0 bg-transparent text-[26px] text-[#9aa6b2] cursor-pointer leading-none" @click="menuOpen = false" aria-label="关闭菜单">×</button>
-      </div>
-      <nav class="flex flex-col px-3 py-2 overflow-y-auto">
-        <RouterLink to="/" @click="menuOpen=false" class="px-3 py-3.5 rounded-lg text-[16px] text-[#5a6b7c] no-underline transition hover:bg-[#f0f4f9]">首页</RouterLink>
-        <RouterLink to="/knowledge" @click="menuOpen=false" class="px-3 py-3.5 rounded-lg text-[16px] text-[#5a6b7c] no-underline transition hover:bg-[#f0f4f9]">了解心理学知识</RouterLink>
-        <RouterLink to="/companion" @click="menuOpen=false" class="px-3 py-3.5 rounded-lg text-[16px] font-semibold text-[#4a6a8a] no-underline transition hover:bg-[#eef4fa] relative">
-          同行者
-          <span class="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-[#e07a3f] border-2 border-white"></span>
-        </RouterLink>
-        <RouterLink to="/mood" @click="menuOpen=false" class="px-3 py-3.5 rounded-lg text-[16px] text-[#5a6b7c] no-underline transition hover:bg-[#f0f4f9]">心情日记</RouterLink>
-        <RouterLink to="/upload" @click="menuOpen=false" class="px-3 py-3.5 rounded-lg text-[16px] text-[#5a6b7c] no-underline transition hover:bg-[#f0f4f9]">治愈瞬间</RouterLink>
-        <RouterLink to="/tools" @click="menuOpen=false" class="px-3 py-3.5 rounded-lg text-[16px] text-[#5a6b7c] no-underline transition hover:bg-[#f0f4f9]">自助工具</RouterLink>
-        <RouterLink to="/sunny" @click="menuOpen=false" class="px-3 py-3.5 rounded-lg text-[16px] text-[#5a6b7c] no-underline transition hover:bg-[#f0f4f9]">心灵晴天</RouterLink>
-        <RouterLink to="/feedback" @click="menuOpen=false" class="px-3 py-3.5 rounded-lg text-[16px] text-[#5a6b7c] no-underline transition hover:bg-[#f0f4f9]">反馈与建议</RouterLink>
-        <div class="border-t border-[#eef2f7] my-2"></div>
-        <template v-if="auth.isLoggedIn">
-          <div class="px-3 py-2 text-[13px] text-[#9aa6b2]">你好，{{ auth.displayName || '朋友' }}{{ auth.isGuest ? '（游客）' : '' }}</div>
-          <RouterLink to="/profile" @click="menuOpen=false" class="px-3 py-3.5 rounded-lg text-[16px] text-[#5a6b7c] no-underline transition hover:bg-[#f0f4f9]">个人中心</RouterLink>
-          <button class="px-3 py-3.5 rounded-lg text-left text-[16px] text-[#c97b7b] transition hover:bg-[#fdf2f2]" @click="auth.logout()">退出登录</button>
-        </template>
-        <template v-else>
-          <button class="px-3 py-3.5 rounded-lg text-left text-[16px] text-[#7c9cb8] font-semibold transition hover:bg-[#f0f4f9]" @click="openLogin()">登录 / 注册</button>
-        </template>
-      </nav>
-    </aside>
+          <!-- 主体导航（flex-1 撑开剩余空间；min-h-0 让 overflow-y-auto 真正生效） -->
+          <nav class="flex-1 min-h-0 overflow-y-auto px-2 py-2 overscroll-contain">
+            <RouterLink
+              v-for="item in navItems"
+              :key="item.to"
+              :to="item.to"
+              @click="menuOpen = false"
+              class="flex items-center min-h-[48px] px-3 py-3 rounded-xl text-[16px] text-[#5a6b7c] no-underline transition active:bg-[#e6eef5] hover:bg-[#f0f4f9]"
+              active-class="bg-[#f0f4f9] text-[#3a4a5c] font-semibold"
+            >
+              <span class="text-[19px] mr-3 w-6 text-center shrink-0">{{ item.icon }}</span>
+              <span class="flex-1">{{ item.label }}</span>
+              <span
+                v-if="item.highlight"
+                class="ml-2 w-2 h-2 rounded-full bg-[#e07a3f] shrink-0"
+                aria-label="小木新功能"
+              ></span>
+            </RouterLink>
+
+            <div class="border-t border-[#eef2f7] my-3 mx-2"></div>
+
+            <!-- 用户区 -->
+            <template v-if="auth.isLoggedIn">
+              <div class="px-3 py-2 text-[13px] text-[#9aa6b2]">
+                你好，{{ auth.displayName || '朋友' }}{{ auth.isGuest ? '（游客）' : '' }}
+              </div>
+              <RouterLink
+                to="/profile"
+                @click="menuOpen = false"
+                class="flex items-center min-h-[48px] px-3 py-3 rounded-xl text-[16px] text-[#5a6b7c] no-underline hover:bg-[#f0f4f9]"
+                active-class="bg-[#f0f4f9] text-[#3a4a5c] font-semibold"
+              >
+                <span class="text-[19px] mr-3 w-6 text-center">👤</span>个人中心
+              </RouterLink>
+              <RouterLink
+                to="/admin"
+                @click="menuOpen = false"
+                class="flex items-center min-h-[48px] px-3 py-3 rounded-xl text-[16px] text-[#5a6b7c] no-underline hover:bg-[#f0f4f9]"
+                active-class="bg-[#f0f4f9] text-[#3a4a5c] font-semibold"
+              >
+                <span class="text-[19px] mr-3 w-6 text-center">🛠️</span>审核后台
+              </RouterLink>
+              <button
+                class="w-full flex items-center min-h-[48px] px-3 py-3 rounded-xl text-left text-[16px] text-[#c97b7b] transition hover:bg-[#fdf2f2] active:bg-[#fce6e6]"
+                @click="auth.logout()"
+              >
+                <span class="text-[19px] mr-3 w-6 text-center">🚪</span>退出登录
+              </button>
+            </template>
+            <template v-else>
+              <button
+                class="w-full flex items-center min-h-[48px] px-3 py-3 rounded-xl text-left text-[16px] text-[#7c9cb8] font-semibold transition hover:bg-[#f0f4f9] active:bg-[#e6eef5]"
+                @click="openLogin()"
+              >
+                <span class="text-[19px] mr-3 w-6 text-center">🔑</span>登录 / 注册
+              </button>
+            </template>
+          </nav>
+
+          <!-- iPhone 底部安全区适配，避免被 home indicator 遮挡 -->
+          <div class="shrink-0 h-[env(safe-area-inset-bottom)]"></div>
+        </aside>
+      </Transition>
+    </Teleport>
 
     <!-- 全局登录 / 注册弹窗 -->
     <LoginModal />
@@ -104,17 +164,77 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, watch, onUnmounted } from 'vue'
+import { useRoute } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import LoginModal from './LoginModal.vue'
 
 const auth = useAuthStore()
+const route = useRoute()
 const menuOpen = ref(false)
 const userMenuOpen = ref(false)
+
+// 主导航（移动端图标 + 同行者红点标记）
+const navItems = [
+  { to: '/', label: '首页', icon: '🏠' },
+  { to: '/knowledge', label: '了解心理学知识', icon: '📚' },
+  { to: '/companion', label: '同行者', icon: '💬', highlight: true },
+  { to: '/mood', label: '心情日记', icon: '☁️' },
+  { to: '/upload', label: '治愈瞬间', icon: '📷' },
+  { to: '/tools', label: '自助工具', icon: '🧰' },
+  { to: '/sunny', label: '心灵晴天', icon: '☀️' },
+  { to: '/feedback', label: '反馈与建议', icon: '✉️' },
+]
 
 function openLogin(mode = 'login') {
   userMenuOpen.value = false
   menuOpen.value = false
   auth.openLogin(mode)
 }
+
+// 路由切换时自动收起抽屉（防止跳页后抽屉仍打开导致视觉错位）
+watch(() => route.fullPath, () => {
+  menuOpen.value = false
+  userMenuOpen.value = false
+})
+
+// 抽屉打开时锁定 body 滚动（避免背景跟着滑）
+watch(menuOpen, (open) => {
+  if (typeof document === 'undefined') return
+  document.body.style.overflow = open ? 'hidden' : ''
+})
+
+// Esc 关闭抽屉
+function onKey(e) {
+  if (e.key === 'Escape') {
+    menuOpen.value = false
+    userMenuOpen.value = false
+  }
+}
+if (typeof window !== 'undefined') window.addEventListener('keydown', onKey)
+onUnmounted(() => {
+  if (typeof window !== 'undefined') window.removeEventListener('keydown', onKey)
+  if (typeof document !== 'undefined') document.body.style.overflow = ''
+})
 </script>
+
+<style scoped>
+/* 抽屉滑入 + 遮罩淡入（Vue Transition 类名） */
+.drawer-enter-active,
+.drawer-leave-active {
+  transition: opacity 0.25s ease;
+}
+.drawer-enter-from,
+.drawer-leave-to {
+  opacity: 0;
+}
+
+.drawer-slide-enter-active,
+.drawer-slide-leave-active {
+  transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.drawer-slide-enter-from,
+.drawer-slide-leave-to {
+  transform: translateX(100%);
+}
+</style>
