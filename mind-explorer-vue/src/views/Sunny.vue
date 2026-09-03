@@ -2,42 +2,22 @@
   <main>
     <header class="text-center mb-5">
       <h1 class="text-2xl md:text-3xl font-bold text-[#3a4a5c] m-0">☀️ 心灵晴天</h1>
-      <p class="text-[#9aa6b2] mt-1 m-0">猫狗 · 善意行为 · 美好环境，推送温暖时刻。</p>
+      <p class="text-[#9aa6b2] mt-1 m-0">每天更新的善意与温暖——小木会在这里分享，也欢迎你留下你的名字，分享你的光。</p>
     </header>
-
-    <!-- 分类 Tab -->
-    <nav class="flex gap-2 justify-center mb-5 flex-wrap">
-      <button
-        v-for="tab in tabs"
-        :key="tab.key"
-        @click="active = tab.key"
-        class="px-4 py-1.5 rounded-[20px] text-[14px] border transition flex items-center gap-1.5"
-        :class="active === tab.key ? 'font-semibold shadow-sm' : 'bg-white text-[#5a6b7c] border-[#eef2f7] hover:border-[#c5d8ea]'"
-        :style="active === tab.key ? { backgroundColor: tab.color + '14', borderColor: tab.color, color: tab.color } : {}"
-      >
-        <span class="text-[16px] leading-none">{{ tab.emoji }}</span>
-        <span>{{ tab.key === 'all' ? '全部' : tab.label.replace(tab.emoji + ' ', '') }}</span>
-        <span v-if="tabCounts[tab.key] > 0" class="text-[11px] opacity-70">({{ tabCounts[tab.key] }})</span>
-      </button>
-    </nav>
 
     <!-- 加载态 -->
     <p v-if="loading" class="text-center text-[#9aa6b2] py-12 m-0">正在加载晴天的温暖… ☀️</p>
 
-    <!-- 发帖 -->
+    <!-- 发布 -->
     <section v-else class="bg-white border border-[#eef2f7] rounded-2xl p-4 mb-5">
       <textarea
         v-model="draft.content"
         rows="3"
-        placeholder="分享一个温暖瞬间，或此刻的心情…"
+        placeholder="分享一个温暖时刻、一件善意小事，或此刻想说的话…（将以你的名字发布）"
         class="w-full p-3 border border-[#e0e6ec] rounded-lg resize-y text-[14px] focus:outline-none focus:border-[#7c9cb8]"
       ></textarea>
       <div class="flex items-center justify-between mt-3 flex-wrap gap-3">
-        <div class="flex gap-3 flex-wrap">
-          <label v-for="c in categories" :key="c.key" class="text-[13px] text-[#5a6b7c]">
-            <input type="radio" v-model="draft.category" :value="c.key" class="accent-[#7c9cb8]" /> {{ c.label }}
-          </label>
-        </div>
+        <p class="text-[12px] text-[#9aa6b2] m-0">发布人：{{ meName }}</p>
         <button
           @click="publish"
           :disabled="!draft.content.trim() || publishing"
@@ -51,7 +31,7 @@
     <!-- 内容流：手机1列 / 平板2列 / 桌面3列 -->
     <section v-if="!loading" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
       <article
-        v-for="post in visiblePosts"
+        v-for="post in posts"
         :key="post.id"
         class="bg-white border border-[#eef2f7] rounded-2xl overflow-hidden flex flex-col"
       >
@@ -59,14 +39,15 @@
         <div class="p-4 flex-1 flex flex-col">
           <div class="flex items-center gap-2 mb-1 flex-wrap">
             <span v-if="post.type === 'auto'" class="text-[11px] text-[#e07a3f] bg-[#fff3e0] px-2 py-0.5 rounded-md">✨ 今日晴天</span>
-            <span v-else-if="post.type === 'xiaomu'" class="text-[11px] text-[#5a8a6a] bg-[#e6efe9] px-2 py-0.5 rounded-md">🌿 小木语录</span>
-            <span class="text-[11px] text-[#7c9cb8] bg-[#eef4f9] px-2 py-0.5 rounded-md">{{ catLabel(post.category) }}</span>
+            <span v-else-if="post.type === 'xiaomu'" class="text-[11px] text-[#5a8a6a] bg-[#e6efe9] px-2 py-0.5 rounded-md">🌿 小木</span>
+            <span v-else class="text-[11px] text-[#7c9cb8] bg-[#eef4f9] px-2 py-0.5 rounded-md">💛 用户分享</span>
+            <span class="text-[11px] text-[#9aa6b2]">{{ post.author }}</span>
           </div>
           <h3 class="text-[16px] font-bold text-[#3a4a5c] m-0 leading-snug">{{ post.title }}</h3>
           <p class="text-[13px] text-[#5a6b7c] mt-1 flex-1 leading-relaxed m-0">{{ post.content }}</p>
 
           <div class="flex items-center gap-4 mt-3 text-[13px] text-[#9aa6b2]">
-            <FavoriteButton :type="post.type === 'xiaomu' ? 'quote' : 'post'" :id="post.id" :title="post.title" :summary="(post.content||'').slice(0,60)" :link="post.type === 'xiaomu' ? '' : ''" />
+            <FavoriteButton :type="post.type === 'xiaomu' ? 'quote' : 'post'" :id="post.id" :title="post.title" :summary="(post.content||'').slice(0,60)" />
             <button @click="toggleLike(post)" :class="post.liked ? 'text-[#e07a3f]' : ''" class="transition">❤️ {{ post.likes }}</button>
             <button @click="post.showComment = !post.showComment" class="transition">💬 {{ post.comments.length }}</button>
           </div>
@@ -88,7 +69,7 @@
       </article>
     </section>
 
-    <p v-if="!loading && !visiblePosts.length" class="text-center text-[#9aa6b2] py-12 m-0">这个分类下还没有内容，换个标签看看 ☀️</p>
+    <p v-if="!loading && !posts.length" class="text-center text-[#9aa6b2] py-12 m-0">这里还没有内容，稍后再来看看 ☀️</p>
   </main>
 </template>
 
@@ -102,40 +83,16 @@ import FavoriteButton from '../components/FavoriteButton.vue'
 const auth = useAuthStore()
 const crisisStore = useCrisisStore()
 
-const categories = [
-  { key: 'cat', label: '🐱 猫狗' },
-  { key: 'kindness', label: '🤝 善意' },
-  { key: 'nature', label: '🌅 环境' },
-]
-const tabs = [
-  { key: 'all', label: '🌿 全部', emoji: '🌿', color: '#5a8a6a' },
-  { key: 'cat', label: '🐱 猫狗', emoji: '🐱', color: '#e07a3f' },
-  { key: 'kindness', label: '🤝 善意', emoji: '🤝', color: '#c9656b' },
-  { key: 'nature', label: '🌅 环境', emoji: '🌅', color: '#4a8a7a' },
-]
-const active = ref('all')
-const tabCounts = computed(() => {
-  const map = {}
-  for (const t of tabs) map[t.key] = posts.value.filter(p => t.key === 'all' || p.category === t.key).length
-  return map
+const meName = computed(() => {
+  const u = auth.currentUser
+  return (u && (u.name || u.username)) || '我'
 })
-
-function catLabel(k) {
-  const map = { cat: '猫狗', dog: '猫狗', kindness: '善意', nature: '环境', quote: '小木语录', general: '其他' }
-  return map[k] || k
-}
 
 const loading = ref(true)
 const publishing = ref(false)
 const posts = ref([])
 
-const visiblePosts = computed(() => {
-  return active.value === 'all'
-    ? posts.value
-    : posts.value.filter((p) => p.category === active.value)
-})
-
-const draft = ref({ content: '', category: 'cat' })
+const draft = ref({ content: '' })
 
 // 将 Supabase 记录映射为页面需要的结构
 function normalize(raw) {
@@ -162,10 +119,10 @@ async function loadPosts() {
   try {
     const raw = await communityApi.getPosts()
     let list = raw.map(normalize)
+    const ids = list.map((p) => p.id)
 
     // 批量拉取点赞数
     try {
-      const ids = list.map((p) => p.id)
       const likeMap = await communityApi.getLikesBatch(ids)
       list.forEach((p) => (p.likes = likeMap[p.id] || 0))
     } catch (e) {
@@ -207,17 +164,17 @@ async function publish() {
   if (!draft.value.content.trim() || publishing.value) return
   publishing.value = true
   try {
-    const user = auth.currentUser || { name: '我', type: 'guest' }
+    const user = auth.currentUser || { name: meName.value, type: 'guest' }
     const created = await communityApi.addPost({
       title: draft.value.content.slice(0, 20),
       content: draft.value.content,
       user,
       type: 'user',
-      category: draft.value.category,
+      category: 'kindness', // 用户分享的内容统一归入「善意」
     })
     // 非阻断：命中高危词则弹援助资源，不阻止内容正常发布
     if (created && created.crisis) crisisStore.open()
-    posts.value.unshift(normalize({ ...created, username: user.name || '我' }))
+    posts.value.unshift(normalize({ ...created, username: user.name || meName.value }))
     draft.value.content = ''
   } catch (e) {
     console.error('发布失败', e)

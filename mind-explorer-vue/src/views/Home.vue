@@ -6,7 +6,7 @@
         <div class="hero-text">
           <span class="hero-eyebrow">24h 在这听你说</span>
           <h1 class="hero-title">不想一个人扛着吗？</h1>
-          <p class="hero-subtitle">小木，心理学家与哲学家。<br />陪你理一理、缓一缓、慢下来。</p>
+          <p class="hero-subtitle">小木，研究心理学与哲学的同行者。<br />陪你理一理、缓一缓、慢下来。</p>
         </div>
         <div class="hero-action">
           <RouterLink to="/companion" class="hero-cta-btn">
@@ -26,7 +26,7 @@
         <div v-for="(slide, i) in slides" :key="i" class="carousel-slide">
           <img :src="slide.image" :alt="slide.title" class="carousel-image" loading="lazy" />
           <div class="carousel-overlay">
-            <span class="carousel-tag">心理晴天 · {{ catLabel(slide.category) }}</span>
+            <span class="carousel-tag">治愈瞬间 · {{ catLabel(slide.category) }}</span>
             <h2 class="carousel-title">{{ slide.title }}</h2>
             <p class="carousel-desc">{{ slide.content }}</p>
           </div>
@@ -52,7 +52,7 @@
       <div class="feature-header">
         <div class="feature-title-group">
           <h2 class="feature-title">今日精选</h2>
-          <p class="feature-subtitle">来自心理晴天的温暖推送</p>
+          <p class="feature-subtitle">来自心灵晴天的每日推送，每天自动换新</p>
         </div>
         <div class="feature-stats">
           <span>1200+ 次浏览</span>
@@ -90,11 +90,11 @@
             <ul class="notice-list">
               <li>
                 <strong>【今日晴天已更新】</strong><br />
-                心理晴天已为你推送今日治愈内容
+                心灵晴天已为你推送今日治愈内容
               </li>
               <li>
                 <strong>【小木 AI 上线】</strong><br />
-                与小木——心理学家与哲学家聊聊，获得温柔而坚韧的陪伴
+                与小木——研究心理学与哲学的同行者聊聊，获得温柔而坚韧的陪伴
               </li>
               <li>
                 <strong>【社区交流开启】</strong><br />
@@ -140,15 +140,40 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { communityApi } from '../api/community'
+import { userCardsApi } from '../api/userCards'
 import { useAuthStore } from '../stores/auth'
 import FavoriteButton from '../components/FavoriteButton.vue'
 
 const auth = useAuthStore()
 const activePost = ref(null)
 const posts = ref([])
+const carouselPool = ref([]) // 治愈瞬间带图卡片池（user_cards approved + image）
 const loading = ref(true)
 const current = ref(0)
 let timer = null
+
+// ---------- 0012：每日换新工具（北京时间的日种子，同日稳定、跨天自动换） ----------
+function dayKey() {
+  const d = new Date(Date.now() + 8 * 3600 * 1000)
+  return `${d.getUTCFullYear()}-${d.getUTCMonth() + 1}-${d.getUTCDate()}`
+}
+function hashStr(s) {
+  let h = 0
+  for (const c of s) h = (h * 31 + c.charCodeAt(0)) >>> 0
+  return h
+}
+// 用日种子从候选池里确定性地选 count 项（去重）；池子不足则全返回
+function dailyPick(arr, count) {
+  if (!arr || !arr.length) return []
+  const seed = hashStr(dayKey())
+  const pool = [...arr]
+  const picked = []
+  for (let i = 0; i < Math.min(count, pool.length); i++) {
+    const idx = (seed + i * 131 + hashStr(String(i))) % pool.length
+    picked.push(pool.splice(idx, 1)[0])
+  }
+  return picked
+}
 
 function catLabel(k) {
   const map = {
@@ -157,37 +182,53 @@ function catLabel(k) {
     kindness: '善意',
     nature: '环境',
     quote: '小木语录',
-    general: '其他',
+    general: '日常',
+    暖心: '暖心',
+    成长: '成长',
+    小确幸: '小确幸',
+    树洞: '树洞',
+    其他: '日常',
   }
-  return map[k] || k
+  return map[k] || k || '日常'
 }
 
+// 轮播（0012：从「治愈瞬间 + 每日推送图」按日种子选取；无候选时回退静态图）
 const slides = computed(() => {
-  const withImg = posts.value.filter((p) => p.image).slice(0, 5)
-  if (withImg.length >= 2) return withImg
+  if (carouselPool.value.length) {
+    return dailyPick(carouselPool.value, 5)
+  }
+  // 兜底：站点刚上线、还没有治愈内容图时使用
   return [
     {
       image: 'https://picsum.photos/seed/heal1/1200/420',
       title: '周末心灵疗愈之旅',
       content: '找回内心的宁静与美好',
       category: 'nature',
+      author: '小木',
     },
     {
       image: 'https://picsum.photos/seed/heal2/1200/420',
       title: '在微光中前行',
       content: '每一缕阳光都是温柔的力量',
       category: 'nature',
+      author: '小木',
     },
     {
       image: 'https://picsum.photos/seed/heal3/1200/420',
       title: '与自然温柔相拥',
       content: '让心灵在绿意中慢慢舒展',
       category: 'nature',
+      author: '小木',
     },
   ]
 })
 
-const featuredPosts = computed(() => posts.value.slice(0, 4))
+// 今日精选（0012：从「心灵晴天」每日推送里按日种子选 3 条，每天自动换新）
+const featuredPosts = computed(() => {
+  const pushPosts = posts.value.filter((p) => p.isAutoPush || p.type === 'auto' || p.type === 'xiaomu')
+  const picked = dailyPick(pushPosts, 3)
+  return picked.length ? picked : posts.value.slice(0, 3)
+})
 
 const trackStyle = computed(() => ({
   transform: `translateX(-${current.value * 100}%)`,
@@ -234,6 +275,7 @@ async function loadPosts() {
       image: p.image,
       category: p.category || 'general',
       author: p.username || '匿名',
+      isAutoPush: !!p.is_auto_push,
       likes: 0,
       liked: false,
     }))
@@ -280,6 +322,40 @@ async function ensureTodayPush() {
   }
 }
 
+// 0012：拉取「治愈瞬间」图池供首页轮播按日换新。
+// 数据源 = 治愈瞬间带图卡（user_cards approved，用户上传/小木名义）+ 心灵晴天每日图帖
+// （community_posts auto 推送的 dog/cat/nature 等）。两源都统一成 {image,title,content,category,author}。
+async function loadCarousel() {
+  try {
+    const [cards, posts] = await Promise.all([
+      userCardsApi.getApproved(80),
+      communityApi.getPosts(),
+    ])
+    const cardItems = cards
+      .filter((c) => c.image && c.image.trim())
+      .map((c) => ({
+        image: c.image,
+        title: c.title,
+        content: c.content,
+        category: c.category || '暖心',
+        author: c.author_name || '匿名',
+      }))
+    const postItems = posts
+      .filter((p) => p.image && (p.is_auto_push || p.type === 'auto'))
+      .map((p) => ({
+        image: p.image,
+        title: p.title,
+        content: p.content,
+        category: p.category || 'general',
+        author: p.username || '系统推送',
+      }))
+    carouselPool.value = [...cardItems, ...postItems]
+  } catch (e) {
+    console.warn('加载治愈瞬间轮播池失败（使用静态兜底图）', e)
+    carouselPool.value = []
+  }
+}
+
 function openModal(post) {
   activePost.value = post
   if (typeof document !== 'undefined') document.body.style.overflow = 'hidden'
@@ -311,7 +387,7 @@ async function toggleLike(post) {
 
 onMounted(async () => {
   document.addEventListener('keydown', onKeyDown)
-  await loadPosts()
+  await Promise.all([loadPosts(), loadCarousel()])
   await ensureTodayPush()
   startAuto()
 })
@@ -497,12 +573,20 @@ onUnmounted(() => {
   font-weight: 700;
   margin: 12px 0 8px;
   text-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 .carousel-desc {
   font-size: 16px;
   opacity: 0.95;
   margin: 0;
   text-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 .carousel-arrow {
   position: absolute;

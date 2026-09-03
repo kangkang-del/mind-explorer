@@ -1,9 +1,12 @@
 name: 心灵晴天 · 每日自动推送
 
-# 与 netlify/functions/sunny-push.js 配合：
-# 每日北京时间 08:00（= UTC 00:00）调用已部署站点的 sunny-push 函数，
-# 拉取治愈图源 + 文案，写入 Supabase community_posts（幂等，当天仅一次）。
-# 前端「今日精选 / 心灵晴天」打开时也会兜底懒触发，本任务用于保证无人访问时也有内容。
+# 0012：每日推送已由 Netlify Functions 迁移到 Supabase Edge Function content
+# （action: sunny.push —— LLM 生成 + 小木名义 3 条善意 + 语录 + 每日一卡 + 3 张治愈图
+#  + user_cards 小木卡片 3 条；函数内置「当天已推送则跳过」的双幂等保护）。
+#
+# 本任务：每天北京时间 08:00（= UTC 00:00）直连 content Edge Function 触发一次，
+# 保证即使无人访问站点，当天也有新内容。前端（首页 / 心灵晴天）打开时也会兜底懒触发，
+# 二者通过幂等互斥，不会重复推送。
 
 on:
   schedule:
@@ -18,17 +21,24 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: 触发 sunny-push 函数
+      - name: 触发 content 函数每日推送
         env:
-          SITE_URL: ${{ secrets.SITE_URL }}   # 例如 https://mind-explorer.netlify.app
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}          # https://<project>.supabase.co
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }} # anon / publishable key
         run: |
-          if [ -z "$SITE_URL" ]; then
-            echo "::warning::未配置 secrets.SITE_URL，跳过每日推送。请到仓库 Settings → Secrets 添加 SITE_URL（部署后的站点地址，不含末尾斜杠）。"
+          if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_ANON_KEY" ]; then
+            echo "::warning::未配置 secrets.SUPABASE_URL / SUPABASE_ANON_KEY，跳过每日推送。请到仓库 Settings → Secrets 添加。"
             exit 0
           fi
-          echo "POST $SITE_URL/.netlify/functions/sunny-push"
-          curl -fsS -X POST "$SITE_URL/.netlify/functions/sunny-push" \
+          echo "POST $SUPABASE_URL/functions/v1/content {action: sunny.push}"
+          body=$(curl -fsS -X POST "$SUPABASE_URL/functions/v1/content" \
             -H "Content-Type: application/json" \
-            -d '{}' \
-            && echo "✅ 推送请求已发出" \
-            || echo "⚠️ 推送请求失败（可忽略：前端会兜底触发，或稍后手动重试）"
+            -H "apikey: $SUPABASE_ANON_KEY" \
+            -H "Authorization: Bearer $SUPABASE_ANON_KEY" \
+            -d '{"action":"sunny.push"}')
+          echo "content 函数响应: $body"
+          case "$body" in
+            *'"skipped":true'*) echo "✅ 今天已推送过，跳过" ;;
+            *'"ok":true'*)     echo "✅ 今日推送完成" ;;
+            *) echo "⚠️ 推送响应异常（可忽略：前端会兜底触发，或稍后手动重试）" ;;
+          esac

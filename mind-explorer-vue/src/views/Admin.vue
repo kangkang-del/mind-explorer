@@ -27,12 +27,12 @@
         <button @click="logout" class="text-[13px] text-[#9aa6b2] hover:text-[#e07a3f] transition">退出</button>
       </div>
 
-      <div class="flex gap-2 mb-4">
+      <div class="flex gap-2 mb-4 overflow-x-auto pb-1 md:flex-wrap md:overflow-visible md:pb-0">
         <button
           v-for="t in tabs"
           :key="t.key"
           @click="load(t.key)"
-          class="px-4 py-2 rounded-xl text-[14px] border transition"
+          class="px-4 py-2 rounded-xl text-[14px] border transition whitespace-nowrap"
           :class="tab === t.key ? 'border-[#7c9cb8] bg-[#f0f4f9] text-[#3a4a5c] font-semibold' : 'border-[#eef2f7] text-[#9aa6b2] hover:border-[#c5d8ea]'"
         >
           {{ t.label }} ({{ counts[t.key] }})
@@ -58,6 +58,32 @@
           </div>
           <p v-if="r.detail" class="text-[13px] text-[#5a6b7c] leading-7 whitespace-pre-wrap m-0 mb-2">{{ r.detail }}</p>
           <button @click="resolveReport(r.id)" class="px-4 py-1.5 rounded-lg text-[13px] font-semibold text-white bg-[#7c9cb8] hover:opacity-90 transition">标记已处理</button>
+        </article>
+      </div>
+
+      <!-- 反馈列表（0012 新增） -->
+      <div v-else-if="tab === 'feedback'" class="space-y-3">
+        <p v-if="!list.length" class="text-center text-[#9aa6b2] py-10 m-0">暂无反馈建议</p>
+        <article
+          v-for="f in list"
+          :key="f.id"
+          class="bg-white rounded-2xl border border-[#eef2f7] p-4"
+          :class="f.status === 'done' ? 'opacity-60' : ''"
+        >
+          <div class="flex items-center gap-2 mb-2 flex-wrap">
+            <span class="text-[12px] px-2 py-0.5 rounded-full" :class="typeClass(f.type)">{{ typeText(f.type) }}</span>
+            <span class="text-[12px] font-semibold" :class="f.status === 'done' ? 'text-[#5a9e7a]' : 'text-[#b4791f]'">{{ f.status === 'done' ? '✓ 已处理' : '待处理' }}</span>
+            <span class="text-[12px] text-[#9aa6b2]">{{ f.anonymous ? '匿名' : (f.user_name || '匿名') }}</span>
+            <span class="text-[12px] text-[#9aa6b2] ml-auto shrink-0">{{ fmt(f.created_at) }}</span>
+          </div>
+          <p class="text-[14px] text-[#5a6b7c] leading-7 whitespace-pre-wrap m-0 mb-2">{{ f.content }}</p>
+          <button
+            v-if="f.status !== 'done'"
+            @click="resolveFeedback(f.id)"
+            class="px-4 py-1.5 rounded-lg text-[13px] font-semibold text-white bg-[#7c9cb8] hover:opacity-90 transition"
+          >
+            标记已处理
+          </button>
         </article>
       </div>
 
@@ -102,6 +128,7 @@
 import { ref, onMounted } from 'vue'
 import { userCardsApi } from '../api/userCards'
 import { reportsApi } from '../api/reports'
+import { feedbackApi } from '../api/feedback'
 
 const pwd = ref('')
 const pwdError = ref('')
@@ -110,23 +137,32 @@ const adminPwd = ref('')
 const tab = ref('pending')
 const loading = ref(false)
 const list = ref([])
-const counts = ref({ pending: 0, approved: 0, rejected: 0, reports: 0 })
+const counts = ref({ pending: 0, approved: 0, rejected: 0, reports: 0, feedback: 0 })
 const tabs = [
   { key: 'pending', label: '待审' },
   { key: 'approved', label: '通过' },
   { key: 'rejected', label: '拒绝' },
   { key: 'reports', label: '举报' },
+  { key: 'feedback', label: '反馈' },
 ]
 const tabLabel = { pending: '待审', approved: '已通过', rejected: '已拒绝' }
 
-function checkPwd() {
+async function checkPwd() {
   if (!pwd.value.trim()) {
     pwdError.value = '请输入密码'
     return
   }
-  adminPwd.value = pwd.value.trim()
-  authed.value = true
+  // 0012：密码真实校验（content 函数按 app_config/Secret 鉴权，错误返回 403）
   pwdError.value = ''
+  const trial = pwd.value.trim()
+  try {
+    await feedbackApi.list(trial)
+  } catch (e) {
+    pwdError.value = '密码错误，请重试'
+    return
+  }
+  adminPwd.value = trial
+  authed.value = true
   sessionStorage.setItem('admin_auth_pwd', adminPwd.value)
   loadAll()
 }
@@ -137,19 +173,21 @@ function logout() {
 }
 
 async function loadAll() {
-  const [pending, approved, rejected, reports] = await Promise.all([
+  const [pending, approved, rejected, reports, feedback] = await Promise.all([
     safeGet(() => userCardsApi.getPending(adminPwd.value)),
     safeGet(() => userCardsApi.getApproved(200)),
     safeGet(() => userCardsApi.getRejected(adminPwd.value)),
     safeGet(() => reportsApi.list(adminPwd.value)),
+    safeGet(() => feedbackApi.list(adminPwd.value)),
   ])
   counts.value = {
     pending: pending.length,
     approved: approved.length,
     rejected: rejected.length,
     reports: reports.length,
+    feedback: feedback.length,
   }
-  list.value = { pending, approved, rejected, reports }[tab.value]
+  list.value = { pending, approved, rejected, reports, feedback }[tab.value]
 }
 async function safeGet(fn) {
   try { return await fn() } catch { return [] }
@@ -162,11 +200,23 @@ async function load(t) {
     if (t === 'pending') list.value = await userCardsApi.getPending(adminPwd.value)
     else if (t === 'approved') list.value = await userCardsApi.getApproved(200)
     else if (t === 'reports') list.value = await reportsApi.list(adminPwd.value)
+    else if (t === 'feedback') list.value = await feedbackApi.list(adminPwd.value)
     else list.value = await userCardsApi.getRejected(adminPwd.value)
   } catch {
     list.value = []
   } finally {
     loading.value = false
+  }
+}
+
+// 反馈：标记已处理
+async function resolveFeedback(id) {
+  try {
+    await feedbackApi.resolve(id, adminPwd.value)
+    await loadAll()
+    if (tab.value === 'feedback') await load('feedback')
+  } catch (e) {
+    alert(e.message || '操作失败')
   }
 }
 
@@ -193,6 +243,17 @@ async function resolveReport(id) {
 
 function targetLabel(type) {
   return { user_card: '治愈瞬间', community_post: '社区帖' }[type] || type
+}
+
+function typeText(t) {
+  return { suggest: '💡 建议', issue: '🐛 问题', thanks: '🙏 感谢' }[t] || t
+}
+function typeClass(t) {
+  return {
+    suggest: 'bg-[#eef4f9] text-[#7c9cb8]',
+    issue: 'bg-[#fee2e2] text-[#991b1b]',
+    thanks: 'bg-[#dcfce7] text-[#166534]',
+  }[t] || 'bg-[#eef2f7] text-[#9aa6b2]'
 }
 
 async function act(id, type) {

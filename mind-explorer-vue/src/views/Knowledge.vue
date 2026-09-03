@@ -149,19 +149,28 @@ const healths = ref(healthRaw.map(h => ({ ...h, type: 'health', key: h.slug })))
 const activeType = ref('all')
 const search = ref('')
 
+// 0012：知识卡片按细分主题分类（参考旧版 16 类），心理疾病单列
+const categoryCounts = computed(() => {
+  const map = {}
+  for (const c of cards.value) map[c.category] = (map[c.category] || 0) + 1
+  return map
+})
 const categories = computed(() => [
   { key: 'all', label: '全部', count: cards.value.length + healths.value.length },
-  { key: 'card', label: '知识卡片', count: cards.value.length },
+  ...Object.keys(categoryCounts.value)
+    .sort((a, b) => categoryCounts.value[b] - categoryCounts.value[a])
+    .map((k) => ({ key: k, label: k, count: categoryCounts.value[k] })),
   { key: 'health', label: '心理疾病', count: healths.value.length },
 ])
 
 const filtered = computed(() => {
-  let list = activeType.value === 'all'
-    ? [...cards.value, ...healths.value]
-    : activeType.value === 'card' ? cards.value : healths.value
+  let list
+  if (activeType.value === 'all') list = [...cards.value, ...healths.value]
+  else if (activeType.value === 'health') list = healths.value
+  else list = cards.value.filter((c) => c.category === activeType.value)
   const q = search.value.trim().toLowerCase()
   if (q) {
-    list = list.filter(i => (i.title + ' ' + i.summary).toLowerCase().includes(q))
+    list = list.filter(i => (i.title + ' ' + (i.category || '') + ' ' + i.summary).toLowerCase().includes(q))
   }
   return list
 })
