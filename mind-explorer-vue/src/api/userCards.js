@@ -12,8 +12,11 @@ async function call(action, body = {}) {
       headers: edgeHeaders(),
       body: JSON.stringify({ action, ...body }),
     })
+    if (!res.ok) console.error(`content.${action} HTTP ${res.status}`)
     return await res.json().catch(() => ({}))
-  } catch {
+  } catch (e) {
+    // 保留静默契约（多数调用方 safeGet/空态处理），但错误必须可见，方便排查
+    console.error(`content.${action} 请求失败（网络/跨域/后端错误）`, e)
     return {}
   }
 }
