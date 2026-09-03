@@ -1,3 +1,23 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* ---------- 0012 移动端体验全局防护 ---------- */
+html,
+body {
+  /* 防 100vw 通栏轮播等元素在移动端造成横向滚动条 */
+  overflow-x: hidden;
+  -webkit-tap-highlight-color: transparent;
+}
+/* 图片不溢出容器（详情图/用户头像等） */
+img {
+  max-width: 100%;
+}
+/* iOS Safari 输入框默认字体过小：>=16px 可避免聚焦自动放大 */
+@media (max-width: 480px) {
+  input,
+  textarea,
+  select {
+    font-size: 16px;
+  }
+}

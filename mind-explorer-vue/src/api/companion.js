@@ -1,34 +1,26 @@
-// 同行者「小木」对话前端封装
-// 后端已自 Netlify Functions 迁移至 Supabase Edge Functions（Deno）：
-//   - 免费版 wall clock 150s（原 Netlify Free 10s 硬超时导致小木频繁"走神"）
-//   - 函数与数据库同机房（新加坡），记忆读写 ~5ms
-// 返回一次性 JSON（reply/crisis/emotion），前端本地逐字打字机保持体验：
-//   onMeta({ crisis, emotion })   情绪/危机标志
-//   onDelta(content)             打字机内容增量
+// 同行者「小木」对话前端封装（0012：直连 Supabase Edge Function，真流式）
+//
+// streamChat 消费 companion 函数的 SSE（stream:true），逐帧回调：
+//   onMeta({ crisis, emotion })   首帧：危机/情绪
+//   onDelta(content)             内容增量（真流式：来一段显示一段）
 //   onDone()                     结束
-//   onError(msg)                 错误
+//   onError(msg)                 错误（字符串）
 // 返回 AbortController，调用方可在用户停止时 abort。
+// 兼容回退：后端若返回一次性 JSON（如网关错误页 / 旧版），自动降级为本地打字机，
+// 调用方无需区分两种路径。
 
-const ENDPOINT = 'https://acadcmanqsldwrmysqcb.supabase.co/functions/v1/companion'
+import { FUNCTIONS_BASE, edgeHeaders } from '../config'
 
-// Supabase Edge Functions 开启了 verify_jwt：请求必须带 apikey 头（网关校验用）。
-// anon key 是公开的浏览器端密钥，不是私密凭证；写库权限在函数内部走 service role。
-const ANON_KEY =
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFjYWRjbWFucXNsZHdybXlzcWNiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgwNjY4NTQsImV4cCI6MjEwMzY0Mjg1NH0.bd9HRJpYX0hD0sStRCTLeEvPYeq0PcV8S27tr2-JxLA'
-const baseHeaders = () => ({
-  'Content-Type': 'application/json',
-  apikey: ANON_KEY,
-  Authorization: `Bearer ${ANON_KEY}`,
-})
+const ENDPOINT = `${FUNCTIONS_BASE}/companion`
 
 export const companionApi = {
-  // 拉取服务端最近对话（跨设备恢复）；无 userId 或函数未启用记忆时返回空
+  // 拉取服务端最近对话（跨设备恢复）；无 userId 或未启用记忆时返回空
   async getHistory(userId) {
     if (!userId) return []
     try {
       const res = await fetch(ENDPOINT, {
         method: 'POST',
-        headers: baseHeaders(),
+        headers: edgeHeaders(),
         body: JSON.stringify({ action: 'history', userId }),
       })
       if (!res.ok) return []
@@ -45,7 +37,7 @@ export const companionApi = {
     try {
       await fetch(ENDPOINT, {
         method: 'POST',
-        headers: baseHeaders(),
+        headers: edgeHeaders(),
         body: JSON.stringify({ action: 'clear', userId }),
       })
     } catch {
@@ -59,7 +51,7 @@ export const companionApi = {
     try {
       const res = await fetch(ENDPOINT, {
         method: 'POST',
-        headers: baseHeaders(),
+        headers: edgeHeaders(),
         body: JSON.stringify({ action: 'greeting', userId }),
       })
       return await res.json().catch(() => ({ ok: false }))
@@ -74,7 +66,7 @@ export const companionApi = {
     try {
       const res = await fetch(ENDPOINT, {
         method: 'POST',
-        headers: baseHeaders(),
+        headers: edgeHeaders(),
         body: JSON.stringify({ action: 'recap', userId }),
       })
       return await res.json().catch(() => ({ ok: false }))
@@ -88,7 +80,7 @@ export const companionApi = {
     try {
       const res = await fetch(ENDPOINT, {
         method: 'POST',
-        headers: baseHeaders(),
+        headers: edgeHeaders(),
         body: JSON.stringify({ action: 'cbt', ...payload }),
       })
       return await res.json().catch(() => ({ ok: false }))
@@ -97,8 +89,7 @@ export const companionApi = {
     }
   },
 
-  // 对话；服务端为一次性 JSON 返回（Netlify v1 兼容），前端本地逐字打字机保持体验
-  // userId / nickname 启用服务端记忆与画像
+  // 对话（真流式）：SSE 逐帧消费，失败自动回退一次性 JSON
   streamChat({ message, history = [], userId, nickname, onMeta, onDelta, onDone, onError, signal }) {
     const controller = new AbortController()
     const abort = signal || controller.signal
@@ -107,25 +98,65 @@ export const companionApi = {
       try {
         const res = await fetch(ENDPOINT, {
           method: 'POST',
-          headers: baseHeaders(),
-          body: JSON.stringify({ message, history, userId, nickname }),
+          headers: edgeHeaders(),
+          body: JSON.stringify({ message, history, userId, nickname, stream: true }),
           signal: abort,
         })
-        if (!res.ok) {
+
+        const ct = res.headers.get('content-type') || ''
+
+        // ---- 回退路径：一次性 JSON（含错误响应）→ 本地打字机保持体验 ----
+        if (!res.ok || (!ct.includes('text/event-stream') && !ct.includes('stream'))) {
           const txt = await res.text().catch(() => '')
-          throw new Error(txt || `HTTP ${res.status}`)
+          let data = {}
+          try { data = JSON.parse(txt) } catch { /* 非 JSON */ }
+          if (!res.ok || data.error) {
+            throw new Error(data.error || (!res.ok ? txt || `HTTP ${res.status}` : ''))
+          }
+          onMeta?.({ crisis: !!data.crisis, emotion: data.emotion || null })
+          const reply = data.reply || data.content || ''
+          for (const ch of reply) {
+            if (abort.aborted) break
+            onDelta?.(ch)
+            await new Promise((r) => setTimeout(r, 30))
+          }
+          onDone?.()
+          return
         }
-        const data = await res.json().catch(() => ({}))
-        if (data.error) throw new Error(data.error)
 
-        onMeta?.({ crisis: !!data.crisis, emotion: data.emotion || null })
+        // ---- 主路径：SSE 逐帧解析（meta → delta×N → done）----
+        const reader = res.body.getReader()
+        const decoder = new TextDecoder()
+        let buf = ''
+        let full = ''
 
-        const reply = data.reply || data.content || ''
-        for (const ch of reply) {
-          if (abort.aborted) break
-          onDelta?.(ch)
-          await new Promise((r) => setTimeout(r, 30))
+        const handleFrame = (rawEvent) => {
+          const line = rawEvent.split('\n').find((l) => l.trim().startsWith('data:'))
+          if (!line) return
+          let ev
+          try { ev = JSON.parse(line.trim().slice(5).trim()) } catch { return }
+          if (ev.type === 'meta') {
+            onMeta?.({ crisis: !!ev.crisis, emotion: ev.emotion || null })
+          } else if (ev.type === 'delta') {
+            full += ev.content || ''
+            onDelta?.(ev.content || '')
+          }
+          // done 帧无需单独处理：流读完统一 onDone
         }
+
+        while (true) {
+          const { value, done: readDone } = await reader.read()
+          if (readDone) break
+          buf += decoder.decode(value, { stream: true })
+          let idx
+          while ((idx = buf.indexOf('\n\n')) !== -1) {
+            handleFrame(buf.slice(0, idx))
+            buf = buf.slice(idx + 2)
+          }
+        }
+        if (buf.trim()) handleFrame(buf)
+
+        if (!full && abort.aborted) return
         onDone?.()
       } catch (e) {
         if (e.name === 'AbortError') return

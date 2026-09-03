@@ -1,5 +1,7 @@
-// 心情日记前端封装：调用 /.netlify/functions/mood
-const ENDPOINT = '/.netlify/functions/mood'
+// 心情日记前端封装：经 Supabase Edge Function content 中转（mood.add / mood.list）
+import { FUNCTIONS_BASE, edgeHeaders } from '../config.js'
+
+const ENDPOINT = `${FUNCTIONS_BASE}/content`
 
 export const moodApi = {
   // 记录一条心情（emotion 为情绪 key，note 可选）
@@ -7,8 +9,8 @@ export const moodApi = {
     try {
       const res = await fetch(ENDPOINT, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'add', userId, emotion, note }),
+        headers: edgeHeaders(),
+        body: JSON.stringify({ action: 'mood.add', userId, emotion, note }),
       })
       return await res.json().catch(() => ({ ok: false }))
     } catch {
@@ -22,8 +24,8 @@ export const moodApi = {
     try {
       const res = await fetch(ENDPOINT, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'list', userId, days }),
+        headers: edgeHeaders(),
+        body: JSON.stringify({ action: 'mood.list', userId, days }),
       })
       if (!res.ok) return []
       const d = await res.json()

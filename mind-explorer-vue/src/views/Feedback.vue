@@ -28,23 +28,29 @@
 
       <label class="flex items-center gap-2 text-[14px] text-[#5a6b7c]">
         <input type="checkbox" v-model="form.anonymous" class="accent-[#7c9cb8]" />
-        <span>匿名提交</span>
+        <span>匿名提交（不留下昵称信息）</span>
       </label>
+
+      <p v-if="error" class="text-[13px] text-[#e07a3f] m-0">{{ error }}</p>
+      <p v-if="success" class="text-[13px] text-[#5a9e7a] m-0">✅ 已收到你的反馈，我们会认真阅读每一封～</p>
 
       <button
         type="submit"
-        :disabled="!form.content.trim()"
+        :disabled="!form.content.trim() || submitting"
         class="self-start px-7 py-2.5 bg-gradient-to-r from-[#7c9cb8] to-[#a8c3d6] text-white border-0 rounded-lg text-[15px] cursor-pointer transition hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
       >
-        提交反馈
+        {{ submitting ? '提交中…' : '提交反馈' }}
       </button>
     </form>
   </main>
 </template>
 
 <script setup>
-import { reactive } from 'vue'
+import { reactive, ref } from 'vue'
+import { feedbackApi } from '../api/feedback'
+import { useAuthStore } from '../stores/auth'
 
+const auth = useAuthStore()
 const types = [
   { value: 'suggest', label: '💡 建议' },
   { value: 'issue', label: '🐛 问题' },
@@ -56,10 +62,31 @@ const form = reactive({
   content: '',
   anonymous: false,
 })
+const submitting = ref(false)
+const error = ref('')
+const success = ref(false)
 
-function onSubmit() {
-  // P1 阶段接入后端：netlify/functions 反馈接口
-  alert(`已收到你的${form.anonymous ? '匿名' : ''}反馈（演示，尚未接入后端）`)
-  form.content = ''
+async function onSubmit() {
+  if (!form.content.trim() || submitting.value) return
+  submitting.value = true
+  error.value = ''
+  success.value = false
+  try {
+    const u = auth.currentUser
+    await feedbackApi.submit({
+      type: form.type,
+      content: form.content.trim(),
+      anonymous: form.anonymous,
+      userId: u ? (u.id || u.username) : null,
+      userName: u ? (u.name || u.username) : null,
+    })
+    success.value = true
+    form.content = ''
+    form.anonymous = false
+  } catch (e) {
+    error.value = e.message || '提交失败，请稍后再试'
+  } finally {
+    submitting.value = false
+  }
 }
 </script>

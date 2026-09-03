@@ -1,13 +1,14 @@
-// 举报 API —— 全部经 /.netlify/functions/reports 中转（service_role，前端不直连 Supabase）
+// 举报 API —— 经 Supabase Edge Function content 中转（service_role，前端不直连 Supabase）
+import { FUNCTIONS_BASE, edgeHeaders } from '../config.js'
 
-const ENDPOINT = '/.netlify/functions/reports'
+const ENDPOINT = `${FUNCTIONS_BASE}/content`
 
-async function post(body) {
+async function post(action, body) {
   try {
     const res = await fetch(ENDPOINT, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
+      headers: edgeHeaders(),
+      body: JSON.stringify({ action, ...body }),
     })
     return await res.json().catch(() => ({}))
   } catch {
@@ -18,8 +19,7 @@ async function post(body) {
 export const reportsApi = {
   // 提交举报（target_type: 'user_card' | 'community_post'）
   async submit({ targetType, targetId, reporterId, reporterType, reason, detail }) {
-    const data = await post({
-      action: 'submit',
+    const data = await post('report.submit', {
       target_type: targetType,
       target_id: targetId,
       reporter_id: reporterId || null,
@@ -33,13 +33,13 @@ export const reportsApi = {
 
   // 管理员：待处理举报列表
   async list(adminPwd) {
-    const data = await post({ action: 'list', adminPwd })
+    const data = await post('report.list', { adminPwd })
     return Array.isArray(data?.reports) ? data.reports : []
   },
 
   // 管理员：标记已处理
   async resolve(id, adminPwd) {
-    const data = await post({ action: 'resolve', id, adminPwd })
+    const data = await post('report.resolve', { id, adminPwd })
     if (!data.ok) throw new Error(data.error || '操作失败')
     return data
   },
