@@ -13,7 +13,8 @@ export const moodApi = {
         body: JSON.stringify({ action: 'mood.add', userId, emotion, note }),
       })
       return await res.json().catch(() => ({ ok: false }))
-    } catch {
+    } catch (e) {
+      console.error('mood.add 请求失败（网络/跨域/后端错误）', e)
       return { ok: false }
     }
   },
@@ -30,7 +31,8 @@ export const moodApi = {
       if (!res.ok) return []
       const d = await res.json()
       return Array.isArray(d?.entries) ? d.entries : []
-    } catch {
+    } catch (e) {
+      console.error('mood.list 请求失败', e)
       return []
     }
   },

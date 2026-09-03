@@ -4,19 +4,15 @@ import { FUNCTIONS_BASE, edgeHeaders } from '../config.js'
 const ENDPOINT = `${FUNCTIONS_BASE}/content`
 
 async function call(action, body = {}) {
-  try {
-    const res = await fetch(ENDPOINT, {
-      method: 'POST',
-      headers: edgeHeaders(),
-      body: JSON.stringify({ action, ...body }),
-    })
-    const data = await res.json().catch(() => ({}))
-    // 非 2xx 一律抛错（403 用于管理员密码校验）
-    if (!res.ok) throw new Error(data.error || `请求失败 ${res.status}`)
-    return data
-  } catch (e) {
-    throw e
-  }
+  const res = await fetch(ENDPOINT, {
+    method: 'POST',
+    headers: edgeHeaders(),
+    body: JSON.stringify({ action, ...body }),
+  })
+  const data = await res.json().catch(() => ({}))
+  // 非 2xx 一律抛错（403 用于管理员密码校验）
+  if (!res.ok) throw new Error(data.error || `请求失败 ${res.status}`)
+  return data
 }
 
 export const feedbackApi = {
@@ -26,8 +22,10 @@ export const feedbackApi = {
       type: type || 'suggest',
       content,
       anonymous: !!anonymous,
-      user_id: anonymous ? null : (userId || null),
-      user_name: anonymous ? null : (userName || null),
+      // 注意：后端读取的是 camelCase 的 userId/userName（曾误传 user_id/user_name
+      // 导致非匿名反馈的用户名永远存不进去），保持与后端一致
+      userId: userId || null,
+      userName: userName || null,
     })
     if (!data.ok) throw new Error(data.error || '提交失败')
     return data
