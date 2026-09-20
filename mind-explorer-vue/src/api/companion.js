@@ -90,24 +90,38 @@ export const companionApi = {
   },
 
   // 对话（真流式）：SSE 逐帧消费，失败自动回退一次性 JSON
+  // 注意：fetch 不直接挂 AbortSignal，中止改为监听 signal 事件后手动 reader.cancel()
+  // （保留「取消」语义，同时规避 Chromium 下带 signal 读 SSE 的行为差异，
+  //  并使「流停滞超时」可用同一 cancel 路径打断挂起的 read()）
   streamChat({ message, history = [], userId, nickname, onMeta, onDelta, onDone, onError, signal }) {
     const controller = new AbortController()
     const abort = signal || controller.signal
 
     ;(async () => {
+      let reader = null
+      let timedOut = false
+      const onAbort = () => { try { reader?.cancel() } catch { /* 忽略 */ } }
+      // 流停滞超时：50s 未收到任何新数据视为上游挂死（实测长回复 LLM 生成可达 ~38s，勿低于 45s），
+      // 主动 cancel 读取流并走 onError 兜底，避免调用方永久卡在等待
+      let stall = setTimeout(() => { timedOut = true; onAbort() }, 50000)
+      const resetStall = () => { clearTimeout(stall); stall = setTimeout(() => { timedOut = true; onAbort() }, 50000) }
       try {
+        if (abort.aborted) return
+        abort.addEventListener('abort', onAbort)
+
         const res = await fetch(ENDPOINT, {
           method: 'POST',
           headers: edgeHeaders(),
           body: JSON.stringify({ message, history, userId, nickname, stream: true }),
-          signal: abort,
         })
+        resetStall()
 
         const ct = res.headers.get('content-type') || ''
 
         // ---- 回退路径：一次性 JSON（含错误响应）→ 本地打字机保持体验 ----
         if (!res.ok || (!ct.includes('text/event-stream') && !ct.includes('stream'))) {
           const txt = await res.text().catch(() => '')
+          resetStall()
           let data = {}
           try { data = JSON.parse(txt) } catch { /* 非 JSON */ }
           if (!res.ok || data.error) {
@@ -125,7 +139,7 @@ export const companionApi = {
         }
 
         // ---- 主路径：SSE 逐帧解析（meta → delta×N → done）----
-        const reader = res.body.getReader()
+        reader = res.body.getReader()
         const decoder = new TextDecoder()
         let buf = ''
         let full = ''
@@ -146,6 +160,7 @@ export const companionApi = {
 
         while (true) {
           const { value, done: readDone } = await reader.read()
+          resetStall()
           if (readDone) break
           buf += decoder.decode(value, { stream: true })
           let idx
@@ -156,11 +171,17 @@ export const companionApi = {
         }
         if (buf.trim()) handleFrame(buf)
 
+        if (timedOut) { onError?.('回复等待超时'); return }
         if (!full && abort.aborted) return
         onDone?.()
       } catch (e) {
-        if (e.name === 'AbortError') return
+        // 中止/超时期间的异常（含 cancel() 打断挂起 read 的实现差异）按对应分支静默
+        if (timedOut) { onError?.('回复等待超时'); return }
+        if (abort.aborted || e.name === 'AbortError') return
         onError?.(e.message || '连接失败')
+      } finally {
+        clearTimeout(stall)
+        abort.removeEventListener('abort', onAbort)
       }
     })()
 

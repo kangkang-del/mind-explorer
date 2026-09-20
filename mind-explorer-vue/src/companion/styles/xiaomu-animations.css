@@ -1,0 +1,358 @@
+/**
+ * 小木动画样式表 v1（任务 3）
+ *
+ * 分区：
+ *   A. 基础线条风（色板 / 描边 / 双形态切换 / 换装显隐）
+ *   B. 状态轨动画 —— [data-state]（idle 呼吸 / talk / think / happy / sleep / walk / drag）
+ *   C. 动作轨动画 —— [data-action]（13 个一次性动作，播完回基线）
+ *   D. 微表情轨 —— [data-micros~="…"]（腮红 / 眯眼 / 睁大 / 蔫）
+ *   E. HTML 层特效（ZZZ / 爱心）
+ *
+ * 规范：纯 transform + opacity（GPU 合成 60fps）；所有元素显式 transform-box:fill-box；
+ *       keyframes 全部 xm 前缀防全局冲突；选择器命名空间 .xm-svg。
+ * 坐标系：viewBox 0 0 300 360（原型 v2 平移，头身比 1:0.63）。
+ */
+
+/* ============ A. 基础线条风 ============ */
+
+.xm-wrap { position: relative; user-select: none; -webkit-user-select: none; }
+.xm-svg  { display: block; width: 100%; height: auto; }
+
+.xm-svg .ln  { stroke: var(--xm-line, #2b2b2b); stroke-width: 5; stroke-linecap: round; stroke-linejoin: round; fill: none; }
+.xm-svg .lnf { stroke: var(--xm-line, #2b2b2b); stroke-width: 5; stroke-linecap: round; stroke-linejoin: round; fill: var(--xm-cloth-sub, #fff); }
+.xm-svg .lnp { stroke: var(--xm-line, #2b2b2b); stroke-width: 5; stroke-linecap: round; stroke-linejoin: round; fill: var(--xm-cloth-main, #ffd6e7); }
+.xm-svg .lng { stroke: var(--xm-line, #2b2b2b); stroke-width: 5; stroke-linecap: round; stroke-linejoin: round; fill: var(--xm-leaf-soft, #e7f4e0); }
+.xm-svg .dot   { fill: var(--xm-line, #2b2b2b); }
+.xm-svg .blush { fill: var(--xm-cloth-main, #ffd6e7); opacity: .38; transition: opacity .35s; }
+.xm-svg .pad   { fill: var(--xm-cloth-main, #ffd6e7); }
+
+/* 双形态：共用图层，按 data-variant 切换 */
+.xm-svg[data-variant="dog"]  .v-wood { display: none; }
+.xm-svg[data-variant="wood"] .v-dog  { display: none; }
+
+/* 换装图层：默认隐藏（M3 槽位制：data-*=物品 id，一个物品一个组） */
+.xm-svg .item { display: none; }
+.xm-svg[data-hat="hat-beret"]  #item-hat-beret  { display: inline; }
+.xm-svg[data-hat="hat-straw"]  #item-hat-straw  { display: inline; }
+.xm-svg[data-hat="hat-flower"] #item-hat-flower { display: inline; }
+.xm-svg[data-scarf="scarf-red"]  #item-scarf-red  { display: inline; }
+.xm-svg[data-scarf="scarf-leaf"] #item-scarf-leaf { display: inline; }
+.xm-svg[data-bow="bow-pink"] #item-bow-pink { display: inline; }
+.xm-svg[data-bow="bow-star"] #item-bow-star { display: inline; }
+/* 物品专属柔和色（保持线条风：白描边 + 低饱和点缀，无渐变无阴影） */
+.xm-svg .it-orange { fill: #ffe0c7; }
+.xm-svg .it-yellow { fill: #fff3c4; }
+.xm-svg .it-redband { stroke-width: 4; }
+
+/* ---- A2. 自定义形象（M3 批次 J）：图片皮肤垫底 + 配件贴纸叠加 ---- */
+/* 图片层在下（指针穿透，手势仍归容器），SVG 仅作配件载体在上 */
+.xm-wrap.is-custom .xm-svg { position: relative; z-index: 1; }
+.xm-skin {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 0;
+  /* 支点对齐 #whole（fill-box 底边 ≈ 画布 94% 高），保证呼吸/摆动时贴纸与图片不错位 */
+  transform-origin: 50% 94%;
+  animation: xmBreathe 3.4s ease-in-out infinite;
+}
+.xm-skin img {
+  display: block;
+  max-width: 100%;
+  max-height: 100%;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+/* custom 模式：隐藏身体图元（尾巴/躯干/四肢/脸），只留配件（帽·围巾·蝴蝶结）当贴纸 */
+.xm-svg[data-variant="custom"] #whole > *:not(.item):not(#head-g) { display: none; }
+.xm-svg[data-variant="custom"] #head-g > *:not(.item) { display: none; }
+/* 贴纸挂点微调：帽子/蝴蝶结整体略上移并缩小，更贴合任意图片的头顶与脸侧 */
+.xm-svg[data-variant="custom"] #head-g > .item {
+  transform-box: fill-box;
+  transform-origin: center;
+  transform: translateY(-14px) scale(.94);
+}
+
+/* 图片层与配件同步动：与 #whole 同名 keyframes、同支点，避免贴纸相对图片漂移 */
+.xm-svg[data-variant="custom"][data-state="think"] ~ .xm-skin { animation: none; transform: rotate(-4deg); }
+.xm-svg[data-variant="custom"][data-state="happy"] ~ .xm-skin { animation: xmBounce .5s ease-in-out infinite alternate; }
+.xm-svg[data-variant="custom"][data-state="sleep"] ~ .xm-skin { animation: xmBreathe 5s ease-in-out infinite; }
+.xm-svg[data-variant="custom"][data-state="drag"]  ~ .xm-skin { animation: none; transform: scaleY(1.03); }
+.xm-svg[data-variant="custom"][data-state="talk"] #whole,
+.xm-svg[data-variant="custom"][data-state="talk"] ~ .xm-skin { animation: xmSkinSway 1.2s ease-in-out infinite alternate; }
+@keyframes xmSkinSway { from { transform: rotate(-1.2deg); } to { transform: rotate(1.2deg); } }
+/* 「整身位移」型动作轨同样带上图片层（头部动作只动贴纸，属身体语言，不反向带动图片） */
+.xm-svg[data-variant="custom"][data-action="stretch"]  ~ .xm-skin { animation: xmStretch 2.8s ease-in-out; }
+.xm-svg[data-variant="custom"][data-action="tiptoe"]   ~ .xm-skin { animation: xmTiptoe 1.5s ease-in-out; }
+.xm-svg[data-variant="custom"][data-action="hopSteps"] ~ .xm-skin { animation: xmHop 1.7s ease-in-out; }
+.xm-svg[data-variant="custom"][data-action="surprise"] ~ .xm-skin { animation: xmPop 1.3s ease-out; }
+.xm-svg[data-variant="custom"][data-action="jumpJoy"]  ~ .xm-skin { animation: xmJump 1s ease-out; }
+.xm-svg[data-variant="custom"][data-action="leanIn"]   ~ .xm-skin { animation: xmLean .9s ease-out; }
+
+/* ============ B. 状态轨动画 ============ */
+
+#whole {
+  transform-box: fill-box; transform-origin: 50% 100%;
+  animation: xmBreathe 3.4s ease-in-out infinite;
+  transition: transform .18s ease-out;
+}
+@keyframes xmBreathe { 0%, 100% { transform: scaleY(1); } 50% { transform: scaleY(1.02); } }
+
+#head-g { transform-box: fill-box; transform-origin: 50% 96%; }
+
+#tail-dog {
+  transform-box: fill-box; transform-origin: 12% 88%;
+  animation: xmWag 1.1s ease-in-out infinite alternate;
+}
+@keyframes xmWag { from { transform: rotate(10deg); } to { transform: rotate(-14deg); } }
+.xm-svg[data-state="happy"] #tail-dog { animation-duration: .35s; }
+
+#tail-leaf, #sprout {
+  transform-box: fill-box; transform-origin: 50% 100%;
+  animation: xmSway 2.6s ease-in-out infinite alternate;
+}
+@keyframes xmSway { from { transform: rotate(-6deg); } to { transform: rotate(6deg); } }
+
+#arm-wave {
+  transform-box: fill-box; transform-origin: 100% 100%;
+  animation: xmHiwave 1.8s ease-in-out infinite alternate;
+}
+@keyframes xmHiwave { from { transform: rotate(-5deg); } to { transform: rotate(9deg); } }
+.xm-svg[data-state="sleep"] #arm-wave { animation: none; }
+
+#arm-r   { transform-box: fill-box; transform-origin: 0% 0%; }
+#legL, #legR { transform-box: fill-box; transform-origin: 50% 0; }
+
+#eyes-open {
+  transform-box: fill-box; transform-origin: center;
+  transition: transform .09s ease-out;
+}
+#eyes-open.blink { transform: scaleY(.08); }
+
+.mouth { transform-box: fill-box; transform-origin: center; }
+.xm-svg[data-state="talk"] .mouth { animation: xmTalkm .28s ease-in-out infinite alternate; }
+@keyframes xmTalkm { from { transform: scaleY(.35); } to { transform: scaleY(1); } }
+
+#mouth-open { display: none; }
+.xm-svg[data-state="happy"] #mouth-open  { display: inline; }
+.xm-svg[data-state="happy"] #mouth-smile { display: none; }
+
+/* think：歪头沉思，呼吸停一拍 */
+.xm-svg[data-state="think"] #whole { animation: none; transform: rotate(-4deg); }
+
+/* sleep：闭眼 + 呼吸放慢 */
+#eyes-closed { display: none; }
+.xm-svg[data-state="sleep"] #eyes-closed { display: inline; }
+.xm-svg[data-state="sleep"] #eyes-open   { display: none; }
+.xm-svg[data-state="sleep"] #whole       { animation: xmBreathe 5s ease-in-out infinite; }
+
+/* happy：弹跳 */
+.xm-svg[data-state="happy"] #whole { animation: xmBounce .5s ease-in-out infinite alternate; }
+@keyframes xmBounce { from { transform: translateY(0); } to { transform: translateY(-10px); } }
+
+/* walk：迈步 + 摇摆横移（集成后散步彩蛋用） */
+@keyframes xmStep { from { transform: rotate(14deg); } to { transform: rotate(-14deg); } }
+.xm-svg[data-state="walk"] #legL { animation: xmStep .5s ease-in-out infinite alternate; }
+.xm-svg[data-state="walk"] #legR { animation: xmStep .5s ease-in-out infinite alternate-reverse; }
+
+/* drag：拎起时身体微绷、四肢自然下垂摆动（腿部反相左右晃） */
+.xm-svg[data-state="drag"] #whole { animation: none; transform: scaleY(1.03); }
+.xm-svg[data-state="drag"] #arm-wave { animation: none; transform: rotate(14deg); }
+.xm-svg[data-state="drag"] #tail-dog { animation: none; transform: rotate(-10deg); }
+.xm-svg[data-state="drag"] #legL  { animation: xmDangle 1.4s ease-in-out infinite alternate; }
+.xm-svg[data-state="drag"] #legR  { animation: xmDangle 1.4s ease-in-out infinite alternate-reverse; }
+.xm-svg[data-state="drag"] #arm-r { animation: xmDangle 1.6s ease-in-out infinite alternate; }
+@keyframes xmDangle { from { transform: rotate(6deg); } to { transform: rotate(-7deg); } }
+
+/* ============ C. 动作轨动画（[data-action]，播完移除即回基线） ============ */
+
+/* 动作优先级高于状态基线：本分区整体置于 B 区之后，同特异性下后者覆盖 */
+
+/* 1. 左右张望 2.2s */
+.xm-svg[data-action="lookAround"] #head-g { animation: xmLook 2.2s ease-in-out; }
+@keyframes xmLook {
+  0% { transform: rotate(0); } 25% { transform: rotate(9deg); }
+  55% { transform: rotate(-11deg); } 80% { transform: rotate(5deg); } 100% { transform: rotate(0); }
+}
+
+/* 2. 伸懒腰 2.8s：双手上举 + 身体拉长 */
+.xm-svg[data-action="stretch"] #whole    { animation: xmStretch 2.8s ease-in-out; }
+.xm-svg[data-action="stretch"] #arm-r    { animation: xmStretchArmR 2.8s ease-in-out; }
+.xm-svg[data-action="stretch"] #arm-wave { animation: xmStretchArmL 2.8s ease-in-out; }
+@keyframes xmStretch     { 0% { transform: scaleY(1); } 35% { transform: scaleY(1.06) translateY(-2px); } 70% { transform: scaleY(1.05); } 100% { transform: scaleY(1); } }
+@keyframes xmStretchArmR { 0% { transform: rotate(0); } 35% { transform: rotate(148deg); } 70% { transform: rotate(142deg); } 100% { transform: rotate(0); } }
+@keyframes xmStretchArmL { 0% { transform: rotate(0); } 35% { transform: rotate(-18deg); } 70% { transform: rotate(-14deg); } 100% { transform: rotate(0); } }
+
+/* 3. 挠头 2.2s：左手弯向头侧微抖 + 头歪 */
+.xm-svg[data-action="scratchHead"] #arm-wave { animation: xmScratch 2.2s ease-in-out; }
+.xm-svg[data-action="scratchHead"] #head-g   { animation: xmScratchHead 2.2s ease-in-out; }
+@keyframes xmScratch {
+  0% { transform: rotate(0); } 25% { transform: rotate(28deg); }
+  45% { transform: rotate(22deg); } 65% { transform: rotate(30deg); }
+  85% { transform: rotate(24deg); } 100% { transform: rotate(0); }
+}
+@keyframes xmScratchHead {
+  0% { transform: rotate(0); } 30% { transform: rotate(5deg); } 80% { transform: rotate(5deg); } 100% { transform: rotate(0); }
+}
+
+/* 4. 踮脚张望 1.5s */
+.xm-svg[data-action="tiptoe"] #whole { animation: xmTiptoe 1.5s ease-in-out; }
+@keyframes xmTiptoe {
+  0% { transform: translateY(0); } 30% { transform: translateY(-4px); }
+  65% { transform: translateY(-4px); } 85% { transform: translateY(1px); } 100% { transform: translateY(0); }
+}
+
+/* 5. 打哈欠 2.6s：小张嘴 + 眯眼 + 头微仰 + 芽颤 */
+.xm-svg[data-action="yawn"] #mouth-open  { display: inline; animation: xmYawnMouth 2.6s ease-in-out; }
+.xm-svg[data-action="yawn"] #mouth-smile { display: none; }
+.xm-svg[data-action="yawn"] #eyes-open   { animation: xmYawnEyes 2.6s ease-in-out; }
+.xm-svg[data-action="yawn"] #head-g      { animation: xmYawnHead 2.6s ease-in-out; }
+@keyframes xmYawnMouth { 0%, 20% { transform: scaleY(.2); } 45%, 70% { transform: scaleY(.62); } 100% { transform: scaleY(.2); } }
+@keyframes xmYawnEyes  { 0%, 20% { transform: scaleY(1); } 45%, 70% { transform: scaleY(.12); } 100% { transform: scaleY(1); } }
+@keyframes xmYawnHead  { 0%, 20% { transform: rotate(0); } 45%, 70% { transform: rotate(-4deg); } 100% { transform: rotate(0); } }
+.xm-svg[data-action="yawn"] #sprout { animation: xmSway .9s ease-in-out infinite alternate; }
+
+/* 6. 碰叶子 2.2s（木灵专属彩蛋）：歪头 + 左手高够 + 芽弹动 */
+.xm-svg[data-action="touchLeaf"] #head-g   { animation: xmTouchLeafHead 2.2s ease-in-out; }
+.xm-svg[data-action="touchLeaf"] #arm-wave { animation: xmTouchLeafArm 2.2s ease-in-out; }
+.xm-svg[data-action="touchLeaf"] #sprout   { animation: xmLeafBoing 2.2s ease-out; }
+@keyframes xmTouchLeafHead {
+  0% { transform: rotate(0); } 30% { transform: rotate(14deg) translateX(4px); }
+  70% { transform: rotate(14deg) translateX(4px); } 100% { transform: rotate(0); }
+}
+@keyframes xmTouchLeafArm {
+  0% { transform: rotate(0); } 30% { transform: rotate(52deg); }
+  55% { transform: rotate(46deg); } 75% { transform: rotate(54deg); } 100% { transform: rotate(0); }
+}
+@keyframes xmLeafBoing {
+  0% { transform: rotate(0); } 30% { transform: rotate(16deg); }
+  45% { transform: rotate(-12deg); } 60% { transform: rotate(10deg); }
+  75% { transform: rotate(-6deg); } 100% { transform: rotate(0); }
+}
+
+/* 7. 摇叶芽 1.8s：大幅三摆 */
+.xm-svg[data-action="swayLeaf"] #sprout { animation: xmSwayBig 1.8s ease-in-out; }
+@keyframes xmSwayBig {
+  0% { transform: rotate(0); } 20% { transform: rotate(14deg); } 45% { transform: rotate(-14deg); }
+  70% { transform: rotate(10deg); } 100% { transform: rotate(0); }
+}
+
+/* 8. 原地小碎步 1.7s：腿交替 + 微颠 */
+.xm-svg[data-action="hopSteps"] #legL { animation: xmStep .34s ease-in-out infinite alternate; }
+.xm-svg[data-action="hopSteps"] #legR { animation: xmStep .34s ease-in-out infinite alternate-reverse; }
+.xm-svg[data-action="hopSteps"] #whole { animation: xmHop 1.7s ease-in-out; }
+@keyframes xmHop {
+  0% { transform: translateY(0); } 15% { transform: translateY(-3px); } 30% { transform: translateY(0); }
+  45% { transform: translateY(-3px); } 60% { transform: translateY(0); } 75% { transform: translateY(-3px); }
+  90% { transform: translateY(0); } 100% { transform: translateY(0); }
+}
+
+/* 9. 惊讶回看 1.3s：弹一下 + 睁大眼 */
+.xm-svg[data-action="surprise"] #whole     { animation: xmPop 1.3s ease-out; }
+.xm-svg[data-action="surprise"] #eyes-open { animation: xmWideEyes 1.3s ease-out; }
+.xm-svg[data-action="surprise"] #head-g    { animation: xmSurpriseHead 1.3s ease-out; }
+@keyframes xmPop { 0% { transform: scale(1); } 25% { transform: scale(1.05); } 55% { transform: scale(.985); } 100% { transform: scale(1); } }
+@keyframes xmWideEyes { 0%, 55% { transform: scale(1.32); } 100% { transform: scale(1); } }
+@keyframes xmSurpriseHead { 0% { transform: rotate(0); } 25% { transform: rotate(3deg); } 100% { transform: rotate(0); } }
+
+/* 10. 小跳+爱心 1.0s：双跳 + 落地微压扁 */
+.xm-svg[data-action="jumpJoy"] #whole { animation: xmJump 1s ease-out; }
+@keyframes xmJump {
+  0% { transform: translateY(0) scaleY(1); } 12% { transform: translateY(-16px) scaleY(1.04); }
+  26% { transform: translateY(0) scaleY(.96); } 40% { transform: translateY(-12px) scaleY(1.03); }
+  58% { transform: translateY(0) scaleY(.97); } 74% { transform: translateY(-4px); } 100% { transform: translateY(0) scaleY(1); }
+}
+
+/* 11. 摸头眯眼（hold 型）：微低头享受，呼吸变深；眯眼/腮红/蔫由 micro 轨驱动 */
+.xm-svg[data-action="headPat"] #head-g { animation: xmHeadPat 2.8s ease-in-out infinite; }
+.xm-svg[data-action="headPat"] #whole  { animation: xmBreathe 4.5s ease-in-out infinite; }
+@keyframes xmHeadPat {
+  0%, 100% { transform: rotate(4deg); } 50% { transform: rotate(6deg); }
+}
+
+/* 12. 凑近看 0.9s：朝上凑向气泡 + 头微仰 */
+.xm-svg[data-action="leanIn"] #whole  { animation: xmLean 0.9s ease-out; }
+.xm-svg[data-action="leanIn"] #head-g { animation: xmLeanHead 0.9s ease-out; }
+@keyframes xmLean     { 0% { transform: translateY(0) scale(1); } 40% { transform: translateY(-6px) scale(1.02); } 75% { transform: translateY(-5px) scale(1.02); } 100% { transform: translateY(0) scale(1); } }
+@keyframes xmLeanHead { 0% { transform: rotate(0); } 40% { transform: rotate(-5deg); } 75% { transform: rotate(-5deg); } 100% { transform: rotate(0); } }
+
+/* 13. 拘谨抱歉 2.3s：低头 + 手挠头后 + （蔫由 micro 轨） */
+.xm-svg[data-action="apologetic"] #head-g   { animation: xmSorryHead 2.3s ease-in-out; }
+.xm-svg[data-action="apologetic"] #arm-wave { animation: xmSorryArm 2.3s ease-in-out; }
+@keyframes xmSorryHead { 0% { transform: rotate(0); } 30%, 80% { transform: rotate(7deg) translateY(1px); } 100% { transform: rotate(0); } }
+@keyframes xmSorryArm  { 0% { transform: rotate(0); } 30%, 80% { transform: rotate(26deg); } 100% { transform: rotate(0); } }
+
+/* ============ D. 微表情轨（[data-micros~="…"，空格分隔 token） ============ */
+
+.xm-svg[data-micros~="blush"] .blush { opacity: .75; }
+
+.xm-svg[data-micros~="eyesClosed"] #eyes-open   { transform: scaleY(.08); }
+.xm-svg[data-micros~="eyesClosed"] #eyes-closed { display: inline; }
+
+.xm-svg[data-micros~="eyesWide"] #eyes-open { transform: scale(1.28); }
+
+/* 蔫：犬系=双耳外八下垂；木灵=嫩芽低头 */
+.xm-svg[data-micros~="earDroop"] #ears-dog {
+  transform: rotate(-6deg) translateY(3px);
+}
+.xm-svg[data-micros~="earDroop"] #ears-dog path:last-child { transform: rotate(12deg); }
+.xm-svg[data-micros~="earDroop"] #ears-dog path,
+.xm-svg[data-micros~="earDroop"] #ears-dog { transform-box: fill-box; transform-origin: 50% 0%; transition: transform .5s ease-out; }
+.xm-svg[data-micros~="earDroop"] #sprout {
+  animation: none;
+  transform: rotate(-9deg) translateY(1px);
+  transform-box: fill-box; transform-origin: 50% 100%;
+  transition: transform .5s ease-out;
+}
+
+/* ============ E. HTML 层特效 ============ */
+
+/* 睡觉 Zzz */
+.xm-zzz { position: absolute; top: 30px; right: 2px; opacity: 0; pointer-events: none; z-index: 2; transition: opacity .4s; }
+.xm-wrap[data-sleeping="1"] .xm-zzz { opacity: 1; }
+.xm-zzz span { position: absolute; right: 0; font-weight: 700; color: var(--xm-line, #2b2b2b); animation: xmZfloat 2.4s ease-in-out infinite; }
+.xm-zzz span:nth-child(1) { font-size: 13px; top: 0; }
+.xm-zzz span:nth-child(2) { font-size: 17px; top: -4px; right: -11px; animation-delay: .8s; }
+.xm-zzz span:nth-child(3) { font-size: 21px; top: -8px; right: -21px; animation-delay: 1.6s; }
+@keyframes xmZfloat {
+  0% { transform: translate(0, 0); opacity: 0; } 30% { opacity: 1; }
+  100% { transform: translate(10px, -26px); opacity: 0; }
+}
+
+/* ============ F. 桌面 hover 彩蛋：耳朵/嫩芽抖一下 ============ */
+/* 动画挂在内层 path，避开 #sprout 外层的动作轨 animation（yawn/touchLeaf/swayLeaf）冲突 */
+@media (hover: hover) and (pointer: fine) {
+  .xm-svg:hover #ears-dog path:first-child { animation: xmEarTick .55s ease; }
+  .xm-svg:hover #sprout .lng { animation: xmEarTick .55s ease; transform-box: fill-box; transform-origin: 50% 100%; }
+}
+@keyframes xmEarTick {
+  0%, 100% { transform: rotate(0deg); }
+  35% { transform: rotate(7deg); }
+  70% { transform: rotate(-5deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .xm-svg:hover #ears-dog path:first-child,
+  .xm-svg:hover #sprout .lng { animation: none; }
+}
+
+/* 爱心粒子 */
+.xm-fx { position: absolute; inset: 0; pointer-events: none; z-index: 4; overflow: visible; }
+.xm-heart { position: absolute; width: 18px; height: 18px; opacity: 0; animation: xmRise 1.15s ease-out forwards; }
+@keyframes xmRise {
+  from { transform: translateY(0) scale(.6); opacity: 0; }
+  20%  { opacity: 1; }
+  to   { transform: translateY(-72px) scale(1.15); opacity: 0; }
+}
+
+/* 降级：系统要求减少动效时，压掉装饰性动画（状态切换仍即时可见） */
+@media (prefers-reduced-motion: reduce) {
+  .xm-svg * { animation-duration: .01s !important; animation-iteration-count: 1 !important; }
+  .xm-skin { animation-duration: .01s !important; animation-iteration-count: 1 !important; }
+}

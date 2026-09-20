@@ -5,7 +5,8 @@
       <RouterView />
     </main>
     <AppFooter />
-    <FloatingCompanion />
+    <!-- M1 小木桌宠：全站常驻（批次 D 正式集成，替换原 FloatingCompanion 入口球） -->
+    <XiaomuPet />
     <BadgeCelebration />
     <CrisisSupport />
   </div>
@@ -14,7 +15,7 @@
 <script setup>
 import AppNavbar from './components/AppNavbar.vue'
 import AppFooter from './components/AppFooter.vue'
-import FloatingCompanion from './components/FloatingCompanion.vue'
 import BadgeCelebration from './components/BadgeCelebration.vue'
 import CrisisSupport from './components/CrisisSupport.vue'
+import XiaomuPet from './companion/components/XiaomuPet.vue'
 </script>

@@ -26,3 +26,8 @@ mind-explorer-fix/
 
 # Build output
 dist/
+
+# Playwright CLI 验收产物（本地）
+.playwright-cli/
+# 临时日志/构建产物（本地）
+tmp-*.txt
