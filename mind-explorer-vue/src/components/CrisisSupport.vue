@@ -1,7 +1,7 @@
 <template>
   <Teleport to="body">
     <div
-      v-if="crisis.open"
+      v-if="crisis.visible"
       class="fixed inset-0 z-[200] flex items-center justify-center bg-black/40 px-4"
       @click.self="crisis.close()"
     >
