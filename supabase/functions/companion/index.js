@@ -105,6 +105,15 @@ const SB_PROFILE = 'user_profiles'
 const MEMORY_LIMIT = 12 // 加载最近 N 条作为上下文
 const memoryEnabled = !!(SUPABASE_URL && SUPABASE_SERVICE_KEY)
 
+// ---------- [PATCH-L5 2026-09-24] 注入预算硬上界（逐项核算见 M4-注入预算表.md）----------
+// 下列三项原先都没有任何长度约束，而它们要么直接进 system prompt，要么被持久化后反复重注入。
+// companion_messages.content / user_profiles.summary / user_profiles.nickname 在库里都是无约束
+// text，前端 maxlength 拦不住直连 API 的请求——服务端截断是最后一道防线。
+const MESSAGE_MAX = 500 // 单条用户消息（含客户端回退 history 的每条 content）
+const MESSAGE_SCAN_MAX = 2000 // 危机检测扫描上限（同 content 函数的 MOOD_NOTE_SCAN_MAX 口径）
+const NICKNAME_MAX = 20 // 昵称（注入 prompt / 问候语，并落库）
+const SUMMARY_MAX = 80 // 画像简记（模型侧软约束「≤60 字」，这里给硬上界）
+
 const CORS = {
   'Access-Control-Allow-Origin': '*',
   // 前端跨域调用会带 apikey / Authorization（verify_jwt），预检必须放行
@@ -178,7 +187,7 @@ const COGNITIVE_PRISM = [
 // 三层结构（对应投喂文档）：核心人格(CORE_PERSONA) + 记忆底色(META_MEMORIES 长上下文内化)
 // + 内心回响(recallMemories 关键词锚点动态召回) + 关于这位用户(画像/长期记忆)
 // + 认知棱镜(0010，思维习惯层，叠加于以上全部之上)
-function buildSystemPrompt({ recallEchoes = [], profile = null, todayMoods = [] }) {
+function buildSystemPrompt({ recallEchoes = [], profile = null, todayMoods = [], historyTimeline = '' }) {
   const parts = [CORE_PERSONA]
 
   // 每日心境（全球同一天是同一个状态）：人味随机性的来源，与边界规则联动
@@ -276,6 +285,20 @@ function buildSystemPrompt({ recallEchoes = [], profile = null, todayMoods = [] 
     parts.push(stageNote)
   }
 
+  // 0013：对话时间轴——让小木对「多久没见」有真实感知
+  // [PATCH-L3b 2026-09-24] 放在「关于这位用户」之后、「内心回响」之前：
+  //   时间感属于「关系上下文」的一部分，与画像同族；放在回响之前是因为回响是
+  //   收束向的内容，不该被夹在中间。恒定 ≤30 字（时间轴）+ 约 65 字（说明）= 约 95 字，
+  //   已登记进注入预算表。
+  if (historyTimeline) {
+    parts.push(
+      '\n[对话时间]\n' +
+        historyTimeline +
+        '。你能自然感到时间过去了多久，但不必刻意提起，也不要每次都复习时间；' +
+        '用户说「上次」「前几天」「好久没聊」时，指的就是这段历史里的内容。',
+    )
+  }
+
   // 内心回响——根据解锁状态允许或禁止说出口
   if (recallEchoes && recallEchoes.length) {
     const hint = canUnlock
@@ -336,7 +359,8 @@ async function updateSummary(userId, userMsg, assistantMsg, prevSummary) {
     await fetch(`${SUPABASE_URL}/rest/v1/${SB_PROFILE}?on_conflict=user_identifier`, {
       method: 'POST',
       headers: { ...sbHeaders(), Prefer: 'resolution=merge-duplicates,return=minimal' },
-      body: JSON.stringify({ user_identifier: userId, summary: text, updated_at: new Date().toISOString() }),
+      // [PATCH-L5d 2026-09-24] 落库前也截断：模型侧只是「≤60 字」的软约束，硬上界放这里。
+      body: JSON.stringify({ user_identifier: userId, summary: text.slice(0, SUMMARY_MAX), updated_at: new Date().toISOString() }),
       signal: AbortSignal.timeout(8000),
     })
   } catch (e) {
@@ -358,11 +382,81 @@ function sbHeaders() {
 }
 
 async function loadRecentMessages(userId) {
-  const url = `${SUPABASE_URL}/rest/v1/${SB_MSG}?select=role,content&user_identifier=eq.${encodeURIComponent(userId)}&order=created_at.desc&limit=${MEMORY_LIMIT}`
+  // [PATCH-L3b 2026-09-24] 加取 created_at：模型需要时间刻度才能理解「上次」「好久没来」。
+  //   下游 buildHistoryTimeline 消费；history action 仍只回吐 role/content，前端契约不变。
+  const url = `${SUPABASE_URL}/rest/v1/${SB_MSG}?select=role,content,created_at&user_identifier=eq.${encodeURIComponent(userId)}&order=created_at.desc&limit=${MEMORY_LIMIT}`
   const res = await fetch(url, { headers: sbHeaders(), signal: AbortSignal.timeout(8000) })
   if (!res.ok) return []
   const rows = await res.json()
   return Array.isArray(rows) ? rows.reverse() : [] // 反转为时间正序
+}
+
+// ---------- 对话时间轴：让小木对「多久没见」有真实感知 ----------
+// [PATCH-L3b 2026-09-24] 此前 loadRecentMessages 只取 role/content，注入的历史没有任何
+//   时间刻度 → 用户说「上次我们聊的那个」「好久没来了」时，模型只能靠猜，
+//   甚至会把三天前的事说成「刚才」，把刚发生的事说成「上次」。
+//   现改为取 created_at 并注入一行压缩时间轴（≤30 字）。
+//
+//   刻意**不改写对话正文**（不在 role:'user' 的内容前贴 `[3天前]`）：
+//     ① 会污染对话语义，模型容易把时间戳当成用户原话的一部分；
+//     ② 前端 history 回放（action:'history'）拿不到同样标记，同一段对话两处展示不一致；
+//     ③ 时间戳贴在正文里会被模型在回复中复述出来（「你三天前说过」）——我们只想让它
+//        *知道*，不想让它*播报*。
+//   时区沿用本项目既有约定：UTC+8 固定偏移（同 loadRecentMoods / generateGreeting）。
+//   注意 CN_TZ_OFFSET 只用于判断「跨了几个自然日」，毫秒差不受时区影响。
+const HISTORY_TIMELINE_MAX = 30
+const CN_TZ_OFFSET = 8 * 3600 * 1000
+
+function cnDayIndex(ms) {
+  return Math.floor((ms + CN_TZ_OFFSET) / 86400000)
+}
+
+// 相对时间标签：只给人类说法（「3 天前」），不给绝对时间戳
+function relTimeLabel(thenMs, nowMs) {
+  const diff = nowMs - thenMs
+  if (diff < 0) return '刚刚' // 时钟漂移兜底
+  if (diff < 60 * 1000) return '刚刚'
+  const mins = Math.floor(diff / 60000)
+  if (mins < 60) return `${mins} 分钟前`
+  const hours = Math.floor(diff / 3600000)
+  if (hours < 24) return `${hours} 小时前`
+  const dayGap = cnDayIndex(nowMs) - cnDayIndex(thenMs)
+  if (dayGap <= 1) return '昨天'
+  if (dayGap < 30) return `${dayGap} 天前`
+  const months = Math.floor(dayGap / 30)
+  if (months < 12) return `${months} 个月前`
+  return '一年多以前'
+}
+
+// 生成压缩时间轴。返回 '' 表示无法确定（条目不足 / 缺时间戳 / 客户端回退路径）→ 调用方跳过注入。
+function buildHistoryTimeline(rows, nowMs = Date.now()) {
+  if (!Array.isArray(rows) || rows.length < 2) return ''
+  const times = []
+  for (const r of rows) {
+    if (!r || !r.created_at) continue
+    const t = new Date(r.created_at).getTime()
+    if (!Number.isNaN(t)) times.push(t)
+  }
+  if (times.length < 2) return ''
+  times.sort((a, b) => a - b)
+  const oldest = times[0]
+  const newest = times[times.length - 1]
+  const spanDays = cnDayIndex(newest) - cnDayIndex(oldest) + 1
+  const span = spanDays <= 1 ? '都在今天' : `这一段跨了 ${spanDays} 天`
+  const line = `上次说话：${relTimeLabel(newest, nowMs)} · ${span}`
+  return line.length > HISTORY_TIMELINE_MAX ? line.slice(0, HISTORY_TIMELINE_MAX) : line
+}
+
+// [PATCH-L5b 2026-09-24] 客户端回退 history 归一：除了限条数（与原 slice(-12) 等价，改用
+//   MEMORY_LIMIT 保持同步），还必须限单条长度——这段会原样进 messages 发给 LLM，原先不限。
+//   保留 created_at 透传：客户端将来若带上时间戳，buildHistoryTimeline 可直接复用。
+function normalizeClientHistory(arr) {
+  if (!Array.isArray(arr)) return []
+  return arr.slice(-MEMORY_LIMIT).map((h) => ({
+    role: h?.role === 'assistant' ? 'assistant' : 'user',
+    content: typeof h?.content === 'string' ? h.content.slice(0, MESSAGE_MAX) : '',
+    ...(h?.created_at ? { created_at: h.created_at } : {}),
+  }))
 }
 
 async function loadProfile(userId) {
@@ -370,7 +464,15 @@ async function loadProfile(userId) {
   const res = await fetch(url, { headers: sbHeaders(), signal: AbortSignal.timeout(8000) })
   if (!res.ok) return null
   const rows = await res.json()
-  return Array.isArray(rows) && rows[0] ? rows[0] : null
+  const row = Array.isArray(rows) && rows[0] ? rows[0] : null
+  if (!row) return null
+  // [PATCH-L5c 2026-09-24] 读取侧同样封顶：nickname / summary 都会注入 system prompt。
+  //   库里可能残留本补丁之前写入的超长值，故在注入前统一收口（写侧也已加约束，双保险）。
+  return {
+    ...row,
+    nickname: typeof row.nickname === 'string' ? row.nickname.slice(0, NICKNAME_MAX) : row.nickname,
+    summary: typeof row.summary === 'string' ? row.summary.slice(0, SUMMARY_MAX) : row.summary,
+  }
 }
 
 async function saveMessage(userId, role, content, emotion) {
@@ -812,6 +914,9 @@ Deno.serve(async (req) => {
     }
 
     const userId = (body.userId || '').toString().trim()
+    // [PATCH-L5c 2026-09-24] 昵称统一入口归一：nickname 会注入 system prompt 与问候语，并落
+    //   user_profiles.nickname。原先各处直接用 body.nickname，无任何长度约束。
+    const nickname = (body.nickname || '').toString().trim().slice(0, NICKNAME_MAX)
 
     // 人格记忆库导入（幂等 upsert；verify_jwt 已开启，仅持 anon JWT 可调；供迁移/运维用）
     if (body.action === 'import_seed') {
@@ -943,7 +1048,7 @@ Deno.serve(async (req) => {
       }
       try {
         const [moods, profile] = await Promise.all([loadRecentMoods(userId, 7), loadProfile(userId)])
-        const r = await generateGreeting({ moods, profile, nickname: body.nickname, useLLM: !!DEEPSEEK_API_KEY })
+        const r = await generateGreeting({ moods, profile, nickname, useLLM: !!DEEPSEEK_API_KEY })
         return json({ ok: true, greeting: r.greeting, date: r.date, personalized: true })
       } catch (e) {
         console.error('生成陪伴语失败:', e.message)
@@ -1007,10 +1112,16 @@ Deno.serve(async (req) => {
       return json({ ok: true, suggestion })
     }
 
-    const message = (body.message || '').toString().trim()
-    if (!message) return json({ error: '消息不能为空' }, 400)
+    // [PATCH-L5a 2026-09-24] 消息长度封顶：companion_messages.content 是无约束 text，一条超长
+    //   消息存库后会在 MEMORY_LIMIT=12 的窗口内被持续重新注入（一次写入、持续付费）。前端输入框
+    //   有 maxlength，但直连 API 可绕过——服务端截断是最后一道防线。
+    const rawMessage = (body.message || '').toString().trim()
+    if (!rawMessage) return json({ error: '消息不能为空' }, 400)
+    const message = rawMessage.slice(0, MESSAGE_MAX)
 
-    const crisis = detectCrisis(message)
+    // 危机检测用「截断前」原文（限 MESSAGE_SCAN_MAX 防超长 payload 拖慢 31 词全串 includes）：
+    // 若先截断再检测，第 501 字之后的高危词会被切掉 → 漏报（同 content 函数 mood note 的取舍）。
+    const crisis = detectCrisis(rawMessage.slice(0, MESSAGE_SCAN_MAX))
     const emotion = detectEmotion(message)
 
     // 组装上下文
@@ -1026,17 +1137,24 @@ Deno.serve(async (req) => {
         ])
       } catch (e) {
         console.error('加载记忆失败，回退客户端 history:', e.message)
-        historyMsgs = Array.isArray(body.history) ? body.history.slice(-12) : []
+        historyMsgs = normalizeClientHistory(body.history)
       }
     } else {
-      historyMsgs = Array.isArray(body.history) ? body.history.slice(-12) : []
+      historyMsgs = normalizeClientHistory(body.history)
     }
 
     // 组装小木内核 system prompt（核心人格 + 记忆底色 + 用户画像 + 今天的心情日记 + 内心回响）
     // 先确保 1000 条记忆种子已从数据库加载（模块级缓存，实例内只拉一次；失败降级无回响）
     await ensureMemoriesLoaded()
     const echo = recallMemories(message, emotion.key)
-    const systemPrompt = buildSystemPrompt({ recallEchoes: echo, profile, todayMoods })
+    // [PATCH-L3b 2026-09-24] historyTimeline：客户端回退路径（body.history）无 created_at
+    //   → buildHistoryTimeline 返回 ''，该段自动不注入，优雅降级。
+    const systemPrompt = buildSystemPrompt({
+      recallEchoes: echo,
+      profile,
+      todayMoods,
+      historyTimeline: buildHistoryTimeline(historyMsgs),
+    })
 
     const messages = [
       { role: 'system', content: systemPrompt },
@@ -1078,7 +1196,7 @@ Deno.serve(async (req) => {
           controller.close()
           // 注意：此处已在 controller.close() 之后 —— 客户端拿到 done 时持久化还没开始，
           // 所以 persistTurn（含每 6 轮一次的摘要 LLM 调用）不在用户可见关键路径上。
-          await persistTurn(userId, message, full, emotion, body.nickname, profile)
+          await persistTurn(userId, message, full, emotion, nickname, profile)
         },
       })
       return new Response(stream, {
@@ -1122,7 +1240,7 @@ Deno.serve(async (req) => {
         p.catch(() => {})
       }
     }
-    bg(persistTurn(userId, message, assistantText, emotion, body.nickname, profile))
+    bg(persistTurn(userId, message, assistantText, emotion, nickname, profile))
 
     return json({ reply: assistantText, crisis, emotion })
   } catch (e) {

@@ -102,7 +102,26 @@ const EMOTION_ANCHORS = {
   calm: [],
 }
 
-export function recallMemories(userText, emotionKey = '') {
+const RECALL_MAX = 5        // 每轮最多注入的内心回响条数
+const RECALL_STAGE_CAP = 2  // 同一人生阶段最多占几条（让回响铺开在不同阶段）
+
+/**
+ * [M4-L3a 2026-09-24] 重写候选收集与排序。原实现有两处缺陷：
+ *
+ *  1. 表序偏置：`filter(m => m.text.includes(w)).slice(0, 2)` —— 每个锚点词只取
+ *     「表中 n 最小的两条」。热门锚点词（如"妈妈""孤独"）因此**永远**只回想到
+ *     同样两条记忆，1000 条里绝大多数永远不会出现；用户多聊几轮就会觉得小木翻来覆去。
+ *  2. 无阶段多样性：同一次回响可能 5 条全落在同一个人生阶段，读起来像一段独白。
+ *
+ * 改法：先收全量命中候选（不再按词截断），得分只做粗排；**同分内用随机数打散**，
+ * 让同一锚点词在不同对话里回响不同记忆（更接近"联想"而非"查表"）；再加阶段上限
+ * 让回响分落在不同人生阶段，不足 5 条时按得分补齐。
+ *
+ * @param {string} userText 用户本轮输入
+ * @param {string} emotionKey 本轮情绪 key（可空）
+ * @param {() => number} rand 随机源（可注入，便于测试可复现）
+ */
+export function recallMemories(userText, emotionKey = '', rand = Math.random) {
   if (!userText || !userText.trim()) return []
   const text = userText
   // 直接命中词（用户明确提到）权重更高；情绪兜底词仅作补充
@@ -113,16 +132,45 @@ export function recallMemories(userText, emotionKey = '') {
   const all = [...direct, ...emotion]
   if (all.length === 0) return []
 
-  const seen = new Set()
-  const cand = []
+  // 收集全量命中候选：n -> { m, direct, emotion 命中次数 }
+  const mems = currentMemories() // 取一次，避免在词 × 记忆的双层循环里反复取引用
+  const pool = new Map()
   for (const w of all) {
-    const ms = currentMemories().filter((m) => m.text.includes(w)).slice(0, 2)
-    for (const m of ms) if (!seen.has(m.n)) { seen.add(m.n); cand.push(m) }
+    const isDirect = direct.includes(w)
+    for (const m of mems) {
+      if (!m.text.includes(w)) continue
+      let e = pool.get(m.n)
+      if (!e) { e = { m, direct: 0, emotion: 0 }; pool.set(m.n, e) }
+      if (isDirect) e.direct += 1
+      else e.emotion += 1
+    }
   }
-  // 相关性评分：直接命中词 ×2，情绪兜底词 ×1，得分越高越相关、越靠前
-  const scoreOf = (m) =>
-    direct.filter((w) => m.text.includes(w)).length * 2 +
-    emotion.filter((w) => m.text.includes(w)).length
-  cand.sort((a, b) => scoreOf(b) - scoreOf(a))
-  return cand.slice(0, 5).map((c) => c.text)
+  if (pool.size === 0) return []
+
+  // 相关性评分：直接命中词 ×2，情绪兜底词 ×1
+  // 排序键：得分降序 → 同分按随机数打散（原实现同分时按表序，即永远同一批）
+  const ranked = [...pool.values()].map((e) => ({ e, s: e.direct * 2 + e.emotion, r: rand() }))
+  ranked.sort((a, b) => (b.s - a.s) || (b.r - a.r))
+
+  // 阶段去重：同一 stage 最多 RECALL_STAGE_CAP 条（stage 为空则不设限）
+  const stageCount = new Map()
+  const picked = []
+  for (const { e } of ranked) {
+    if (picked.length >= RECALL_MAX) break
+    const st = (e.m.stage || '').trim()
+    if (st) {
+      const c = stageCount.get(st) || 0
+      if (c >= RECALL_STAGE_CAP) continue
+      stageCount.set(st, c + 1)
+    }
+    picked.push(e.m)
+  }
+  // 阶段上限导致不足时，按得分补齐
+  if (picked.length < RECALL_MAX) {
+    for (const { e } of ranked) {
+      if (picked.length >= RECALL_MAX) break
+      if (!picked.includes(e.m)) picked.push(e.m)
+    }
+  }
+  return picked.map((m) => m.text)
 }
