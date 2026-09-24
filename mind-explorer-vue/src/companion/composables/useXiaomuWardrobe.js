@@ -171,9 +171,50 @@ export function useXiaomuWardrobe(options = {}) {
     if (changed) saveUnlocks(unlocks)
   }
 
+  /**
+   * 采纳云端解锁记录（批次 N）。并集语义：解锁是单向的，并集只增不减，最安全。
+   * 里程碑时间戳取更早的那个。**不触发通知演出**——换台设备挂载就弹一堆解锁动画会很吵。
+   * @returns {boolean} 是否发生变化（需要回写 localStorage）
+   */
+  function adoptUnlocks(remote) {
+    let hit = false
+    const items = Array.isArray(remote?.items) ? remote.items : []
+    for (const id of items) {
+      if (typeof id === 'string' && !unlocks.items.includes(id)) {
+        unlocks.items.push(id)
+        hit = true
+      }
+    }
+    const ms = remote?.ms && typeof remote.ms === 'object' ? remote.ms : {}
+    for (const [k, v] of Object.entries(ms)) {
+      const t = Number(v)
+      if (!Number.isFinite(t)) continue
+      if (unlocks.ms[k] === undefined) { unlocks.ms[k] = t; hit = true }
+      else if (t < unlocks.ms[k]) { unlocks.ms[k] = t; hit = true }
+    }
+    if (hit) { saveUnlocks(unlocks); evaluateDays() }
+    return hit
+  }
+
+  /**
+   * 采纳云端累计天数（批次 N）。只增不减——同步不该让「用了 30 天」变成 3 天。
+   * @returns {boolean} 是否发生变化
+   */
+  function adoptActiveDays(remote) {
+    const d = Number(remote?.days)
+    if (!Number.isFinite(d) || d <= days.days) return false
+    days.days = Math.trunc(d)
+    if (typeof remote.last === 'string' && remote.last > days.last) days.last = remote.last
+    saveDays(days)
+    activeDays.value = days.days
+    evaluateDays()
+    return true
+  }
+
   function status() {
     return {
       activeDays: activeDays.value,
+      lastDay: days.last,          // 批次 N：同步需要「最近一次活跃的自然日」
       joyStayMs: joyStayMs.value,
       headPatCount: headPatCount.value,
       unlocked: [...unlocks.items],
@@ -210,6 +251,8 @@ export function useXiaomuWardrobe(options = {}) {
     ensureWornUnlocked,
     noteHeadPat,
     status,
+    adoptUnlocks,        // 批次 N：跨设备同步写回
+    adoptActiveDays,     // 批次 N
     debugSetDays,
     debugUnlock,
     debugMilestone,

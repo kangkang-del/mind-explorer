@@ -58,6 +58,7 @@
 import { ref } from 'vue'
 import { reportsApi } from '../api/reports'
 import { useAuthStore } from '../stores/auth'
+import { identifierOf } from '../lib/identity'
 
 const props = defineProps({
   open: { type: Boolean, default: false },
@@ -72,12 +73,11 @@ const reason = ref('')
 const detail = ref('')
 const submitting = ref(false)
 
+// 批次 M1：id 走身份真源；type 是举报表的 reporter_type（只区分 github/guest）
 function uidOf() {
   const u = auth.currentUser
   if (!u) return { id: null, type: null }
-  return u.type === 'github'
-    ? { id: `gh:${u.username}`, type: 'github' }
-    : { id: `g:${u.id}`, type: 'guest' }
+  return { id: identifierOf(u), type: u.type === 'github' ? 'github' : 'guest' }
 }
 
 async function submit() {

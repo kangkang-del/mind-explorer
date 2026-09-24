@@ -1,5 +1,9 @@
 // 同行者「小木」对话前端封装（0012：直连 Supabase Edge Function，真流式）
 //
+// 批次 M2：所有带 userId 的 action 都可附 `authToken`（会话令牌）。
+//   令牌由 content 函数的 auth.issueToken 签发，服务端据此校验「这个 userId 是不是你的」。
+//   参数可选：没有令牌时服务端过渡期仍按旧行为放行，所以这里不强制、不报错。
+//
 // streamChat 消费 companion 函数的 SSE（stream:true），逐帧回调：
 //   onMeta({ crisis, emotion })   首帧：危机/情绪
 //   onDelta(content)             内容增量（真流式：来一段显示一段）
@@ -15,13 +19,13 @@ const ENDPOINT = `${FUNCTIONS_BASE}/companion`
 
 export const companionApi = {
   // 拉取服务端最近对话（跨设备恢复）；无 userId 或未启用记忆时返回空
-  async getHistory(userId) {
+  async getHistory(userId, authToken) {
     if (!userId) return []
     try {
       const res = await fetch(ENDPOINT, {
         method: 'POST',
         headers: edgeHeaders(),
-        body: JSON.stringify({ action: 'history', userId }),
+        body: JSON.stringify({ action: 'history', userId, authToken }),
       })
       if (!res.ok) return []
       const data = await res.json()
@@ -32,13 +36,13 @@ export const companionApi = {
   },
 
   // 清空服务端记忆（用户点击「清空」时调用）
-  async clearHistory(userId) {
+  async clearHistory(userId, authToken) {
     if (!userId) return
     try {
       await fetch(ENDPOINT, {
         method: 'POST',
         headers: edgeHeaders(),
-        body: JSON.stringify({ action: 'clear', userId }),
+        body: JSON.stringify({ action: 'clear', userId, authToken }),
       })
     } catch {
       /* 忽略 */
@@ -46,13 +50,13 @@ export const companionApi = {
   },
 
   // 每日主动陪伴语（P5-2）：拉取当天基于心情/画像生成的问候
-  async getGreeting(userId) {
+  async getGreeting(userId, authToken) {
     if (!userId) return { ok: false }
     try {
       const res = await fetch(ENDPOINT, {
         method: 'POST',
         headers: edgeHeaders(),
-        body: JSON.stringify({ action: 'greeting', userId }),
+        body: JSON.stringify({ action: 'greeting', userId, authToken }),
       })
       return await res.json().catch(() => ({ ok: false }))
     } catch {
@@ -61,13 +65,13 @@ export const companionApi = {
   },
 
   // 情绪复盘（陪伴深度）：基于近 7 天心情生成一段回顾
-  async getRecap(userId) {
+  async getRecap(userId, authToken) {
     if (!userId) return { ok: false, reason: '未登录' }
     try {
       const res = await fetch(ENDPOINT, {
         method: 'POST',
         headers: edgeHeaders(),
-        body: JSON.stringify({ action: 'recap', userId }),
+        body: JSON.stringify({ action: 'recap', userId, authToken }),
       })
       return await res.json().catch(() => ({ ok: false }))
     } catch {
@@ -93,7 +97,7 @@ export const companionApi = {
   // 注意：fetch 不直接挂 AbortSignal，中止改为监听 signal 事件后手动 reader.cancel()
   // （保留「取消」语义，同时规避 Chromium 下带 signal 读 SSE 的行为差异，
   //  并使「流停滞超时」可用同一 cancel 路径打断挂起的 read()）
-  streamChat({ message, history = [], userId, nickname, onMeta, onDelta, onDone, onError, signal }) {
+  streamChat({ message, history = [], userId, nickname, authToken, onMeta, onDelta, onDone, onError, signal }) {
     const controller = new AbortController()
     const abort = signal || controller.signal
 
@@ -112,7 +116,7 @@ export const companionApi = {
         const res = await fetch(ENDPOINT, {
           method: 'POST',
           headers: edgeHeaders(),
-          body: JSON.stringify({ message, history, userId, nickname, stream: true }),
+          body: JSON.stringify({ message, history, userId, nickname, authToken, stream: true }),
         })
         resetStall()
 

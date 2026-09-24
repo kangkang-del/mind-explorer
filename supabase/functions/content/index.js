@@ -22,8 +22,30 @@
 //   report.submit / report.list [admin] / report.resolve [admin]
 //   feedback.submit / feedback.list [admin] / feedback.resolve [admin]
 //   sunny.push（每日 1 次，幂等；{force:true} 可强制重推）
+//   auth.issueToken / auth.verify / auth.migrate                        ← 批次 M 新增
+//   state.get / state.put / state.putSkin / state.clearSkin             ← 批次 N 新增
+//
+// 批次 M：身份与会话令牌（HMAC，详见 _shared/auth.js）
+//   会话令牌的「签发」放在本函数（content 是数据中转定位，且游客可直连，verify_jwt=false）
+//   签发必须带凭证（GitHub token / 游客密码哈希）；快速游客是本机生成的 id，首用即信。
+//   校验则分散在各函数里（companion 用同一份 _shared/auth.js）。
+//
+// 批次 N：小木跨设备同步（外观 / 解锁 / 天数 / 自定义形象图片）
+//   状态表 xiaomu_user_state（user_identifier 主键 + version 乐观锁 + payload jsonb）。
+//   皮肤图片存私有桶 xiaomu-skins，读写都经本函数用 service_role 中转
+//   （前端永远拿不到 Storage 密钥），读取时签发短时 URL。
 
 import { detectCrisis, crisisReply } from '../_shared/crisis.js'
+import {
+  signToken,
+  verifyToken,
+  guardOwner,
+  logGuard,
+  authEnabled,
+  RE_GITHUB_UID,
+  RE_GUEST_UID,
+  RE_QUICK_UID,
+} from '../_shared/auth.js'
 
 // ---------- 环境与常量 ----------
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? ''
@@ -44,7 +66,7 @@ const CORS = {
   // 同步 supabase-js 客户端每请求必带的非标头：x-client-info；前端的 fetch 虽未发，
   // 但放行列表宁多勿缺，避免浏览器对偶发 client-info 预检失败。
   'Access-Control-Allow-Headers':
-    'authorization, x-client-info, apikey, content-type, traceparent, tracestate, baggage',
+    'authorization, x-client-info, apikey, content-type, x-xm-token, traceparent, tracestate, baggage',
   'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
   // 预检结果缓存 1 小时，减少后续请求的 OPTIONS 往返
   'Access-Control-Max-Age': '3600',
@@ -126,6 +148,22 @@ async function sbDelete(table, filter) {
   })
   if (!res.ok && res.status !== 204) throw new Error(`删除 ${table} 失败 ${res.status}`)
 }
+// 需要知道「改了几行」时用（批次 M 身份迁移要汇报迁移条数）：
+// 与 sbPatch 同一实现，仅把 Prefer 换成 return=representation 以取回受影响行。
+async function sbPatchReturning(table, filter, patch) {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${cleanParams(filter).toString()}`, {
+    method: 'PATCH',
+    headers: { ...sbHeaders(), Prefer: 'return=representation' },
+    body: JSON.stringify(patch),
+    signal: AbortSignal.timeout(FETCH_T),
+  })
+  if (!res.ok) {
+    const txt = await res.text().catch(() => '')
+    throw new Error(`更新 ${table} 失败 ${res.status}: ${txt.slice(0, 200)}`)
+  }
+  const rows = await res.json().catch(() => [])
+  return Array.isArray(rows) ? rows.length : 0
+}
 
 // ---------- 作者解析 ----------
 function resolveAuthor(user = {}) {
@@ -134,6 +172,510 @@ function resolveAuthor(user = {}) {
     user_type: user.type || (user.token ? 'github' : 'guest'),
     avatar: user.avatar || null,
   }
+}
+
+// ==================== 身份与会话（批次 M / 原「补丁 D」） ====================
+// 服务端不存令牌（无状态）：签发靠 HMAC 签名，校验在 _shared/auth.js。
+// 前端在登录/注册成功后立刻换取令牌，此后所有带 userId 的请求都附上它。
+//
+// 三种身份的凭证强度（必须如实区分，不能一律「信前端说的 userId」）：
+//   gh:{login}   强 —— 拿 GitHub access_token 反过来问 api.github.com，比对 login
+//   g:{uuid}     强 —— 拿 username + passwordHash 查 guest_users 表，比对 uuid 与哈希
+//   g:g_xxxx     弱（首用即信）—— 本机生成的 id，无密码可言；签发令牌只是「把它变成
+//                可校验的会话」，并让用户有路径升级为正式账号（auth.migrate）。
+//                没有它，快速游客这条路就完全无凭据可用，等于没鉴权。
+
+/** 用 GitHub access_token 反查登录名（不信任前端传来的 username） */
+async function githubLoginOf(ghToken) {
+  const res = await fetch('https://api.github.com/user', {
+    headers: {
+      Authorization: `token ${ghToken}`,
+      'User-Agent': 'mind-explorer',
+      Accept: 'application/vnd.github+json',
+    },
+    signal: AbortSignal.timeout(8000),
+  })
+  if (!res.ok) {
+    const e = new Error(`GitHub 凭证校验失败（${res.status}）`)
+    e.status = 401
+    throw e
+  }
+  const u = await res.json().catch(() => null)
+  if (!u || !u.login) {
+    const e = new Error('GitHub 用户信息读取失败')
+    e.status = 401
+    throw e
+  }
+  return String(u.login)
+}
+
+async function issueToken(body) {
+  if (!authEnabled()) return { ok: false, error: '服务端未配置 HMAC_SECRET，会话令牌尚未启用' }
+  const userId = (body.userId || '').toString().trim()
+  if (!userId) return { ok: false, error: '缺少 userId' }
+  const proof = body.proof && typeof body.proof === 'object' ? body.proof : {}
+
+  let kind
+  if (RE_GITHUB_UID.test(userId)) {
+    const login = userId.slice(3)
+    const ghToken = (proof.ghToken || '').toString().trim()
+    if (!ghToken) return { ok: false, error: '缺少 GitHub 凭证' }
+    const real = await githubLoginOf(ghToken)
+    if (real.toLowerCase() !== login.toLowerCase()) return { ok: false, error: 'GitHub 身份不匹配' }
+    kind = 'github'
+  } else if (RE_GUEST_UID.test(userId)) {
+    const username = (proof.username || '').toString().trim().slice(0, 64)
+    const hash = (proof.passwordHash || '').toString().trim().toLowerCase()
+    if (!username || !/^[0-9a-f]{64}$/.test(hash)) return { ok: false, error: '缺少账号凭证' }
+    const rows = await sbSelect('guest_users', {
+      select: 'id,password_hash,is_banned',
+      username: `eq.${username}`,
+      limit: '1',
+    })
+    const row = rows[0]
+    if (!row) return { ok: false, error: '账号不存在' }
+    if (row.is_banned) return { ok: false, error: '账号已被封禁' }
+    if (String(row.id) !== userId.slice(2)) return { ok: false, error: '身份不匹配' }
+    if (String(row.password_hash || '').toLowerCase() !== hash) return { ok: false, error: '密码校验失败' }
+    kind = 'guest'
+  } else if (RE_QUICK_UID.test(userId)) {
+    kind = 'quick'
+  } else {
+    return { ok: false, error: '不支持的身份格式' }
+  }
+
+  const signed = await signToken(userId, kind)
+  return { ok: true, token: signed.token, exp: signed.exp, uid: signed.uid, kind: signed.kind }
+}
+
+async function verifySession(body) {
+  const raw = (body.authToken || '').toString()
+  if (!raw) return { ok: false }
+  const p = await verifyToken(raw)
+  if (!p) return { ok: false }
+  return { ok: true, uid: p.uid, kind: p.kind, exp: p.exp, expired: p.exp < Math.floor(Date.now() / 1000) }
+}
+
+/**
+ * 身份迁移：把本机快速游客（g:g_xxx）攒下的记忆，整体搬到刚注册的正式账号名下。
+ * —— 这是 M4「游客升级不丢记忆」的服务端半边；客户端半边是升级后清掉本地旧 id。
+ *
+ * 安全约束（三条都不能松）：
+ *   1. 必须持有「目标身份」的有效签名令牌 → 证明这个账号确实是调用者的；
+ *   2. 源必须是快速游客（g:g_xxx）、目标必须是已确权的正式账号（g:{uuid} 或 gh:{login}）
+ *      → **只允许从无密码的本机身份往外搬**，这样即使有人知道别人正式身份的 uuid/login
+ *      也搬不走他的记忆（那条路上他过不了令牌这一关）；
+ *   3. 只改 user_identifier，不动内容（画像遇主键冲突时合并计数与情绪轨迹）。
+ *
+ * 幂等：源已无数据时返回全 0；重复调用不会重复累加（源行已不存在）。
+ */
+async function migrateIdentity(body) {
+  if (!authEnabled()) return { ok: false, error: '服务端未配置 HMAC_SECRET，会话令牌尚未启用' }
+  const toUid = (body.userId || '').toString().trim()
+  const fromUid = (body.fromUid || '').toString().trim()
+  const migrated = { messages: 0, moods: 0, profile: 0 }
+  if (!toUid || !fromUid) return { ok: false, error: '缺少 userId / fromUid' }
+  if (toUid === fromUid) return { ok: true, skipped: true, migrated }
+
+  const payload = await verifyToken((body.authToken || '').toString())
+  if (!payload || payload.uid !== toUid) {
+    const e = new Error('需要目标账号的会话令牌')
+    e.status = 403
+    throw e
+  }
+  if (!RE_GUEST_UID.test(toUid) && !RE_GITHUB_UID.test(toUid)) {
+    const e = new Error('目标身份不是正式账号')
+    e.status = 403
+    throw e
+  }
+  if (!RE_QUICK_UID.test(fromUid)) {
+    const e = new Error('仅支持从本机游客身份迁移（防止搬走他人记忆）')
+    e.status = 403
+    throw e
+  }
+  if (!memoryEnabled) return { ok: true, migrated, note: '未启用存储' }
+
+  // 1) 对话记忆 —— 直接改归属
+  migrated.messages = await sbPatchReturning('companion_messages', { user_identifier: `eq.${fromUid}` }, { user_identifier: toUid })
+  // 2) 心情日记（用户主动记录的内容，跟着人走）
+  migrated.moods = await sbPatchReturning('mood_diary', { user_identifier: `eq.${fromUid}` }, { user_identifier: toUid })
+  // 3) 用户画像 —— 主键就是 user_identifier，目标已存在时必须「先合并、再删源」，否则主键冲突
+  const [src, dst] = await Promise.all([
+    sbSelect('user_profiles', { select: '*', user_identifier: `eq.${fromUid}`, limit: '1' }),
+    sbSelect('user_profiles', { select: '*', user_identifier: `eq.${toUid}`, limit: '1' }),
+  ])
+  const s = src[0]
+  const d = dst[0]
+  if (s && !d) {
+    await sbPatch('user_profiles', { user_identifier: `eq.${fromUid}` }, { user_identifier: toUid, updated_at: new Date().toISOString() })
+    migrated.profile = 1
+  } else if (s && d) {
+    const hist = Array.isArray(d.emotion_history) ? d.emotion_history : []
+    const shist = Array.isArray(s.emotion_history) ? s.emotion_history : []
+    await sbPatch('user_profiles', { user_identifier: `eq.${toUid}` }, {
+      message_count: (Number(d.message_count) || 0) + (Number(s.message_count) || 0),
+      last_emotion: d.last_emotion || s.last_emotion || null,
+      emotion_history: [...hist, ...shist].slice(-50),
+      summary: d.summary || s.summary || null,
+      nickname: d.nickname || s.nickname || null,
+      updated_at: new Date().toISOString(),
+    })
+    await sbDelete('user_profiles', { user_identifier: `eq.${fromUid}` })
+    migrated.profile = 1
+  }
+  return { ok: true, from: fromUid, to: toUid, migrated }
+}
+
+// ==================== 小木跨设备同步（批次 N） ====================
+//
+// 载体：xiaomu_user_state（user_identifier 主键 / version 乐观锁 / payload jsonb）
+// 写入用「filter 带 version」的原子 CAS：只有版本相符才命中，0 行受影响即 409。
+// 别用「先读再写」——两步之间另一个设备就能插进来，等于没锁。
+//
+// 皮肤图片：私有桶 xiaomu-skins，读写都经本函数（service_role），前端只拿签名 URL。
+// ⚠️ 两条必须守住的边界：
+//   ① payload 必须封顶 + 白名单（存储层也不能无界增长，且要防脏数据污染前端）
+//   ② skin.path 必须落在调用者自己的前缀下 —— 否则 A 可以把 path 指向 B 的对象，
+//      再让我们给他签一个能看 B 私有图片的 URL（IDOR）
+
+const STATE_PAYLOAD_MAX = 16 * 1024      // payload 序列化后字符上限
+const STATE_MAX_ITEMS = 64               // 解锁物品条数上限（ITEMS 现 10 件，留足余量）
+const STATE_MAX_MILESTONES = 32          // 里程碑条数上限
+const STATE_SKIN_BUCKET = 'xiaomu-skins'
+const STATE_SKIN_MAX_BYTES = 1024 * 1024 // 皮肤图片 1MB（前端已缩到 512px，通常 <200KB）
+const STATE_SKIN_SIGN_TTL = 3600         // 签名 URL 有效期（秒）
+const STATE_SKIN_TYPES = ['image/webp', 'image/png', 'image/jpeg']
+const STATE_TS_MAX = 4102444800000       // 2100-01-01，时间戳上界（防脏数据）
+
+const RE_ITEM_ID = /^[a-z0-9-]{1,32}$/
+const RE_DAY_KEY = /^\d{8}$/
+
+const clampInt = (v, min, max, dflt) => {
+  const n = Number(v)
+  if (!Number.isFinite(n)) return dflt
+  return Math.min(max, Math.max(min, Math.trunc(n)))
+}
+
+/** 身份 id → 路径安全段（Storage 对象键不接受 ':' 等字符；同时做长度封顶） */
+const safeSeg = (uid) => String(uid || '').replace(/[^A-Za-z0-9._-]/g, '_').slice(0, 80)
+
+/**
+ * 数据类 action 的所有权校验 —— 与 companion 的 ownerCheck 同源。
+ * 抛出的错误带 status，由入口 catch 统一转 JSON（content 的风格是 throw 而非 return Response）。
+ */
+async function ownerDeny(userId, token, tag = 'content') {
+  const g = await guardOwner({ userId, token })
+  logGuard(g.mode, g.reason, userId, tag)
+  if (g.ok) return String(userId || '').trim()
+  const e = new Error('身份校验失败')
+  e.status = 403
+  e.reason = g.reason
+  throw e
+}
+
+// ---------- payload 净化（白名单 + 封顶） ----------
+
+function sanitizePrefs(raw) {
+  const out = {}
+  if (!raw || typeof raw !== 'object') return out
+  if (raw.variant === 'wood' || raw.variant === 'dog' || raw.variant === 'custom') out.variant = raw.variant
+  const w = raw.wear
+  if (w && typeof w === 'object') {
+    const wear = {}
+    for (const slot of ['hat', 'scarf', 'bow']) {
+      const v = w[slot]
+      if (typeof v === 'string' && RE_ITEM_ID.test(v)) wear[slot] = v
+    }
+    if (Object.keys(wear).length) out.wear = wear
+  }
+  if (raw.pos === null) out.pos = null
+  else if (raw.pos && typeof raw.pos === 'object') {
+    const x = Number(raw.pos.x)
+    const y = Number(raw.pos.y)
+    if (Number.isFinite(x) && Number.isFinite(y)) out.pos = { x: clampInt(x, -100000, 100000, 0), y: clampInt(y, -100000, 100000, 0) }
+  }
+  if (typeof raw.collapsed === 'boolean') out.collapsed = raw.collapsed
+  if (typeof raw.dnd === 'boolean') out.dnd = raw.dnd
+  return out
+}
+
+function sanitizeUnlocks(raw) {
+  const out = {}
+  if (!raw || typeof raw !== 'object') return out
+  if (Array.isArray(raw.items)) {
+    const uniq = new Set()
+    for (const v of raw.items) {
+      if (typeof v !== 'string' || !RE_ITEM_ID.test(v)) continue
+      uniq.add(v)
+      if (uniq.size >= STATE_MAX_ITEMS) break
+    }
+    out.items = [...uniq]
+  }
+  if (raw.ms && typeof raw.ms === 'object') {
+    const ms = {}
+    for (const [k, v] of Object.entries(raw.ms)) {
+      if (!RE_ITEM_ID.test(k)) continue
+      const t = Number(v)
+      if (!Number.isFinite(t)) continue
+      ms[k] = clampInt(t, 0, STATE_TS_MAX, 0)
+      if (Object.keys(ms).length >= STATE_MAX_MILESTONES) break
+    }
+    out.ms = ms
+  }
+  return out
+}
+
+function sanitizeActiveDays(raw) {
+  if (!raw || typeof raw !== 'object') return undefined
+  return {
+    days: clampInt(raw.days, 0, 100000, 0),
+    last: typeof raw.last === 'string' && RE_DAY_KEY.test(raw.last) ? raw.last : '',
+  }
+}
+
+/** 皮肤元数据：path 必须落在自己的前缀下（见文件段首 ⚠️②） */
+function sanitizeSkinMeta(raw, uid) {
+  if (!raw || typeof raw !== 'object') return undefined
+  const path = typeof raw.path === 'string' ? raw.path : ''
+  if (!path || !path.startsWith(`${safeSeg(uid)}/`)) return undefined
+  const type = STATE_SKIN_TYPES.includes(raw.type) ? raw.type : ''
+  if (!type) return undefined
+  return {
+    path: path.slice(0, 160),
+    w: clampInt(raw.w, 1, 4096, 0),
+    h: clampInt(raw.h, 1, 4096, 0),
+    type,
+    at: clampInt(raw.at, 0, STATE_TS_MAX, 0),
+  }
+}
+
+function sanitizeState(raw, uid) {
+  const src = raw && typeof raw === 'object' ? raw : {}
+  const out = {}
+  const prefs = sanitizePrefs(src.prefs)
+  if (Object.keys(prefs).length) out.prefs = prefs
+  const unlocks = sanitizeUnlocks(src.unlocks)
+  if (Object.keys(unlocks).length) out.unlocks = unlocks
+  const ad = sanitizeActiveDays(src.activeDays)
+  if (ad) out.activeDays = ad
+  const skin = sanitizeSkinMeta(src.skin, uid)
+  if (skin) out.skin = skin
+  return out
+}
+
+// ---------- Storage（私有桶，全部经 service_role 中转） ----------
+
+const storageObjUrl = (path) =>
+  `${SUPABASE_URL}/storage/v1/object/${STATE_SKIN_BUCKET}/${String(path).split('/').map(encodeURIComponent).join('/')}`
+
+async function storagePut(path, bytes, contentType) {
+  const res = await fetch(storageObjUrl(path), {
+    method: 'POST',
+    headers: {
+      apikey: SERVICE_KEY,
+      Authorization: `Bearer ${SERVICE_KEY}`,
+      'Content-Type': contentType,
+      'cache-control': 'max-age=3600',
+      'x-upsert': 'true',
+    },
+    body: bytes,
+    signal: AbortSignal.timeout(FETCH_T * 2),
+  })
+  if (!res.ok) {
+    const txt = await res.text().catch(() => '')
+    throw new Error(`上传形象图片失败 ${res.status}: ${txt.slice(0, 200)}`)
+  }
+}
+
+async function storageRemove(path) {
+  const res = await fetch(storageObjUrl(path), {
+    method: 'DELETE',
+    headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}` },
+    signal: AbortSignal.timeout(FETCH_T),
+  })
+  // 404 视为已不存在（幂等）
+  if (!res.ok && res.status !== 404) throw new Error(`删除形象图片失败 ${res.status}`)
+}
+
+/** 签发短时访问 URL。失败返回 ''——读状态不能因为签不出图 URL 而整体失败 */
+async function storageSign(path, ttlSec = STATE_SKIN_SIGN_TTL) {
+  try {
+    const res = await fetch(
+      `${SUPABASE_URL}/storage/v1/object/sign/${STATE_SKIN_BUCKET}/${String(path).split('/').map(encodeURIComponent).join('/')}`,
+      {
+        method: 'POST',
+        headers: sbHeaders(),
+        body: JSON.stringify({ expiresIn: ttlSec }),
+        signal: AbortSignal.timeout(FETCH_T),
+      },
+    )
+    if (!res.ok) return ''
+    const data = await res.json()
+    const rel = data?.signedURL || data?.signedUrl || ''
+    if (!rel) return ''
+    return rel.startsWith('http') ? rel : `${SUPABASE_URL}/storage/v1${rel}`
+  } catch {
+    return ''
+  }
+}
+
+/** 换扩展名后清掉同目录其它皮肤对象（webp/png/jpg 只保留一个），避免残渣 */
+async function storageRemoveSiblings(seg, keepPath) {
+  const others = ['webp', 'png', 'jpg']
+    .map((e) => `${seg}/skin.${e}`)
+    .filter((p) => p !== keepPath)
+  await Promise.all(others.map((p) => storageRemove(p).catch(() => {})))
+}
+
+function b64ToBytes(b64) {
+  const clean = String(b64 || '').replace(/[^A-Za-z0-9+/=]/g, '')
+  const bin = atob(clean)
+  const out = new Uint8Array(bin.length)
+  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i)
+  return out
+}
+
+// ---------- action ----------
+
+async function stateGet(body) {
+  const userId = String(body.userId || '').trim()
+  await ownerDeny(userId, body.authToken, 'content.state')
+  if (!memoryEnabled) return { ok: true, exists: false, version: 0, payload: null, note: '未启用存储' }
+  const rows = await sbSelect('xiaomu_user_state', {
+    select: 'version,payload,updated_at',
+    user_identifier: `eq.${userId}`,
+    limit: '1',
+  })
+  const row = rows[0]
+  if (!row) return { ok: true, exists: false, version: 0, payload: null }
+  const payload = row.payload && typeof row.payload === 'object' ? row.payload : {}
+  // 皮肤元数据附带短时签名 URL，前端可直接 <img src>
+  const skin = payload.skin && payload.skin.path
+    ? { ...payload.skin, url: await storageSign(payload.skin.path) }
+    : null
+  return {
+    ok: true,
+    exists: true,
+    version: clampInt(row.version, 0, Number.MAX_SAFE_INTEGER, 0),
+    payload: skin ? { ...payload, skin } : payload,
+    updatedAt: row.updated_at || null,
+  }
+}
+
+async function statePut(body) {
+  const userId = String(body.userId || '').trim()
+  await ownerDeny(userId, body.authToken, 'content.state')
+  if (!memoryEnabled) return { ok: false, error: '未启用存储' }
+
+  const payload = sanitizeState(body.payload, userId)
+  if (JSON.stringify(payload).length > STATE_PAYLOAD_MAX) {
+    const e = new Error('同步数据过大')
+    e.status = 413
+    throw e
+  }
+
+  const clientVersion = clampInt(body.version, 0, Number.MAX_SAFE_INTEGER, 0)
+
+  // 1) 客户端说「服务端还没有」（version=0）→ 插入；已存在则是并发抢先，按冲突处理
+  if (!clientVersion) {
+    try {
+      const row = await sbInsert('xiaomu_user_state', {
+        user_identifier: userId,
+        version: 1,
+        payload,
+        updated_at: new Date().toISOString(),
+      })
+      return { ok: true, version: clampInt(row?.version, 1, Number.MAX_SAFE_INTEGER, 1), created: true }
+    } catch (err) {
+      if (/409|[Cc]onflict|duplicate key|23505/.test(String(err?.message || ''))) {
+        const e = new Error('同步版本冲突')
+        e.status = 409
+        throw e
+      }
+      throw err
+    }
+  }
+
+  // 2) 原子 CAS：filter 带 version，只有版本相符才命中
+  const next = clientVersion + 1
+  const hit = await sbPatchReturning(
+    'xiaomu_user_state',
+    { user_identifier: `eq.${userId}`, version: `eq.${clientVersion}` },
+    { version: next, payload, updated_at: new Date().toISOString() },
+  )
+  if (!hit) {
+    const e = new Error('同步版本冲突')
+    e.status = 409
+    throw e
+  }
+  return { ok: true, version: next }
+}
+
+async function statePutSkin(body) {
+  const userId = String(body.userId || '').trim()
+  await ownerDeny(userId, body.authToken, 'content.skin')
+  if (!memoryEnabled) return { ok: false, error: '未启用存储' }
+
+  // 接受 dataURL 或裸 base64；mime 优先取自 dataURL 前缀
+  const rawData = typeof body.data === 'string' ? body.data : ''
+  const m = /^data:(image\/[a-z+]+);base64,(.*)$/is.exec(rawData)
+  const type = (m ? m[1] : String(body.type || '')).toLowerCase()
+  if (!STATE_SKIN_TYPES.includes(type)) {
+    const e = new Error('请上传 png / jpg / webp 图片')
+    e.status = 400
+    throw e
+  }
+  const b64 = (m ? m[2] : rawData).replace(/\s+/g, '')
+  // 先按 base64 长度估算再解码：不能为了「拒绝」而先解一个几十 MB 的字符串
+  if (b64.length > Math.ceil((STATE_SKIN_MAX_BYTES * 4) / 3) + 64) {
+    const e = new Error('图片超过 1MB 上限')
+    e.status = 413
+    throw e
+  }
+  let bytes
+  try {
+    bytes = b64ToBytes(b64)
+  } catch {
+    const e = new Error('图片数据不是有效的 base64')
+    e.status = 400
+    throw e
+  }
+  if (!bytes.length) {
+    const e = new Error('图片数据为空')
+    e.status = 400
+    throw e
+  }
+  if (bytes.length > STATE_SKIN_MAX_BYTES) {
+    const e = new Error('图片超过 1MB 上限')
+    e.status = 413
+    throw e
+  }
+
+  const seg = safeSeg(userId)
+  const ext = type === 'image/png' ? 'png' : type === 'image/jpeg' ? 'jpg' : 'webp'
+  const path = `${seg}/skin.${ext}`
+  await storagePut(path, bytes, type)
+  await storageRemoveSiblings(seg, path)
+
+  const skin = {
+    path,
+    w: clampInt(body.w, 1, 4096, 0),
+    h: clampInt(body.h, 1, 4096, 0),
+    type,
+    at: Date.now(),
+  }
+  return { ok: true, skin: { ...skin, url: await storageSign(path) } }
+}
+
+async function stateClearSkin(body) {
+  const userId = String(body.userId || '').trim()
+  await ownerDeny(userId, body.authToken, 'content.skin')
+  if (!memoryEnabled) return { ok: true, removed: 0 }
+  const seg = safeSeg(userId)
+  const marked = await Promise.all(
+    ['webp', 'png', 'jpg'].map((e) => storageRemove(`${seg}/skin.${e}`).then(() => 1).catch(() => 0)),
+  )
+  return { ok: true, removed: marked.reduce((a, b) => a + b, 0) }
 }
 
 // ==================== 帖子（community_posts） ====================
@@ -681,11 +1223,33 @@ Deno.serve(async (req) => {
         if (!LLM_API_KEY) return json({ ok: false, error: '未配置大模型 key' })
         return json(await runDailyPush(!!body.force))
 
+      // ---------- 身份与会话（批次 M） ----------
+      case 'auth.issueToken':
+        return json(await issueToken(body))
+      case 'auth.verify':
+        return json(await verifySession(body))
+      case 'auth.migrate':
+        return json(await migrateIdentity(body))
+
+      // ---------- 小木跨设备同步（批次 N） ----------
+      case 'state.get':
+        return json(await stateGet(body))
+      case 'state.put':
+        return json(await statePut(body))
+      case 'state.putSkin':
+        return json(await statePutSkin(body))
+      case 'state.clearSkin':
+        return json(await stateClearSkin(body))
+
       default:
         return json({ error: '无效的操作类型：' + action }, 400)
     }
   } catch (e) {
     console.error(`content ${action} 出错：`, e.message)
-    return json({ error: e.message || '操作失败' }, 500)
+    // e.status / e.reason 由业务显式抛出（如 403 越权、409 版本冲突、413 超限）；
+    // 未标注的一律按 500 处理
+    const out = { error: e.message || '操作失败' }
+    if (e.reason) out.reason = e.reason
+    return json(out, e.status || 500)
   }
 })

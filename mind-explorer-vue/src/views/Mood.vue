@@ -72,6 +72,7 @@ import { ref, computed, onMounted } from 'vue'
 import { moodApi } from '../api/mood'
 import { checkinsApi } from '../api/checkins'
 import { useAuthStore } from '../stores/auth'
+import { identifierOf } from '../lib/identity'
 import { useBadgeStore } from '../stores/badges'
 import { useCrisisStore } from '../stores/crisisStore'
 import { detectCrisis } from '../lib/crisis'
@@ -97,11 +98,7 @@ const LABEL = Object.fromEntries(MOODS.map((m) => [m.key, m.label]))
 const EMOJI = Object.fromEntries(MOODS.map((m) => [m.key, m.emoji]))
 const VAL = Object.fromEntries(MOODS.map((m) => [m.key, m.v]))
 
-const userId = computed(() => {
-  const u = auth.currentUser
-  if (!u) return ''
-  return u.type === 'github' ? `gh:${u.username}` : `g:${u.id}`
-})
+const userId = computed(() => identifierOf(auth.currentUser))
 const moodLabel = (k) => LABEL[k] || k
 const moodEmoji = (k) => EMOJI[k] || '🍃'
 function fmt(iso) {

@@ -219,17 +219,16 @@ import { useAuthStore } from '../stores/auth'
 import { useBadgeStore } from '../stores/badges'
 import { useCrisisStore } from '../stores/crisisStore'
 import { detectCrisis, crisisReply } from '../lib/crisis'
+import { useIdentity } from '../composables/useIdentity'
 
 const auth = useAuthStore()
 const badgesStore = useBadgeStore()
 const crisisStore = useCrisisStore()
-// 用户标识（服务端记忆用）：guest→g:{id}，github→gh:{username}；未登录为空（走本地 localStorage）
-const userId = computed(() => {
-  const u = auth.currentUser
-  if (!u) return ''
-  return u.type === 'github' ? `gh:${u.username}` : `g:${u.id}`
-})
-const userNickname = computed(() => auth.displayName || '')
+// 批次 M1：身份规则收敛到 useIdentity（唯一真源 src/lib/identity.js）。
+// 保留同名别名，使下方既有调用点无需逐个改写。
+const ident = useIdentity()
+const userId = ident.userId
+const userNickname = ident.nickname
 
 const STORAGE_KEY = 'xiaomu_history_v1'
 const MAX_HISTORY = 12
@@ -373,7 +372,7 @@ async function loadRecap() {
     await pushAssistant('先登录后，小木才能陪你看看这一周的心情～')
     return
   }
-  const data = await companionApi.getRecap(userId.value)
+  const data = await companionApi.getRecap(userId.value, ident.token())
   if (!data.ok) {
     await pushAssistant('小木暂时没能调出记录，稍后再试试。')
     return
@@ -436,7 +435,7 @@ async function loadGreeting() {
   if (!userId.value) return
   try {
     if (localStorage.getItem(GREETING_KEY) === todayKey()) return
-    const data = await companionApi.getGreeting(userId.value)
+    const data = await companionApi.getGreeting(userId.value, ident.token())
     if (data?.ok && data.greeting) {
       greeting.value = data.greeting
       localStorage.setItem(GREETING_KEY, todayKey())
@@ -492,7 +491,7 @@ function clearChat() {
   emotionEmoji.value = ''
   saveHistory()
   // 同步清空服务端记忆（若已登录且启用）
-  if (userId.value) companionApi.clearHistory(userId.value)
+  if (userId.value) companionApi.clearHistory(userId.value, ident.token())
 }
 
 function getHistory() {
@@ -530,6 +529,7 @@ async function sendText(text) {
     history,
     userId: userId.value,
     nickname: userNickname.value,
+    authToken: ident.token(),
     onMeta: (meta) => {
       if (meta.emotion) {
         emotionLabel.value = meta.emotion.label || ''
@@ -616,7 +616,7 @@ onMounted(async () => {
     if (!localStorage.getItem('companion_guides_hint')) showGuidesHint.value = true
   } catch {}
   if (!userId.value) return
-  const serverMsgs = await companionApi.getHistory(userId.value)
+  const serverMsgs = await companionApi.getHistory(userId.value, ident.token())
   if (serverMsgs && serverMsgs.length) {
     messages.splice(0, messages.length, ...serverMsgs.map((m) => ({ role: m.role, content: m.content })))
     saveHistory()

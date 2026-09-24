@@ -52,9 +52,11 @@
         <p class="xm-wd-hint">
           {{ prefs.variant === 'custom' && skin.hasSkin.value
             ? '帽子和围巾会像贴纸一样贴在你的图片上'
-            : '图片只保存在这台设备上，不会上传' }}
+            : skinHint }}
         </p>
+        <p class="xm-wd-sync" :class="`is-${sync.phase.value}`">{{ syncText }}</p>
         <p v-if="skin.error.value" class="xm-wd-err">{{ skin.error.value }}</p>
+        <p v-if="sync.cloudNote.value" class="xm-wd-err">{{ sync.cloudNote.value }}</p>
         <input ref="fileEl" class="xm-wd-file" type="file" accept="image/*" @change="onFile" />
       </div>
     </div>
@@ -75,6 +77,8 @@ import { SLOTS, itemsOf, unlockText } from '../core/wardrobe'
 import { useXiaomuPrefs } from '../composables/useXiaomuPrefs'
 import { useXiaomuWardrobe } from '../composables/useXiaomuWardrobe'
 import { useXiaomuSkin } from '../composables/useXiaomuSkin'
+import { useXiaomuSync } from '../composables/useXiaomuSync'
+import { useIdentity } from '../../composables/useIdentity'
 
 const props = defineProps({ open: Boolean })
 const emit = defineEmits(['close'])
@@ -82,6 +86,27 @@ const emit = defineEmits(['close'])
 const prefs = useXiaomuPrefs()
 const wd = useXiaomuWardrobe()   // 模块单例：XiaomuPet 已绑定 mind/onUnlock，此处共享
 const skin = useXiaomuSkin()     // 模块单例：与 XiaomuPet 共享同一份图片 URL
+const sync = useXiaomuSync()     // 模块单例（批次 N）：跨设备同步状态与降级提示
+const ident = useIdentity()
+
+/** 未登录时如实告知「只在本机」；登录后告知会跟着账号走 */
+const skinHint = computed(() =>
+  ident.userId.value
+    ? '图片会跟着账号同步，换设备也能看到'
+    : '图片只保存在这台设备上，登录后会跟着账号走'
+)
+
+/** 同步状态一行文案（批次 N）：让用户知道现在到底有没有存到云上 */
+const syncText = computed(() => {
+  if (!ident.userId.value) return '未登录 · 数据只存在这台设备'
+  const p = sync.phase.value
+  if (p === 'ready') return sync.lastSyncAt.value ? '已同步到账号' : '已就绪'
+  if (p === 'pulling') return '正在读取云端数据…'
+  if (p === 'syncing') return '正在保存到账号…'
+  if (p === 'degraded') return '暂时无法同步（网络或登录状态），本机改动不会丢'
+  if (p === 'error') return '同步遇到问题，稍后会自动重试'
+  return '待同步'
+})
 
 const slots = SLOTS
 const slot = ref('hat')
@@ -135,6 +160,8 @@ async function onFile(e) {
 }
 
 async function onClear() {
+  // 批次 N：除了清本地，还要把云端对象一并删掉 —— 否则换个设备还能看到「已清除」的图片
+  await sync.forgetSkin().catch(() => {})
   await skin.clear()
   if (prefs.variant === 'custom') prefs.variant = 'wood'
 }
@@ -237,6 +264,9 @@ onBeforeUnmount(() => removeEventListener('resize', clampPanel))
 .xm-wd-mini:hover, .xm-wd-upload:hover { background: #f0ece2; }
 .xm-wd-upload:disabled { opacity: .5; cursor: default; }
 .xm-wd-hint { font-size: 10px; line-height: 1.4; opacity: .5; margin: 6px 0 0; }
+.xm-wd-sync { font-size: 10px; line-height: 1.4; margin: 3px 0 0; opacity: .5; }
+.xm-wd-sync.is-ready { color: #4d7c0f; opacity: .8; }
+.xm-wd-sync.is-degraded, .xm-wd-sync.is-error { color: #c2410c; opacity: .85; }
 .xm-wd-err { font-size: 10px; line-height: 1.4; margin: 4px 0 0; color: #c2410c; }
 .xm-wd-file { display: none; }
 </style>

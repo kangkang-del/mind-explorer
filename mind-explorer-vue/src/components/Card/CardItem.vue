@@ -33,6 +33,7 @@ import { ref } from 'vue'
 import FavoriteButton from '../FavoriteButton.vue'
 import { userCardsApi } from '../../api/userCards'
 import { useAuthStore } from '../../stores/auth'
+import { identifierOf } from '../../lib/identity'
 
 const props = defineProps({
   card: { type: Object, required: true }
@@ -43,10 +44,9 @@ const hugs = ref(props.card.hugs || 0)
 const hugged = ref(!!props.card.hugged)
 const hugging = ref(false)
 
+// 批次 M1：身份规则真源 src/lib/identity.js（保留此处的 null 语义）
 function uidOf() {
-  const u = auth.currentUser
-  if (!u) return null
-  return u.type === 'github' ? `gh:${u.username}` : `g:${u.id}`
+  return identifierOf(auth.currentUser) || null
 }
 
 async function onHug() {

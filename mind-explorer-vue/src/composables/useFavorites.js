@@ -2,6 +2,7 @@
 import { reactive } from 'vue'
 import { favoritesApi } from '../api/favorites'
 import { useAuthStore } from '../stores/auth'
+import { identifierOf } from '../lib/identity'
 
 const state = reactive({ userId: null, loaded: false, favs: new Set() })
 const keyOf = (type, id) => `${type}:${id}`
@@ -9,10 +10,9 @@ const keyOf = (type, id) => `${type}:${id}`
 export function useFavorites() {
   const auth = useAuthStore()
 
+  // 批次 M1：身份规则真源 src/lib/identity.js（此前此处是第 4 份副本）
   function uidOf() {
-    const u = auth.currentUser
-    if (!u) return ''
-    return u.type === 'github' ? `gh:${u.username}` : `g:${u.id}`
+    return identifierOf(auth.currentUser)
   }
 
   async function ensureLoaded() {

@@ -110,7 +110,8 @@ import { useXiaomuMind } from '../composables/useXiaomuMind'
 import { useXiaomuProactive } from '../composables/useXiaomuProactive'
 import { useXiaomuWardrobe } from '../composables/useXiaomuWardrobe'
 import { useXiaomuSkin } from '../composables/useXiaomuSkin'
-import { useAuthStore } from '../../stores/auth'
+import { useXiaomuSync } from '../composables/useXiaomuSync'
+import { useIdentity } from '../../composables/useIdentity'
 import { ACTION } from '../core/actions'
 import { itemOf } from '../core/wardrobe'
 
@@ -120,6 +121,13 @@ const inputEl = ref(null)
 const prefs = useXiaomuPrefs()
 const skin = useXiaomuSkin()
 skin.load()   // 批次 J：首读 IndexedDB 恢复上次上传的自定义形象（幂等；隐私模式静默降级）
+
+/* 批次 M1：身份走单一实现（规则真源 src/lib/identity.js）。
+ * ident.auth 是 auth store（登录弹窗等 UI 仍需要它）。 */
+const ident = useIdentity()
+
+/* 批次 N：跨设备同步引擎（模块级单例）。衣柜面板也用它读 cloudNote/推送。 */
+const sync = useXiaomuSync()
 
 /** 渲染形态（批次 J）：选中 custom 但本机还没有图片时回落木灵，避免出现空白形象 */
 const effVariant = computed(() =>
@@ -265,6 +273,8 @@ const GREETINGS = [
 const CHIP_FACT = { key: 'fact', label: '讲个心理学小知识' }
 const CHIP_WARDROBE = { key: 'wardrobe', label: '换一身' }
 const CHIP_REST = { key: 'rest', label: '休息' }
+const CHIP_REGISTER = { key: 'register', label: '去登录' }   // M3/M4：身份引导
+const CHIP_LATER = { key: 'later', label: '以后再说' }
 const SORRY_LINES = [
   '刚才走神了，再说一遍好不好？',
   '唔……我这边愣了一下，可以再说一次吗？',
@@ -284,11 +294,11 @@ const EMOTION_SHOWS = {
   calm:     null,                                                           // 平静即日常
 }
 
-function openBubble(text, { mode = 'xomu', withChips = false } = {}) {
+function openBubble(text, { mode = 'xomu', withChips = false, chips = null } = {}) {
   bubble.visible = true
   bubble.mode = mode
   bubble.text = text
-  bubble.chips = withChips ? [CHIP_FACT, CHIP_WARDROBE, CHIP_REST] : null
+  bubble.chips = chips || (withChips ? [CHIP_FACT, CHIP_WARDROBE, CHIP_REST] : null)
   clearTimeout(bubbleFallback)
   bubbleFallback = setTimeout(() => { if (!chatOpen.value) bubble.visible = false }, 14000)
 }
@@ -312,6 +322,8 @@ function onChip(chip) {
   if (chip.key === 'fact') send(chip.label)
   else if (chip.key === 'wardrobe') openWardrobe()
   else if (chip.key === 'rest') collapse()
+  else if (chip.key === 'register') { bubble.visible = false; ident.auth.openLogin('register') }
+  else if (chip.key === 'later') bubble.visible = false
 }
 
 /* ---- M3 批次 I：换装面板开关（与气泡/聊天互斥） ---- */
@@ -427,6 +439,75 @@ const wardrobe = useXiaomuWardrobe({
 
 let pendingUnlockText = null
 
+/* ================= 批次 M3 / M4：身份引导与升级通知（一次性，不是主动搭话） =================
+ * 与 M2「主动搭话 4 触发器」的区别：那套是**小木有事想找你**（按每日上限节流）；
+ * 这里是**用户自己的身份状态需要被说明一次**（一设备一次，说完就不再提）。
+ * 共同点：同样遵守全部防打扰铁律 —— 免打扰不弹、聊天中不弹、气泡占用中不弹。 */
+
+const LOGIN_HINT_KEY = 'xm-login-hint-v1'   // 一设备一次
+const LOGIN_HINTS = [
+  '对了——登录一下，我就能一直记得你说过的话了，换台设备也还在。',
+  '悄悄说：登录之后，我说过的每句话都会替你存着，换设备也找得到我。',
+]
+const QUICK_HINT = '你现在是本机的临时身份，换设备就找不到我了。设个密码或登录一下，我就一直记得你。'
+
+let pendingHint = null   // 气泡被占用时暂存的「待投递动作」，等让路了再补弹
+
+/** 此刻能不能开口（复用防打扰铁律 1/2/3/4，另加收起态与面板占用） */
+function canSpeakNow() {
+  if (prefs.dnd) return false                                             // 铁律 1
+  if (collapsed.value) return false
+  if (chatOpen.value || chat.sending.value) return false                   // 铁律 2
+  if (wardrobeOpen.value || historyOpen.value) return false
+  if (bubble.visible) return false                                        // 铁律 3
+  if (typeof document !== 'undefined' && document.hidden) return false     // 铁律 4
+  return true
+}
+
+/**
+ * 投递一条一次性提示。被占用则挂起整个动作（而不是只挂起文案）——
+ * 关键：**「一设备一次」的标记必须写在真正投递的那一刻**，否则走补弹通道时
+ * 会漏标记，提示每次刷新都重复出现（实测踩过）。
+ * @param {Function} deliver 真正执行投递的闭包
+ * @returns {boolean} 本次是否已投递
+ */
+function showOnce(deliver) {
+  if (!canSpeakNow()) { pendingHint = deliver; return false }
+  pendingHint = null
+  deliver()
+  return true
+}
+
+/** 真正弹身份引导（读当前身份决定用哪句），弹完就标记「本设备已提示过」 */
+function deliverIdentityHint() {
+  const text = ident.isQuickGuest.value
+    ? QUICK_HINT
+    : LOGIN_HINTS[Math.floor(Math.random() * LOGIN_HINTS.length)]
+  sm.playAction(ACTION.LEAN_IN)
+  openBubble(text, { chips: [CHIP_REGISTER, CHIP_LATER] })
+  try { localStorage.setItem(LOGIN_HINT_KEY, '1') } catch { /* 隐私模式：静默 */ }
+}
+
+/** M3/M4：未登录 → 「登录后我才能记住你」；本机临时身份 → 「换个能跨设备的身份」 */
+function maybeIdentityHint() {
+  if (ident.isLoggedIn.value && !ident.isQuickGuest.value) return   // 已是正式身份，无需打扰
+  try {
+    if (localStorage.getItem(LOGIN_HINT_KEY)) return                // 一设备一次
+  } catch { /* 隐私模式：读不到就按「没提示过」处理，会重复 —— 可接受 */ }
+  showOnce(deliverIdentityHint)
+}
+
+/** M4：游客升级成功后告知结果 —— 「记忆已跟着走」这件事必须让用户知道，否则功能等于不存在 */
+function announceUpgrade(u) {
+  const n = Number(u?.migrated?.messages) || 0
+  showOnce(() => {
+    sm.playAction(ACTION.JUMP_JOY)
+    openBubble(n > 0
+      ? `我把你之前在这里聊过的 ${n} 条记录接到新账号上了 —— 以后换设备也找得到我。`
+      : '新账号连好了 —— 以后换设备也找得到我。')
+  })
+}
+
 onMounted(() => {
   wardrobe.ensureActiveDay()   // 保底轨：新的一天 +1（同一天幂等）
   // 老用户既得保留：旧布尔 prefs 迁移后穿着中的非免费物品，静默补解锁记录
@@ -434,14 +515,6 @@ onMounted(() => {
 })
 
 /* ================= M2 批次 F：主动搭话（有由头才开口） ================= */
-
-/* 登录用户 id：与 useChat 同款规则（guest→g:{id}，github→gh:{username}，未登录 ''） */
-const auth = useAuthStore()
-const chatUserId = computed(() => {
-  const u = auth.currentUser
-  if (!u) return ''
-  return u.type === 'github' ? `gh:${u.username}` : `g:${u.id}`
-})
 
 const proactive = useXiaomuProactive({
   prefs,
@@ -453,12 +526,22 @@ const proactive = useXiaomuProactive({
     sm.playAction(ACTION.LEAN_IN)   // 凑近开口
     openBubble(text)
   },
-  userId: () => chatUserId.value,
+  userId: () => ident.userId.value,
+  authToken: () => ident.token(),
 })
 
-/* 触发时机一：页面加载稳定后（铁律 6 的 3s 由挂载时机保证） */
+/* 触发时机一：页面加载稳定后（铁律 6 的 3s 由挂载时机保证）
+ * 批次 M3：身份引导**串在**这一轮之后 —— maybeFire 内部含一次 greeting 网络往返，
+ * 若并行发起，身份提示会先占住气泡、再被刚返回的问候语顶掉（实测复现过：
+ * 提示被标记为「已展示」但用户根本没看到）。await 之后 bubble.visible 已落定，
+ * 让路逻辑才真正生效。 */
 onMounted(() => {
-  setTimeout(() => proactive.maybeFire('mount'), 3000)
+  setTimeout(async () => {
+    try {
+      await proactive.maybeFire('mount')
+    } catch { /* 主动搭话失败不影响身份引导 */ }
+    maybeIdentityHint()   // M3/M4：用户自己的身份状态需要被说明一次
+  }, 3000)
 })
 
 /* 触发时机二：气泡关闭后重判一次（铁律 3 的「推迟」在此落地）+ M3 解锁通知补弹 */
@@ -471,9 +554,33 @@ watch(() => bubble.visible, (v) => {
       openBubble(t)
       return
     }
+    if (pendingHint) {                    // M3/M4：身份提示/升级通知让路后补弹
+      const deliver = pendingHint
+      pendingHint = null
+      if (canSpeakNow()) deliver()        // 期间又不可说了（如刚开免打扰）→ 继续等下次
+      else pendingHint = deliver
+      return
+    }
     proactive.maybeFire('bubble-closed')
   }
 })
+
+/* 触发时机三（批次 M）：身份落定后 —— 静默续签令牌。
+ * 身份引导不在这里排期：它必须排在 3s 那轮主动搭话（含网络往返）之后，见触发时机一。 */
+onMounted(() => {
+  ident.ensureToken()                                  // M2：永不抛、不阻塞
+})
+
+/* 批次 N：跨设备同步 —— 身份落定后静默拉取并把远端状态合并进本地。
+ * 永不抛、不阻塞；未登录 / 后端未部署 / 断网一律自动降级为纯本地。
+ * 身份变化（登录、升级、退出）由引擎内部 watch 身份自行重跑，这里只负责首次触发。 */
+onMounted(() => {
+  sync.init().catch(() => {})
+})
+
+/* M4：升级结果可能在桌宠挂载前后落定，两条路都要接住 */
+watch(() => ident.auth.lastUpgrade, (u) => { if (u) announceUpgrade(u) })
+onMounted(() => { if (ident.auth.lastUpgrade) announceUpgrade(ident.auth.lastUpgrade) })
 
 /* ================= 收起 / 唤出（小嫩芽）与入场动画 ================= */
 

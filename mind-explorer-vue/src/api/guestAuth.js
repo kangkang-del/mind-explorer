@@ -3,7 +3,10 @@
  * 不再直连 Supabase，不再暴露 publishable key；password_hash 由服务端持有，前端拿不到。
  *
  * 安全模型（与历史一致）：密码在前端做 SHA-256 哈希后发送，服务端只存储/比对哈希值。
+ *
+ * 批次 M2 新增：登录/注册成功后就地换取 Edge 会话令牌（见 issueSession）。
  */
+import { xmAuth } from './xiaomuAuth'
 
 const ENDPOINT = '/.netlify/functions/guest-auth'
 
@@ -28,11 +31,26 @@ async function call(action, payload = {}) {
   return data
 }
 
+/**
+ * 批次 M2：登录/注册成功的这一刻，是**唯一**能向服务端证明「这个 uuid 归我」的时机
+ * ——此刻手里才有刚算出的密码哈希。所以就在这里顺手把会话令牌换回来，之后 30 天
+ * 所有带 userId 的请求都附上它；哈希本身不留存、不落盘。
+ * 必须 await：后续的「游客升级迁移」要用这个令牌当凭证，不能让它和迁移赛跑。
+ * 失败不影响登录本身（令牌是增强，不是前置条件）。
+ */
+async function issueSession(user, passwordHash) {
+  if (!user?.id || !user?.username) return
+  try {
+    await xmAuth.signForGuest(`g:${user.id}`, user.username, passwordHash)
+  } catch { /* 静默：无令牌时服务端过渡期仍按旧行为放行 */ }
+}
+
 export const guestAuthApi = {
   // 注册新游客账号
   async register(username, password, displayName) {
     const passwordHash = await hashPassword(password)
     const data = await call('register', { username, passwordHash, displayName })
+    await issueSession(data.user, passwordHash)
     return data.user
   },
 
@@ -40,6 +58,7 @@ export const guestAuthApi = {
   async login(username, password) {
     const passwordHash = await hashPassword(password)
     const data = await call('login', { username, passwordHash })
+    await issueSession(data.user, passwordHash)
     return data.user
   },
 

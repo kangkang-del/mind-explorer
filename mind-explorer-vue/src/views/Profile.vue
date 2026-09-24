@@ -196,6 +196,7 @@
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useAuthStore } from '../stores/auth'
+import { identifierOf } from '../lib/identity'
 import { useBadgeStore } from '../stores/badges'
 import { useTrustedContactsStore } from '../stores/trustedContacts'
 import { favoritesApi } from '../api/favorites'
@@ -255,10 +256,9 @@ function typeLabel(t) {
   return { moment: '治愈瞬间', post: '社区帖', card: '知识卡', quote: '小木语录' }[t] || t
 }
 
+// 批次 M1：身份规则真源 src/lib/identity.js
 function uidOf() {
-  const u = auth.currentUser
-  if (!u) return ''
-  return u.type === 'github' ? `gh:${u.username}` : `g:${u.id}`
+  return identifierOf(auth.currentUser)
 }
 
 async function loadData() {

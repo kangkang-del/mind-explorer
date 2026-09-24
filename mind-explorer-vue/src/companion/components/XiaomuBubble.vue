@@ -242,6 +242,10 @@ defineExpose({ skipTyping, typing, beginStream, pushChunk, endStream, abortStrea
   bottom: calc(100% + 14px);
   left: 50%;
   transform: translateX(-50%);
+  /* 批次 M3：长文案（身份引导约 40 字）会被压成 6 行以上 —— 根因是绝对定位 + left:50%
+   * 时 shrink-to-fit 的「可用宽度」按 容器宽 − left 计算，只有几十像素，max-width 根本没机会生效。
+   * width:max-content 把宽度基准换成内容首选宽，再由 max-width 正常封顶。 */
+  width: max-content;
   max-width: min(240px, 68vw);
   background: #fff;
   border: 1.5px solid var(--xm-line, #2b2b2b);

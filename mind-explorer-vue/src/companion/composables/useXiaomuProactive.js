@@ -78,6 +78,7 @@ export function useXiaomuProactive(options = {}) {
     isBubbleVisible = () => false,
     deliver = () => {},  // (text) => void：演出（动作 + 气泡）
     userId = () => '',   // 登录用户 id（greeting 用）
+    authToken = () => '', // 会话令牌（M2；服务端据此校验该 userId 是否属于调用者）
   } = options
 
   const bootAt = Date.now()
@@ -90,7 +91,7 @@ export function useXiaomuProactive(options = {}) {
       id: 'daily-greeting', priority: 10, cooldown: COOLDOWN_DAY,
       when: () => !!userId(),
       build: async () => {
-        const r = await companionApi.getGreeting(userId()).catch(() => null)
+        const r = await companionApi.getGreeting(userId(), authToken()).catch(() => null)
         const text = r && r.ok && typeof r.greeting === 'string' ? r.greeting.trim() : ''
         return { text: text || FALLBACK_GREETING }
       },

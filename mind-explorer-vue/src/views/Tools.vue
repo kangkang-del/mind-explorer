@@ -99,6 +99,7 @@
 <script setup>
 import { reactive, ref, computed, onBeforeUnmount, watch } from 'vue'
 import { useAuthStore } from '../stores/auth'
+import { identifierOf } from '../lib/identity'
 import { checkinsApi } from '../api/checkins'
 
 const auth = useAuthStore()
@@ -196,7 +197,7 @@ const groundInputs = reactive(groundSteps.map((s) => Array(s.count).fill('')))
 function tryCheckin() {
   const u = auth.currentUser
   if (!u) return
-  const uid = u.type === 'github' ? `gh:${u.username}` : `g:${u.id}`
+  const uid = identifierOf(u)
   checkinsApi.checkin({ userId: uid, source: 'practice' }).catch(() => {})
 }
 // 接地练习中任意输入有内容即视为一次练习打卡（仅首次触发）

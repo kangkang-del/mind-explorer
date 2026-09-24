@@ -64,6 +64,7 @@ import { ref, onMounted } from 'vue'
 import { userCardsApi } from '../../api/userCards'
 import { reportsApi } from '../../api/reports'
 import { useAuthStore } from '../../stores/auth'
+import { identifierOf } from '../../lib/identity'
 import FavoriteButton from '../../components/FavoriteButton.vue'
 import ReportDialog from '../../components/ReportDialog.vue'
 
@@ -79,10 +80,9 @@ const reportOpen = ref(false)
 function statusText(s) {
   return { pending: '审核中', approved: '已通过', rejected: '已拒绝' }[s] || s
 }
+// 批次 M1：身份规则真源 src/lib/identity.js（保留此处的 null 语义，调用点按 falsy 判断）
 function uidOf() {
-  const u = auth.currentUser
-  if (!u) return null
-  return u.type === 'github' ? `gh:${u.username}` : `g:${u.id}`
+  return identifierOf(auth.currentUser) || null
 }
 
 async function onHug() {

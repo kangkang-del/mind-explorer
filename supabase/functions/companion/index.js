@@ -22,6 +22,13 @@
 //   { action: 'recap', userId }             // 近 7 天情绪复盘
 //   { action: 'cbt', ... }                  // CBT 认知重构引导
 //   { action: 'diag' }                      // 运维诊断：探测各候选模型连通性（不写库）
+//
+// 身份校验（批次 M，详见 _shared/auth.js）：
+//   除 diag / import_seed 外，所有带 userId 的路径（主对话 + history / clear / recap /
+//   greeting / cbt）都过 ownerCheck：会话令牌签名有效且 uid 一致才放行；无令牌保留旧行为
+//   （过渡期），令牌无效或 uid 不一致回 403。HMAC_SECRET 未配置时整层不启用。
+//   令牌来源：header `x-xm-token` 优先，回退请求体 `authToken`；由 content 函数的
+//   auth.issueToken 签发。
 // 响应：默认一次性 JSON（打字机由前端实现）。请求体带 stream:true 时返回 SSE 流
 //   （Content-Type: text/event-stream），帧格式：
 //     data: {"type":"meta","emotion":{...},"crisis":bool}   首帧：情绪与危机标记
@@ -57,6 +64,8 @@
 import { detectCrisis, crisisReply } from '../_shared/crisis.js'
 // 小木内核：核心人格 / 长上下文内化底色 / 关键词锚点召回 / 记忆库加载与导入
 import { CORE_PERSONA, META_MEMORIES, recallMemories, ensureMemoriesLoaded, importMemories } from '../_shared/xiaomu_seed.js'
+// 身份所有权守卫（批次 M）：堵住「改个 userId 就能读/清别人记忆」的 IDOR
+import { guardOwner, readToken, logGuard } from '../_shared/auth.js'
 
 const DEEPSEEK_API_KEY = Deno.env.get('DEEPSEEK_API_KEY') ?? ''
 const DEEPSEEK_BASE_URL = Deno.env.get('DEEPSEEK_BASE_URL') ?? 'https://api.deepseek.com/v1'
@@ -117,7 +126,7 @@ const SUMMARY_MAX = 80 // 画像简记（模型侧软约束「≤60 字」，这
 const CORS = {
   'Access-Control-Allow-Origin': '*',
   // 前端跨域调用会带 apikey / Authorization（verify_jwt），预检必须放行
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, apikey, x-client-info, x-supabase-api-version',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization, apikey, x-client-info, x-supabase-api-version, x-xm-token',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
   'Access-Control-Max-Age': '86400',
 }
@@ -126,6 +135,22 @@ const json = (body, status = 200) =>
     status,
     headers: { ...CORS, 'Content-Type': 'application/json' },
   })
+
+// ---------- [PATCH-M-auth 2026-09-24] 身份所有权校验（过渡期双轨） ----------
+// 背景：history / clear / recap / greeting / cbt 以及主对话路径都直接采信 body.userId 去
+//   读写 companion_messages / user_profiles —— 等于「知道别人的 userId 就能读、能清」。
+// 策略（详见 _shared/auth.js 文件头注释）：
+//   HMAC_SECRET 未配置 → 不启用（完全等价旧版，可安全地先部署函数后配密钥）
+//   无 token            → 保留旧行为放行，只记日志（不误伤尚未升级的老客户端）
+//   token 无效 / uid 不一致 → 403（真正要堵的那条路）
+//   过期但签名有效       → 放行（签名本身已确权；过期只是策略，硬拒会因一次续签失败
+//                          直接让用户说不了话，代价远大于收益）
+async function ownerCheck(userId, token) {
+  const g = await guardOwner({ userId, token })
+  logGuard(g.mode, g.reason, userId, 'companion')
+  if (!g.ok) return json({ error: '身份校验失败', reason: g.reason }, 403)
+  return null
+}
 
 // 小木核心人格（常驻底色）来自 xiaomu_seed.js 的 CORE_PERSONA。
 // 实际发给模型的 system prompt 由 buildSystemPrompt 动态组装：
@@ -917,6 +942,8 @@ Deno.serve(async (req) => {
     // [PATCH-L5c 2026-09-24] 昵称统一入口归一：nickname 会注入 system prompt 与问候语，并落
     //   user_profiles.nickname。原先各处直接用 body.nickname，无任何长度约束。
     const nickname = (body.nickname || '').toString().trim().slice(0, NICKNAME_MAX)
+    // [PATCH-M-auth] 会话令牌：优先 header x-xm-token，回退 body.authToken
+    const authToken = readToken(req, body)
 
     // 人格记忆库导入（幂等 upsert；verify_jwt 已开启，仅持 anon JWT 可调；供迁移/运维用）
     if (body.action === 'import_seed') {
@@ -1005,6 +1032,8 @@ Deno.serve(async (req) => {
 
     // 拉取历史（跨设备恢复）
     if (body.action === 'history') {
+      const deny = await ownerCheck(userId, authToken)
+      if (deny) return deny
       if (!memoryEnabled || !userId) return json({ messages: [] })
       const rows = await loadRecentMessages(userId)
       return json({ messages: rows.map((r) => ({ role: r.role, content: r.content })) })
@@ -1012,6 +1041,8 @@ Deno.serve(async (req) => {
 
     // 清空该用户的服务端记忆（尊重用户「清空」操作）
     if (body.action === 'clear') {
+      const deny = await ownerCheck(userId, authToken)
+      if (deny) return deny
       if (!memoryEnabled || !userId) return json({ ok: true })
       try {
         await fetch(`${SUPABASE_URL}/rest/v1/${SB_MSG}?user_identifier=eq.${encodeURIComponent(userId)}`, {
@@ -1042,6 +1073,8 @@ Deno.serve(async (req) => {
     // 每日主动陪伴语（P5-2）：基于近期心情 + 画像，生成一句当天的主动问候
     // 由前端按「当天首次访问」节流调用；函数本身不持久化，避免污染对话历史
     if (body.action === 'greeting') {
+      const deny = await ownerCheck(userId, authToken)
+      if (deny) return deny
       const key = todayKey()
       if (!memoryEnabled || !userId) {
         return json({ ok: true, greeting: '今天也记得对自己温柔一点 🌿 我在这儿，想聊随时都在。', date: key, personalized: false })
@@ -1058,6 +1091,8 @@ Deno.serve(async (req) => {
 
     // 情绪复盘（陪伴深度）：基于近 7 天心情，生成结构化回顾 + 入小木记忆
     if (body.action === 'recap') {
+      const deny = await ownerCheck(userId, authToken)
+      if (deny) return deny
       if (!memoryEnabled || !userId) return json({ ok: false, reason: '未启用存储' })
       try {
         const moods = await loadRecentMoods(userId, 7)
@@ -1077,6 +1112,8 @@ Deno.serve(async (req) => {
 
     // CBT 思维记录（陪伴深度）：认知重构引导 + 入小木记忆
     if (body.action === 'cbt') {
+      const deny = await ownerCheck(userId, authToken)
+      if (deny) return deny
       const { situation, thought, emotion, evidenceFor, evidenceAgainst, alternative } = body
       let suggestion = ''
       try {
@@ -1115,6 +1152,13 @@ Deno.serve(async (req) => {
     // [PATCH-L5a 2026-09-24] 消息长度封顶：companion_messages.content 是无约束 text，一条超长
     //   消息存库后会在 MEMORY_LIMIT=12 的窗口内被持续重新注入（一次写入、持续付费）。前端输入框
     //   有 maxlength，但直连 API 可绕过——服务端截断是最后一道防线。
+    // [PATCH-M-auth] 主对话路径也要校验：这条路径会把 message 写进该 userId 的
+    //   companion_messages，伪造 userId 等于往别人的记忆里投毒。
+    {
+      const deny = await ownerCheck(userId, authToken)
+      if (deny) return deny
+    }
+
     const rawMessage = (body.message || '').toString().trim()
     if (!rawMessage) return json({ error: '消息不能为空' }, 400)
     const message = rawMessage.slice(0, MESSAGE_MAX)

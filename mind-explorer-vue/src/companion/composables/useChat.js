@@ -6,33 +6,26 @@
  *   两条路径都逐字回调 onDelta，本层与气泡打字机天然兼容。
  *
  * 本文件只做四件事：
- *   1. 用户标识沿用主站 Companion.vue 同款逻辑：guest→g:{id}，github→gh:{username}，未登录 ''
+ *   1. 用户标识来自 useIdentity（规则真源 src/lib/identity.js；批次 M1 收敛前此处曾各写一份）
  *   2. 维护会话内上下文 history（协议约定：不含当前消息，后端自己拼；结束后补齐本轮对话）
  *   3. 危机信号透传 crisisStore.open()（与主站同一套危机干预弹层）
  *   4. 完整回复文本在内部累积，onDone(full) 传出（companionApi 的 onDone 无参）
  */
-import { computed, ref } from 'vue'
+import { ref } from 'vue'
 import { companionApi } from '../../api/companion'
-import { useAuthStore } from '../../stores/auth'
 import { useCrisisStore } from '../../stores/crisisStore'
+import { useIdentity } from '../../composables/useIdentity'
 
 /** 桌宠轻量上下文：最近 8 条（主站面板用 12 条，气泡场景更短更聚焦） */
 const MAX_HISTORY = 8
 
 export function useXiaomuChat() {
-  const auth = useAuthStore()
+  const ident = useIdentity()
   const crisisStore = useCrisisStore()
 
   const sending = ref(false)
   let controller = null
   let history = [] // [{ role: 'user' | 'assistant', content }]
-
-  const userId = computed(() => {
-    const u = auth.currentUser
-    if (!u) return ''
-    return u.type === 'github' ? `gh:${u.username}` : `g:${u.id}`
-  })
-  const nickname = computed(() => auth.displayName || '')
 
   /**
    * 发送一句话（同一时刻只允许一条在途）。
@@ -53,8 +46,9 @@ export function useXiaomuChat() {
     controller = companionApi.streamChat({
       message: text,
       history: history.slice(-MAX_HISTORY),
-      userId: userId.value,
-      nickname: nickname.value,
+      userId: ident.userId.value,
+      nickname: ident.nickname.value,
+      authToken: ident.token(),   // M2：会话令牌（无则服务端过渡期按旧行为放行）
       onMeta: (meta) => {
         if (meta && meta.crisis) crisisStore.open()
         if (onMeta) onMeta(meta)

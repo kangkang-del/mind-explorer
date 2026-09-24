@@ -115,6 +115,7 @@ import CardItem from '../../components/Card/CardItem.vue'
 import cards from '../../data/cards.json'
 import { userCardsApi } from '../../api/userCards'
 import { useAuthStore } from '../../stores/auth'
+import { identifierOf } from '../../lib/identity'
 
 const auth = useAuthStore()
 
@@ -203,7 +204,7 @@ async function loadUserCards() {
     // 标记当前用户已抱抱的卡片（登录态下）
     const u = auth.currentUser
     if (u) {
-      const uid = u.type === 'github' ? `gh:${u.username}` : `g:${u.id}`
+      const uid = identifierOf(u)
       const liked = await userCardsApi.myHugs(list.map(c => c.id), uid).catch(() => [])
       const set = new Set(liked)
       userCards.value.forEach(c => { c.hugged = set.has(c.id) })
