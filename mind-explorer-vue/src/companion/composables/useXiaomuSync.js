@@ -52,6 +52,7 @@ export function useXiaomuSync() {
   let pushing = false
   let pushTimer = null
   let disposed = false
+  let halted = false                   // 批次 P：账号已删除 → 永久停手（不再拉、不再推）
   let inflightPull = null              // 并发/重复 init 的去重
   let syncedUid = ''                   // 已成功协商过的身份（同一身份重复 init 直接跳过）
 
@@ -157,7 +158,7 @@ export function useXiaomuSync() {
 
   /** 主动推送当前本地状态（本地改动触发） */
   async function pushNow() {
-    if (disposed || pushing) return { ok: false, reason: 'busy' }
+    if (disposed || halted || pushing) return { ok: false, reason: 'busy' }
     const uid = ident.userId.value
     if (!uid) return { ok: false, reason: 'no-identity' }
     const token = await ident.ensureToken()
@@ -206,6 +207,7 @@ export function useXiaomuSync() {
 
   /** 拉取 → 合并 → 写回 → 必要时回推（并发调用会合并为同一次） */
   async function pullAndReconcile() {
+    if (disposed || halted) return { ok: false, reason: 'purged' }   // 批次 P：删完不再拉回任何东西
     if (inflightPull) return inflightPull
     inflightPull = doPull().finally(() => { inflightPull = null })
     return inflightPull
@@ -276,12 +278,32 @@ export function useXiaomuSync() {
   }
 
   function schedulePush() {
-    if (disposed || applying || !hasSynced.value) return
+    if (disposed || halted || applying || !hasSynced.value) return
     clearTimeout(pushTimer)
     pushTimer = setTimeout(() => { pushTimer = null; pushNow() }, PUSH_DEBOUNCE_MS)
   }
 
-  /* ---- 变更监听：外观 / 衣柜 / 形象图片 ---- */
+  /**
+   * 批次 P：账号已彻底删除 → 同步引擎永久停手。
+   *
+   * 为什么必须有这个闸门 —— 删除成功后，`skin.clear()` 与身份归零会触发
+   * 上面三个 watcher；若不停手，`pushNow()` 会在删除完成后又把一份空快照
+   * 写回 `xiaomu_user_state`，等于「刚删掉的行立刻长回来」。
+   * 这是「本地清了、云端又出现」的假成功，比删不掉更糟。
+   *
+   * 刻意**不可逆**（同 farewell 的语义）：删了就是删了，本次会话内不再同步。
+   * 用户重新登录后是新的身份，届时页面刷新，本引擎重建。
+   */
+  function halt() {
+    halted = true
+    clearTimeout(pushTimer)
+    pushTimer = null
+    phase.value = 'idle'
+    degradeReason.value = 'purged'
+    hasSynced.value = false
+  }
+
+  /** 变更监听：外观 / 衣柜 / 形象图片 */
   watch(() => JSON.stringify(prefs), () => schedulePush())
   watch(
     () => {
@@ -300,7 +322,7 @@ export function useXiaomuSync() {
 
   /* ---- 身份变化（登录 / 升级 / 退出）→ 重置协商基准后重新拉取 ---- */
   watch(() => ident.userId.value, (uid, old) => {
-    if (uid === old || disposed) return
+    if (uid === old || disposed || halted) return   // 批次 P：已删除 → 身份归零也不重启同步
     base = clone(DEFAULT_SNAPSHOT)
     lastRemote = null
     remoteVersion.value = 0
@@ -323,6 +345,7 @@ export function useXiaomuSync() {
     refresh: pullAndReconcile,
     pushNow,
     forgetSkin,
+    halt,
     /** 验收/排查用：一次拿到全部同步状态 */
     debug: () => ({
       phase: phase.value,

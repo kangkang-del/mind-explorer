@@ -24,6 +24,7 @@
 //   sunny.push（每日 1 次，幂等；{force:true} 可强制重推）
 //   auth.issueToken / auth.verify / auth.migrate                        ← 批次 M 新增
 //   state.get / state.put / state.putSkin / state.clearSkin             ← 批次 N 新增
+//   account.purge                                                       ← 批次 P 新增
 //
 // 批次 M：身份与会话令牌（HMAC，详见 _shared/auth.js）
 //   会话令牌的「签发」放在本函数（content 是数据中转定位，且游客可直连，verify_jwt=false）
@@ -34,6 +35,11 @@
 //   状态表 xiaomu_user_state（user_identifier 主键 + version 乐观锁 + payload jsonb）。
 //   皮肤图片存私有桶 xiaomu-skins，读写都经本函数用 service_role 中转
 //   （前端永远拿不到 Storage 密钥），读取时签发短时 URL。
+//
+// 批次 P：彻底删除账号（account.purge）
+//   真 DELETE、无软删除残留；分两档范围 —— 核心记忆无条件删、社区足迹需显式勾选。
+//   鉴权是硬要求（同 auth.migrate）：必须持有该身份的签名令牌，否则知道别人 uid
+//   就能删光他的数据。三条易错边界写在 purgeIdentity 上方注释里。
 
 import { detectCrisis, crisisReply } from '../_shared/crisis.js'
 import {
@@ -326,6 +332,139 @@ async function migrateIdentity(body) {
   return { ok: true, from: fromUid, to: toUid, migrated }
 }
 
+// ==================== 彻底删除账号（批次 P） ====================
+//
+// 「彻底删除」不是标记删除 —— 用户要的是**数据真的没了**，所以这里全是 DELETE，
+// 没有任何 is_deleted / status 之类的软删除残留。
+//
+// ⚠️ 三条最容易写错的边界（详见 .workbuddy/P0-删除范围清单.md）：
+//
+//   ① `guest_users.id` 是**裸 UUID**，而 user_identifier 是 `g:{uuid}`。
+//      直接拿 user_identifier 去删 guest_users 会静默删 0 行。
+//      必须先剥前缀、**并且校验剥出来确实是 UUID** —— 否则快速游客（g:g_xxx）
+//      会走到「按 id 删」分支，那是拿自己的字符串去删别人的行（越权删除）。
+//
+//   ② `community_posts` / `post_comments` 的用户键是 `username` 而**不是**
+//      user_identifier —— 按后者删会静默删 0 行，然后我们会误报「已删干净」。
+//
+//   ③ 删除范围分两档：
+//      · 核心数据（对话/画像/同步态/皮肤图/账号本体）→ 无条件删
+//      · 社区足迹（帖子/卡片/评论/点赞/抱抱）→ **默认不删**，需 includeCommunity=true
+//        社区内容涉及他人可见性，不能默认连带删。
+//      而 `feedback` / `reports` 即使勾了也**不删** —— 那是站方需要留痕的处理记录。
+//
+// 幂等：重复调用返回全 0，不报错（第二次进来所有表都已空）。
+
+/** 从 user_identifier 里剥出裸 UUID；不是 g:{uuid} 形态则返回 '' */
+function bareGuestUuid(uid) {
+  if (!RE_GUEST_UID.test(uid)) return ''
+  const bare = uid.slice(2)   // 去掉 'g:'
+  return RE_UUID.test(bare) ? bare : ''
+}
+
+/**
+ * 删除某身份的全部数据。
+ * @param {string} uid          user_identifier（gh:login / g:{uuid} / g:g_xxx）
+ * @param {string} nickname     昵称（社区表按 username 匹配时需要）
+ * @param {boolean} includeCommunity 是否连带删除社区足迹
+ */
+async function purgeIdentity(uid, nickname, includeCommunity) {
+  const deleted = {}
+  // 逐表删、逐表记数；单表失败不中断整体（继续删剩下的，最后在 failed 里汇报）
+  const failed = []
+  const del = async (label, table, filter) => {
+    try {
+      deleted[label] = await sbDeleteReturning(table, filter)
+    } catch (e) {
+      failed.push(`${label}: ${e.message}`)
+    }
+  }
+
+  // ---- 1) 核心记忆（无条件删）----
+  await del('messages', 'companion_messages', { user_identifier: `eq.${uid}` })
+  await del('profile', 'user_profiles', { user_identifier: `eq.${uid}` })
+  await del('state', 'xiaomu_user_state', { user_identifier: `eq.${uid}` })
+  // 心情日记：用户主动记录的内容，但既然要「彻底删除」就一并删（前端弹窗会明确告知）
+  await del('moods', 'mood_diary', { user_identifier: `eq.${uid}` })
+
+  // ---- 2) 皮肤图片（私有桶，三个扩展名各删一次；404 幂等）----
+  let skinRemoved = 0
+  for (const ext of ['webp', 'png', 'jpg']) {
+    try {
+      await storageRemove(`${uid}/skin.${ext}`)
+      skinRemoved++
+    } catch { /* 单个删不掉不阻断 */ }
+  }
+  deleted.skinObjects = skinRemoved
+
+  // ---- 3) 账号本体（仅正式游客；GitHub 不动其账号）----
+  const bare = bareGuestUuid(uid)
+  if (bare) {
+    await del('guestUser', 'guest_users', { id: `eq.${bare}` })
+  } else {
+    deleted.guestUser = 0   // GitHub 用户 / 快速游客：没有对应的账号行
+  }
+
+  // ---- 4) 社区足迹（需显式勾选）----
+  if (includeCommunity) {
+    await del('postLikes', 'post_likes', { user_identifier: `eq.${uid}` })
+    await del('cardHugs', 'card_hugs', { user_identifier: `eq.${uid}` })
+    // 社区帖子/评论按 username 匹配（表里没有更强的用户键）
+    if (nickname) {
+      await del('posts', 'community_posts', { username: `eq.${nickname}` })
+      await del('comments', 'post_comments', { username: `eq.${nickname}` })
+      // user_cards.author_id 存的是「游客 id 或 GitHub 用户名」，两种形态都试
+      await del('cardsByBare', 'user_cards', { author_id: `eq.${bare || uid.slice(3)}` })
+      await del('cardsByUid', 'user_cards', { author_id: `eq.${uid}` })
+    }
+  }
+
+  return { ok: true, deleted, failed, includeCommunity, scope: uid }
+}
+
+/** 删除并返回受影响行数（判「到底删掉了没有」必需 —— 静默删 0 行是这类链路最大的坑） */
+async function sbDeleteReturning(table, filter) {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${cleanParams(filter).toString()}`, {
+    method: 'DELETE',
+    headers: { ...sbHeaders(), Prefer: 'return=representation' },
+    signal: AbortSignal.timeout(FETCH_T),
+  })
+  if (!res.ok && res.status !== 204) {
+    const txt = await res.text().catch(() => '')
+    throw new Error(`删除 ${table} 失败 ${res.status}: ${txt.slice(0, 160)}`)
+  }
+  if (res.status === 204) return 0
+  const rows = await res.json().catch(() => [])
+  return Array.isArray(rows) ? rows.length : 0
+}
+
+/**
+ * account.purge 入口。
+ * 鉴权是**硬要求**（与 auth.migrate 同级）：必须持有该身份的有效签名令牌，
+ * 否则知道别人 uid 就能删光他的数据 —— 这是整个 M4 里破坏力最大的一个接口。
+ */
+async function purgeAccount(body) {
+  if (!authEnabled()) return { ok: false, error: '服务端未配置 HMAC_SECRET，会话令牌尚未启用' }
+  const uid = (body.userId || '').toString().trim()
+  if (!uid) return { ok: false, error: '缺少 userId' }
+  if (!RE_GITHUB_UID.test(uid) && !RE_GUEST_UID.test(uid) && !RE_QUICK_UID.test(uid)) {
+    const e = new Error('身份格式不合法')
+    e.status = 400
+    throw e
+  }
+
+  const payload = await verifyToken((body.authToken || '').toString())
+  if (!payload || payload.uid !== uid) {
+    const e = new Error('需要该身份的会话令牌')
+    e.status = 403
+    throw e
+  }
+  if (!memoryEnabled) return { ok: true, deleted: {}, failed: [], note: '未启用存储' }
+
+  const nickname = (body.nickname || '').toString().trim().slice(0, NICKNAME_MAX)
+  return await purgeIdentity(uid, nickname, !!body.includeCommunity)
+}
+
 // ==================== 小木跨设备同步（批次 N） ====================
 //
 // 载体：xiaomu_user_state（user_identifier 主键 / version 乐观锁 / payload jsonb）
@@ -346,6 +485,10 @@ const STATE_SKIN_MAX_BYTES = 1024 * 1024 // 皮肤图片 1MB（前端已缩到 5
 const STATE_SKIN_SIGN_TTL = 3600         // 签名 URL 有效期（秒）
 const STATE_SKIN_TYPES = ['image/webp', 'image/png', 'image/jpeg']
 const STATE_TS_MAX = 4102444800000       // 2100-01-01，时间戳上界（防脏数据）
+
+// ---------- 批次 P：彻底删除 ----------
+const NICKNAME_MAX = 20                  // 与 companion 的同名常量对齐（社区表按昵称匹配时的入口截断）
+const RE_UUID = /^[0-9a-fA-F-]{36}$/     // 裸 UUID（guest_users.id）；用于剥掉 'g:' 前缀后的二次校验
 
 const RE_ITEM_ID = /^[a-z0-9-]{1,32}$/
 const RE_DAY_KEY = /^\d{8}$/
@@ -1230,6 +1373,10 @@ Deno.serve(async (req) => {
         return json(await verifySession(body))
       case 'auth.migrate':
         return json(await migrateIdentity(body))
+
+      // ---------- 彻底删除账号（批次 P） ----------
+      case 'account.purge':
+        return json(await purgeAccount(body))
 
       // ---------- 小木跨设备同步（批次 N） ----------
       case 'state.get':

@@ -167,6 +167,9 @@
       <p v-else class="text-[13px] text-[#9aa6b2] py-4 text-center m-0">还没有收藏。去社区或知识页逛逛，点 ♥ 收藏你喜欢的～</p>
     </section>
 
+    <!-- 彻底删除（批次 P）—— 只有已登录才有数据可删 -->
+    <AccountPurge v-if="auth.currentUser" />
+
     <!-- 功能区 -->
     <section v-if="!auth.currentUser" class="grid grid-cols-1 md:grid-cols-2 gap-3">
       <RouterLink to="/mood" class="flex items-center gap-2.5 p-4 bg-white border border-[#eef2f7] rounded-xl no-underline hover:shadow-sm transition">
@@ -202,6 +205,7 @@ import { useTrustedContactsStore } from '../stores/trustedContacts'
 import { favoritesApi } from '../api/favorites'
 import { checkinsApi } from '../api/checkins'
 import BadgeWall from '../components/BadgeWall.vue'
+import AccountPurge from '../components/AccountPurge.vue'   // 批次 P：彻底删除
 
 const auth = useAuthStore()
 const badgesStore = useBadgeStore()

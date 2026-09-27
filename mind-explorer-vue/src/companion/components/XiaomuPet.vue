@@ -115,6 +115,7 @@ import { useXiaomuSync } from '../composables/useXiaomuSync'
 import { useIdentity } from '../../composables/useIdentity'
 import { ACTION } from '../core/actions'
 import { itemOf } from '../core/wardrobe'
+import { farewellActive, resetFarewell, FAREWELL_LINE } from '../core/farewell'   // 批次 P
 
 const petEl = ref(null)
 const inputEl = ref(null)
@@ -460,6 +461,7 @@ let pendingHint = null   // 气泡被占用时暂存的「待投递动作」，�
 
 /** 此刻能不能开口（复用防打扰铁律 1/2/3/4，另加收起态与面板占用） */
 function canSpeakNow() {
+  if (farewellActive.value) return false                                   // 批次 P：告别中，不再主动搭话
   if (prefs.dnd) return false                                             // 铁律 1
   if (collapsed.value) return false
   if (chatOpen.value || chat.sending.value) return false                   // 铁律 2
@@ -586,6 +588,28 @@ onMounted(() => {
 /* M4：升级结果可能在桌宠挂载前后落定，两条路都要接住 */
 watch(() => ident.auth.lastUpgrade, (u) => { if (u) announceUpgrade(u) })
 onMounted(() => { if (ident.auth.lastUpgrade) announceUpgrade(ident.auth.lastUpgrade) })
+
+/* 批次 P：告别态 —— 用户在 Profile 页彻底删除了数据，桌宠也要说这句话。
+ *
+ * ⚠️ 这是**加法**，不是改造：没有触碰三轨状态机（只是调它的公开接口 setState/playAction）、
+ *    没有新增防打扰规则（不参与 proactive 的节流判断）、没有改任何既有分支。
+ *    告别是一个一次性事件，`isFarewell()` 只在账户删除成功后为真。
+ *
+ * 之所以要抢在 proactive 之前说话：删除后如果桌宠还在自顾自搭话，那句告别就毁了。
+ * 所以这里**直接置显**并停掉主动搭话（chatOpen 之外唯一的静默理由）。 */
+watch(farewellActive, (on) => {
+  if (!on) return
+  collapsed.value = false          // 收起态下说不了话，先长回来
+  sm.setState('happy')
+  sm.playAction(ACTION.SWAY_LEAF)
+  openBubble(FAREWELL_LINE, { mode: 'xomu' })
+  bubbleFallback = setTimeout(() => { bubble.visible = false }, 20000)   // 告别语多留一会儿
+})
+
+/* 离开告别页时复位（刷新天然复位；这条是给「回到首页」那条路用的） */
+onBeforeUnmount(() => {
+  if (farewellActive.value) resetFarewell()
+})
 
 /* ================= 收起 / 唤出（小嫩芽）与入场动画 ================= */
 
