@@ -10,7 +10,14 @@
           <span v-else>研究心理学与哲学的同行者，随时陪你聊聊</span>
         </p>
       </div>
-      <button v-if="messages.length" @click="clearChat" class="text-[12px] text-[#9aa6b2] hover:text-[#e07a3f] transition px-2 py-1">清空</button>
+      <RouterLink
+        to="/companion/story"
+        class="text-[12px] px-3 py-1.5 rounded-full border border-[#e6efe9] bg-white text-[#5a8a6a] hover:border-[#a8cbb4] hover:bg-[#f5faf7] transition no-underline flex items-center gap-1 shrink-0"
+        title="小木记得的你 —— 它把记得的事，一段段讲给你听"
+      >
+        <span aria-hidden="true">📖</span><span class="hidden sm:inline">故事书</span>
+      </RouterLink>
+      <button v-if="messages.length" @click="clearChat" class="text-[12px] text-[#9aa6b2] hover:text-[#e07a3f] transition px-2 py-1 shrink-0">清空</button>
     </header>
 
     <!-- 引导入口（陪伴深度） -->

@@ -20,6 +20,7 @@
 //   { action: 'clear', userId: string }     // 清空该用户服务端记忆
 //   { action: 'greeting', userId, nickname? } // 每日主动陪伴语
 //   { action: 'recap', userId }             // 近 7 天情绪复盘
+//   { action: 'memory.overview', userId, days? } // 记忆总览（画像/心情时间线/关键片段，✅ 已截断）
 //   { action: 'cbt', ... }                  // CBT 认知重构引导
 //   { action: 'diag' }                      // 运维诊断：探测各候选模型连通性（不写库）
 //
@@ -575,6 +576,158 @@ async function loadTodayMood(userId) {
   }
 }
 
+// ---------- [批次 O 2026-09-27] 「小木记得的你」聚合读取 ----------
+// 只读聚合：给小木的故事书页用。**刻意不新增表、不跑 LLM**，全部是既有数据的再组织：
+//   profile  ← user_profiles（画像：昵称 / 消息数 / 情绪轨迹 / 长期印象 summary）
+//   moods    ← mood_diary（近 N 天心情）
+//   moments  ← companion_messages（关键片段：抽样 + 双侧截断）
+//
+// 🔴 隐私红线（任务清单 O1「不回显完整原文」）：
+//   这里返回的每一段文字都必须截断——页面会把它们原样渲染出来，一旦整段回吐，
+//   等于把用户在对话里说过的私事再做一次完整展示。截断同时限制在：
+//     - 用户侧 ≤ MOMENT_USER_MAX（默认 48 字）
+//     - 小木侧 ≤ MOMENT_XM_MAX（默认 64 字）
+//   并且**不返回 emotion 原始列以外的任何内部字段**（id 也不给，避免被用来拼其它接口）。
+const OVERVIEW_MOMENT_SCAN = 400   // 最多扫多少条原始消息（近 N 天的）
+const OVERVIEW_MOMENT_MAX = 60     // 最多回吐多少个片段
+const MOMENT_USER_MAX = 48
+const MOMENT_XM_MAX = 64
+const OVERVIEW_MOOD_MAX = 400      // 心情条数上限
+
+/** 截断到 n 字，超出加省略号（按字符计，中文 1 字 = 1） */
+function clip(s, n) {
+  const t = typeof s === 'string' ? s.replace(/\s+/g, ' ').trim() : ''
+  if (!t) return ''
+  return t.length > n ? t.slice(0, n) + '…' : t
+}
+
+/**
+ * 拉取「关键片段」：按时间正序取近 N 天的原始消息，再均匀抽样到 ≤OVERVIEW_MOMENT_MAX 条。
+ * 均匀抽样（而非只取最近 N 条）是为了让故事书里的对话片段铺开在整段时间上——
+ * 只取最近几条会让「故事」永远只讲最后一天发生的事。
+ */
+async function loadMoments(userId, days) {
+  const since = days > 0 ? new Date(Date.now() - days * 86400000).toISOString() : null
+  const parts = [
+    `select=role,content,emotion,created_at`,
+    `user_identifier=eq.${encodeURIComponent(userId)}`,
+    `order=created_at.desc`,
+    `limit=${OVERVIEW_MOMENT_SCAN}`,
+  ]
+  if (since) parts.push(`created_at=gte.${encodeURIComponent(since)}`)
+  const url = `${SUPABASE_URL}/rest/v1/${SB_MSG}?${parts.join('&')}`
+  try {
+    const res = await fetch(url, { headers: sbHeaders(), signal: AbortSignal.timeout(8000) })
+    if (!res.ok) return []
+    const rows = await res.json()
+    if (!Array.isArray(rows) || !rows.length) return []
+    const asc = rows.slice().reverse()   // 时间正序
+    // 均匀抽样：步长 = 总数 / 目标条数，四舍五入取整索引（保证首尾都会被取到）
+    const step = asc.length / OVERVIEW_MOMENT_MAX
+    const picked = []
+    if (step <= 1) {
+      picked.push(...asc)
+    } else {
+      for (let i = 0; i < OVERVIEW_MOMENT_MAX; i++) {
+        const idx = Math.min(asc.length - 1, Math.round(i * step))
+        if (picked[picked.length - 1] !== asc[idx]) picked.push(asc[idx])
+      }
+    }
+    return picked.map((r) => ({
+      role: r.role === 'assistant' ? 'assistant' : 'user',
+      // 双侧截断：用户侧更短（那是他的私事），小木侧略长（那是陪伴的话）
+      text: clip(r.content, r.role === 'assistant' ? MOMENT_XM_MAX : MOMENT_USER_MAX),
+      emotion: typeof r.emotion === 'string' ? r.emotion.slice(0, 40) : null,
+      at: r.created_at || null,
+      clipped: typeof r.content === 'string' && r.content.length > (r.role === 'assistant' ? MOMENT_XM_MAX : MOMENT_USER_MAX),
+    }))
+  } catch {
+    return []
+  }
+}
+
+/** 拉取近 N 天心情（含情绪与备注摘要，note 截 60 字） */
+async function loadMoodTimeline(userId, days) {
+  const since = days > 0 ? new Date(Date.now() - days * 86400000).toISOString() : null
+  const parts = [
+    `select=emotion,note,created_at`,
+    `user_identifier=eq.${encodeURIComponent(userId)}`,
+    `order=created_at.asc`,
+    `limit=${OVERVIEW_MOOD_MAX}`,
+  ]
+  if (since) parts.push(`created_at=gte.${encodeURIComponent(since)}`)
+  const url = `${SUPABASE_URL}/rest/v1/mood_diary?${parts.join('&')}`
+  try {
+    const res = await fetch(url, { headers: sbHeaders(), signal: AbortSignal.timeout(8000) })
+    if (!res.ok) return []
+    const rows = await res.json()
+    if (!Array.isArray(rows)) return []
+    return rows.map((r) => ({
+      emotion: typeof r.emotion === 'string' ? r.emotion.slice(0, 40) : '',
+      note: clip(r.note, 60),
+      at: r.created_at || null,
+    }))
+  } catch {
+    return []
+  }
+}
+
+/** 情绪轨迹：user_profiles.emotion_history 是 [{emotion, at}]，取最近 N 条并做简单计数 */
+function summarizeEmotions(history) {
+  const arr = Array.isArray(history) ? history : []
+  const recent = arr.slice(-60).map((h) => ({
+    emotion: typeof h?.emotion === 'string' ? h.emotion.slice(0, 40) : '',
+    at: h?.at || null,
+  })).filter((h) => h.emotion)
+  const tally = {}
+  for (const h of recent) tally[h.emotion] = (tally[h.emotion] || 0) + 1
+  const top = Object.entries(tally).sort((a, b) => b[1] - a[1]).slice(0, 3)
+    .map(([emotion, count]) => ({ emotion, count }))
+  return { recent, top, total: arr.length }
+}
+
+async function memoryOverview(body) {
+  const userId = String(body.userId || '').trim()
+  if (!memoryEnabled || !userId) return { ok: false, reason: '未启用存储' }
+  // days: 0 / 负数 / 缺省 → 全部
+  const rawDays = Number(body.days)
+  const days = Number.isFinite(rawDays) && rawDays > 0 ? Math.min(Math.trunc(rawDays), 3650) : 0
+
+  const [profile, moods, moments] = await Promise.all([
+    loadProfile(userId),
+    loadMoodTimeline(userId, days),
+    loadMoments(userId, days),
+  ])
+
+  // 消息总数：画像里的 message_count 是「轮次计数」，与片段条数不同口径，两个都给，让页面自己说明
+  const messageCount = Number(profile?.message_count) || 0
+  const lastSeenAt = profile?.last_seen_at || null
+  const nickname = profile?.nickname || ''
+
+  const exists = !!(profile || moods.length || moments.length)
+  return {
+    ok: true,
+    exists,
+    days,
+    profile: {
+      nickname,
+      messageCount,
+      lastEmotion: profile?.last_emotion || '',
+      summary: profile?.summary || '',   // 已是 ≤80 字（loadProfile 封顶），直接可用
+      lastSeenAt,
+      emotions: summarizeEmotions(profile?.emotion_history),
+    },
+    moods,
+    moments,
+    // 统计摘要（页面直接用，避免前端再算一遍口径不一致）
+    stats: {
+      moodCount: moods.length,
+      momentCount: moments.length,
+      activeMoodDays: new Set(moods.map((m) => (m.at || '').slice(0, 10)).filter(Boolean)).size,
+    },
+  }
+}
+
 // ---------- 大模型容灾调用 ----------
 // 多目标容灾：主模型 429/超时 → 同平台备模型 → （可选）外部备平台。
 // 每个目标最多两轮：第一轮正常超时；若 429/5xx 退避 5s 后第二轮短超时（8s 快速判断）；
@@ -1089,9 +1242,22 @@ Deno.serve(async (req) => {
       }
     }
 
-    // 情绪复盘（陪伴深度）：基于近 7 天心情，生成结构化回顾 + 入小木记忆
-    if (body.action === 'recap') {
+    // [批次 O 2026-09-27] 「小木记得的你」聚合读取（故事书页的数据源）。
+    //   只读、不写库、不调 LLM；过 ownerCheck 同其余带 userId 的路径。
+    //   ⚠️ 返回内容里的文字全部已截断，见 memoryOverview 上方注释（隐私红线）。
+    if (body.action === 'memory.overview') {
       const deny = await ownerCheck(userId, authToken)
+      if (deny) return deny
+      try {
+        return json(await memoryOverview(body))
+      } catch (e) {
+        console.error('记忆总览读取失败:', e.message)
+        return json({ ok: false, error: e.message || '读取失败' })
+      }
+    }
+
+    // 情绪复盘（陪伴深度）：基于近 7 天心情，生成结构化回顾 + 入小木记忆
+    if (body.action === 'recap') {      const deny = await ownerCheck(userId, authToken)
       if (deny) return deny
       if (!memoryEnabled || !userId) return json({ ok: false, reason: '未启用存储' })
       try {

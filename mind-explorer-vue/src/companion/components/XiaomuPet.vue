@@ -99,6 +99,7 @@
  * 建议拖到右下角拇指热区；位置/形态/换装自动持久化。
  */
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import XiaomuSvg from './XiaomuSvg.vue'
 import XiaomuBubble from './XiaomuBubble.vue'
 import XiaomuSprout from './XiaomuSprout.vue'
@@ -117,6 +118,7 @@ import { itemOf } from '../core/wardrobe'
 
 const petEl = ref(null)
 const inputEl = ref(null)
+const router = useRouter()
 
 const prefs = useXiaomuPrefs()
 const skin = useXiaomuSkin()
@@ -275,6 +277,7 @@ const CHIP_WARDROBE = { key: 'wardrobe', label: '换一身' }
 const CHIP_REST = { key: 'rest', label: '休息' }
 const CHIP_REGISTER = { key: 'register', label: '去登录' }   // M3/M4：身份引导
 const CHIP_LATER = { key: 'later', label: '以后再说' }
+const CHIP_STORYBOOK = { key: 'storybook', label: '你还记得我什么' }  // 批次 O
 const SORRY_LINES = [
   '刚才走神了，再说一遍好不好？',
   '唔……我这边愣了一下，可以再说一次吗？',
@@ -298,7 +301,7 @@ function openBubble(text, { mode = 'xomu', withChips = false, chips = null } = {
   bubble.visible = true
   bubble.mode = mode
   bubble.text = text
-  bubble.chips = chips || (withChips ? [CHIP_FACT, CHIP_WARDROBE, CHIP_REST] : null)
+  bubble.chips = chips || (withChips ? [CHIP_FACT, CHIP_STORYBOOK, CHIP_WARDROBE, CHIP_REST] : null)
   clearTimeout(bubbleFallback)
   bubbleFallback = setTimeout(() => { if (!chatOpen.value) bubble.visible = false }, 14000)
 }
@@ -324,6 +327,8 @@ function onChip(chip) {
   else if (chip.key === 'rest') collapse()
   else if (chip.key === 'register') { bubble.visible = false; ident.auth.openLogin('register') }
   else if (chip.key === 'later') bubble.visible = false
+  // 批次 O：跳转到故事书子页（同页导航，不重载）
+  else if (chip.key === 'storybook') { bubble.visible = false; router.push('/companion/story') }
 }
 
 /* ---- M3 批次 I：换装面板开关（与气泡/聊天互斥） ---- */

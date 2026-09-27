@@ -79,6 +79,27 @@ export const companionApi = {
     }
   },
 
+  // 记忆总览（批次 O）：「小木记得的你」故事书页的数据源。
+  // 返回 { ok, exists, days, profile, moods, moments, stats }；任何失败返回 { ok:false }。
+  // ⚠️ 服务端返回的片段文字**已截断**（用户侧 ≤48 字 / 小木侧 ≤64 字），前端不要再拼接原文。
+  async getMemoryOverview(userId, authToken, days = 0) {
+    if (!userId) return { ok: false, reason: 'no-identity' }
+    try {
+      const res = await fetch(ENDPOINT, {
+        method: 'POST',
+        headers: edgeHeaders(),
+        body: JSON.stringify({ action: 'memory.overview', userId, authToken, days }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok || !data?.ok) {
+        return { ok: false, reason: res.status === 403 ? 'forbidden' : `http_${res.status}`, error: data?.error }
+      }
+      return data
+    } catch (e) {
+      return { ok: false, reason: 'network', error: String((e && e.message) || e) }
+    }
+  },
+
   // CBT 思维记录（陪伴深度）：提交思录字段，获取认知重构引导
   async submitCbt(payload = {}) {
     try {

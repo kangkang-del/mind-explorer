@@ -6,6 +6,8 @@ const routes = [
   { path: '/', name: 'Home', component: Home, meta: { title: '首页' } },
   { path: '/knowledge', name: 'Knowledge', component: () => import('../views/Knowledge.vue'), meta: { title: '了解心理学知识' } },
   { path: '/companion', name: 'Companion', component: () => import('../views/Companion.vue'), meta: { title: '同行者·小木' } },
+  // 批次 O：小木故事书（「小木记得的你」），/as Companion 的子页，不占主导航
+  { path: '/companion/story', name: 'CompanionStory', component: () => import('../views/CompanionStory.vue'), meta: { title: '小木记得的你' } },
   { path: '/mood', name: 'Mood', component: () => import('../views/Mood.vue'), meta: { title: '心情日记' } },
   { path: '/tools', name: 'Tools', component: () => import('../views/Tools.vue'), meta: { title: '自助工具箱' } },
   { path: '/sunny', name: 'Sunny', component: () => import('../views/Sunny.vue'), meta: { title: '心灵晴天' } },
