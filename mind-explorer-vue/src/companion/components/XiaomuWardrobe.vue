@@ -9,11 +9,22 @@
       @click.stop
     >
       <div class="xm-wd-head">
-        <span class="xm-wd-title">小木的衣柜</span>
-        <span class="xm-wd-days">陪伴第 {{ wd.activeDays.value }} 天</span>
-        <button type="button" class="xm-wd-close" aria-label="关闭衣柜" @click="emit('close')">×</button>
+        <span class="xm-wd-title">{{ top === 'wear' ? '小木的衣柜' : '小木的模型' }}</span>
+        <span v-if="top === 'wear'" class="xm-wd-days">陪伴第 {{ wd.activeDays.value }} 天</span>
+        <button type="button" class="xm-wd-close" aria-label="关闭面板" @click="emit('close')">×</button>
       </div>
 
+      <!-- 一级导航（M5-3）：穿戴 / 模型 -->
+      <div class="xm-wd-top">
+        <button
+          v-for="t in TOPS" :key="t.key" type="button"
+          class="xm-wd-topbtn" :class="{ 'is-active': top === t.key }"
+          @click="top = t.key"
+        >{{ t.name }}</button>
+      </div>
+
+      <!-- ===== 穿戴（原衣柜内容，M3 起） ===== -->
+      <template v-if="top === 'wear'">
       <div class="xm-wd-tabs">
         <button
           v-for="s in slots" :key="s.key" type="button"
@@ -59,18 +70,25 @@
         <p v-if="sync.cloudNote.value" class="xm-wd-err">{{ sync.cloudNote.value }}</p>
         <input ref="fileEl" class="xm-wd-file" type="file" accept="image/*" @change="onFile" />
       </div>
+      </template>
+
+      <!-- ===== 我的模型（M5-3，D10 并入本面板） ===== -->
+      <XiaomuModelPanel v-if="top === 'model'" @register="onRegister" />
     </div>
   </Transition>
 </template>
 
 <script setup>
 /**
- * XiaomuWardrobe —— 换装面板（M3 批次 I，任务 I2）
+ * XiaomuWardrobe —— 小木面板（M3 批次 I 换装；M5-3 并入自定义模型设置）
  *
- * 槽位 tab + 物品格子；已解锁点击即穿（写 prefs，实时生效）；
- * 锁定态灰显并显示解锁条件（保底天数差值 / 里程碑描述）。
+ * 一级导航：穿戴 / 模型。
+ *   · 穿戴 —— 槽位 tab + 物品格子；已解锁点击即穿（写 prefs，实时生效）；
+ *     锁定态灰显并显示解锁条件（保底天数差值 / 里程碑描述）。
+ *     「皮肤」槽位底部为「我的形象」区（批次 J）：上传/预览/清除图片皮肤。
+ *   · 模型 —— 自定义模型设置（M5-3，D10）：直接渲染 XiaomuModelPanel。
+ *     门槛（D6）与请求时机由该子组件自己掌握，本文件不碰。
  * 手机遇小木贴边时做视口 clamp（同输入条 translateX 方案）。
- * 「皮肤」槽位底部为「我的形象」区（批次 J）：上传/预览/清除图片皮肤（IndexedDB 本地存储）。
  */
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
 import { SLOTS, itemsOf, unlockText } from '../core/wardrobe'
@@ -79,6 +97,7 @@ import { useXiaomuWardrobe } from '../composables/useXiaomuWardrobe'
 import { useXiaomuSkin } from '../composables/useXiaomuSkin'
 import { useXiaomuSync } from '../composables/useXiaomuSync'
 import { useIdentity } from '../../composables/useIdentity'
+import XiaomuModelPanel from './XiaomuModelPanel.vue'   // M5-3
 
 const props = defineProps({ open: Boolean })
 const emit = defineEmits(['close'])
@@ -107,6 +126,13 @@ const syncText = computed(() => {
   if (p === 'error') return '同步遇到问题，稍后会自动重试'
   return '待同步'
 })
+
+/** 一级导航（M5-3）：穿戴 = 原衣柜；模型 = 自定义模型设置 */
+const TOPS = [
+  { key: 'wear', name: '穿戴' },
+  { key: 'model', name: '模型' },
+]
+const top = ref('wear')
 
 const slots = SLOTS
 const slot = ref('hat')
@@ -166,6 +192,12 @@ async function onClear() {
   if (prefs.variant === 'custom') prefs.variant = 'wood'
 }
 
+/** M5-3：模型面板里快速游客点「去注册」—— 先收起面板，再开注册流程（与气泡 chip 同一路径） */
+function onRegister() {
+  emit('close')
+  ident.auth.openLogin('register')
+}
+
 /* ---- 视口 clamp（同输入条方案）：按当前 shift 做增量修正，多次调用收敛 ---- */
 const panelEl = ref(null)
 const panelShift = ref(0)
@@ -206,6 +238,22 @@ onBeforeUnmount(() => removeEventListener('resize', clampPanel))
   color: #2b2b2b;
 }
 .xm-wd-head { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+
+/* 一级导航（M5-3）：穿戴 / 模型 —— 连体分段控件，与二级 pill tab 区分层次
+   （一级用粉色高亮，二级用黑底白字） */
+.xm-wd-top {
+  display: flex; margin-bottom: 8px;
+  border: 1px solid var(--xm-line, #2b2b2b);
+  border-radius: 999px; overflow: hidden;
+}
+.xm-wd-topbtn {
+  flex: 1;
+  border: none; background: #fff;
+  color: #2b2b2b; opacity: .55;
+  font-size: 11px; line-height: 1; padding: 6px 0;
+  cursor: pointer; font-family: inherit;
+}
+.xm-wd-topbtn.is-active { background: #ffd6e7; opacity: 1; }
 .xm-wd-title { font-size: 13px; font-weight: 600; flex: 1; }
 .xm-wd-days { font-size: 11px; opacity: .55; white-space: nowrap; }
 .xm-wd-close {
