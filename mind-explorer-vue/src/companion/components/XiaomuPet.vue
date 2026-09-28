@@ -16,6 +16,7 @@
       :full-text="bubble.text"
       :mode="bubble.mode"
       :chips="bubble.chips"
+      :raised="chatOpen"
       @chip="onChip"
       @open-chat="chatOpen = true"
       @typed="onBubbleTyped"
@@ -50,7 +51,7 @@
 
     <!-- 迷你输入条 -->
     <Transition name="xm-drawer">
-      <div v-if="chatOpen" class="xm-chat-tools" @pointerdown.stop @click.stop>
+      <div v-if="chatOpen" ref="toolsEl" class="xm-chat-tools" :style="toolsStyle" @pointerdown.stop @click.stop>
         <RouterLink to="/companion">打开完整对话页 ↗</RouterLink>
         <button
           type="button"
@@ -66,6 +67,24 @@
             <line v-if="prefs.dnd" x1="3" y1="3" x2="21" y2="21" />
           </svg>
         </button>
+        <!-- M6-1：快捷播报开关（D9：浏览器不支持朗读时隐藏） -->
+        <button
+          v-if="voiceSupported"
+          type="button"
+          class="xm-dnd xm-voice"
+          :class="{ 'is-on': prefs.voiceOn, 'is-speaking': voice.speaking.value }"
+          :title="prefs.voiceOn ? '小木会把回复读出来（点此关闭）' : '让小木把回复读出来'"
+          :aria-label="prefs.voiceOn ? '关闭朗读' : '开启朗读'"
+          data-xm="voiceQuick"
+          @click="toggleVoice"
+        >
+          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M11 5 6 9H3v6h3l5 4V5z" />
+            <path v-if="prefs.voiceOn" d="M15.5 8.5a5 5 0 0 1 0 7" />
+            <path v-if="prefs.voiceOn" d="M18.5 6a9 9 0 0 1 0 12" />
+            <line v-if="!prefs.voiceOn" x1="4" y1="20" x2="20" y2="4" />
+          </svg>
+        </button>
       </div>
     </Transition>
     <Transition name="xm-drawer">
@@ -76,9 +95,9 @@
           type="text"
           placeholder="和小木说点什么…"
           maxlength="200"
-          @keydown.enter="send"
+          @keydown.enter="send()"
         />
-        <button type="button" @click="send">发送</button>
+        <button type="button" @click="send()">发送</button>
         <button type="button" class="xm-close" aria-label="收起输入" @click="chatOpen = false">×</button>
       </div>
     </Transition>
@@ -112,6 +131,7 @@ import { useXiaomuProactive } from '../composables/useXiaomuProactive'
 import { useXiaomuWardrobe } from '../composables/useXiaomuWardrobe'
 import { useXiaomuSkin } from '../composables/useXiaomuSkin'
 import { useXiaomuSync } from '../composables/useXiaomuSync'
+import { useXiaomuVoice, voiceSupported } from '../composables/useXiaomuVoice'   // M6-1
 import { useIdentity } from '../../composables/useIdentity'
 import { ACTION } from '../core/actions'
 import { itemOf } from '../core/wardrobe'
@@ -131,6 +151,9 @@ const ident = useIdentity()
 
 /* 批次 N：跨设备同步引擎（模块级单例）。衣柜面板也用它读 cloudNote/推送。 */
 const sync = useXiaomuSync()
+
+/* M6-1：播报（模块级单例）。与对话页、声音面板共用同一条播报队列。 */
+const voice = useXiaomuVoice()
 
 /** 渲染形态（批次 J）：选中 custom 但本机还没有图片时回落木灵，避免出现空白形象 */
 const effVariant = computed(() =>
@@ -309,6 +332,12 @@ function openBubble(text, { mode = 'xomu', withChips = false, chips = null } = {
 
 function onBubbleTyped() {
   if (bubble.mode !== 'xomu') return
+  // M6-1：播报中保持 talk 基线，不插随机小动作（避免「说话时突然歪头」的怪异感）
+  if (voice.speaking.value) {
+    clearTimeout(bubbleFallback)
+    bubbleFallback = setTimeout(() => { if (!chatOpen.value) bubble.visible = false }, 14000)
+    return
+  }
   sm.setState('idle')
   // 回复完毕随机小反应：满足闭眼歪头 or 开心小跳
   if (Math.random() < 0.3) {
@@ -321,6 +350,55 @@ function onBubbleTyped() {
   clearTimeout(bubbleFallback)
   bubbleFallback = setTimeout(() => { if (!chatOpen.value) bubble.visible = false }, 14000)
 }
+
+/* ================= M6-1：语音播报 =================
+ * 纯加法：只在既有流程的「回复完成」「主动开口」两个点上挂播报，不改三轨状态机本身的逻辑
+ * （只调它的公开接口 setState/playAction），也不新增防打扰规则（复用 dnd 这一个开关）。
+ *
+ * 三条铁律：
+ *   1. 免打扰时**绝不出声**（D5）—— 与主动搭话同规则，且开启瞬间立刻掐断正在播的话。
+ *   2. 播报永远由「用户手势链」触发（点开关 / 刚发过消息），不在定时器里凭空出声 —— iOS 才不拦。
+ *   3. 读文本用**服务端截断后**的气泡文本；空回复（'……'）不读。
+ */
+
+/** 是否允许现在出声 */
+function voiceAllowed() {
+  return voiceSupported && prefs.voiceOn && !prefs.dnd
+}
+
+/** 念一段小木的话（会打断上一条） */
+function speakLine(text) {
+  if (!voiceAllowed()) return false
+  const t = String(text == null ? '' : text).trim()
+  if (!t || t === '……') return false
+  return voice.speak(t, { voiceURI: prefs.voiceURI, rate: prefs.voiceRate })
+}
+
+/** 快捷开关：有手势上下文 → 开启时立刻给一句确认（比任何文案都清楚） */
+function toggleVoice() {
+  const on = !prefs.voiceOn
+  prefs.voiceOn = on
+  if (on) {
+    voice.loadVoices()
+    speakLine('嗯，我可以说话了。')
+  } else {
+    voice.stop()
+  }
+}
+
+/* 播报中 → 身体轻轻起伏（复用既有 talk 基线：嘴部张合 + 微微摇晃） */
+watch(() => voice.speaking.value, (on) => {
+  if (on) {
+    // 不打断摸头等 hold 型动作，也不在拖拽/入睡时强行切态
+    if (dragging.value || sm.state.value === 'sleep' || sm.action.value) return
+    sm.setState('talk')
+  } else if (sm.state.value === 'talk') {
+    sm.setState('idle')
+  }
+})
+
+/* 免打扰一开 → 立刻闭嘴（哪怕话说到一半） */
+watch(() => prefs.dnd, (on) => { if (on) voice.stop() })
 
 function onChip(chip) {
   if (chip.key === 'fact') send(chip.label)
@@ -345,8 +423,12 @@ function openWardrobe() {
 let busy = false
 
 function send(text) {
-  const msg = (text ?? draft.value).trim()
+  // ⚠️ 防御：`@click="send"` 会把 MouseEvent 当第一个参数传进来（Vue 的默认行为），
+  // 于是在 event 上调 .trim() 会抛 TypeError —— 实测导致「发送」按钮与回车**全部失效**。
+  // 模板已改为 `send()`；这里再兜一层，避免将来有人改回 `@click="send"` 又踩一次。
+  const msg = (typeof text === 'string' ? text : draft.value).trim()
   if (!msg || busy || collapsed.value) return
+  voice.stop()               // M6-1：用户又开口了 → 掐断上一句播报
   draft.value = ''
   busy = true
   history.value.push({ role: 'user', text: msg })
@@ -392,10 +474,12 @@ function send(text) {
       history.value.push({ role: 'xomu', text: full || '……' })
       mind.noteChatDone()            // M2：聊完一轮 +2（聊过天本身是好事）
       busy = false
+      speakLine(full)                // M6-1：回完就念出来（免打扰/未开启时静默）
       proactive.maybeFire('chat-done')   // M2 F：对话结束后给关怀触发器一次机会（低落连击≥3）
     },
     onError: (errMsg, kind) => {
       busy = false
+      voice.stop()                   // M6-1：出错就别说话了
       if (bubbleRef.value) bubbleRef.value.abortStream()
       bubble.mode = 'xomu'
       bubble.text = SORRY_LINES[Math.floor(Math.random() * SORRY_LINES.length)]
@@ -532,6 +616,8 @@ const proactive = useXiaomuProactive({
   deliver: (text) => {
     sm.playAction(ACTION.LEAN_IN)   // 凑近开口
     openBubble(text)
+    // M6-1（D6）：主动出声默认关；开了才念。守卫内部已含 dnd 判断（虽然能走到这里的都已过 canSpeakNow）
+    if (prefs.voiceProactive) speakLine(text)
   },
   userId: () => ident.userId.value,
   authToken: () => ident.token(),
@@ -642,6 +728,7 @@ function collapse() {
   historyOpen.value = false
   wardrobeOpen.value = false
   chat.abort()          // AbortError 在 api 层静默返回，不会误触发道歉气泡
+  voice.stop()          // M6-1：收起就别再出声了
   busy = false
   prefs.collapsed = true
 }
@@ -661,8 +748,9 @@ onBeforeUnmount(() => {
   clearTimeout(bubbleFallback)
   removeEventListener('keydown', onKeydown)
   if (vv) vv.removeEventListener('resize', onVVResize)
-  removeEventListener('resize', clampInputBar)
+  removeEventListener('resize', clampFloating)
   chat.abort()
+  voice.stop()          // M6-1：离开页面时掐断播报（模块级单例不随组件销毁）
   sm.dispose()
   proactive.dispose()   // M2 F：清 visibilitychange 监听
 })
@@ -683,28 +771,47 @@ function onVVResize() {
 onMounted(() => {
   vv = window.visualViewport
   if (vv) vv.addEventListener('resize', onVVResize)
-  addEventListener('resize', clampInputBar, { passive: true })
+  addEventListener('resize', clampFloating, { passive: true })
 })
 const kbStyle = computed(() =>
   kbOffset.value ? { transform: `translateY(-${kbOffset.value}px)` } : {}
 )
 
-/* 输入条视口 clamp：小木贴右（或手机窄屏）时输入条会溢出，同气泡方案做 translateX 修正 */
+/* 浮动层视口 clamp：小木贴右（或手机窄屏）时，其上方/下方的输入条与工具行会溢出。
+ *
+ * ⚠️ 两个坑，都踩过：
+ *  1. **必须绝对式，不能累加 dx** —— 输入条/工具行都带 `xm-drawer` 过渡（transition: transform），
+ *     累加式会用「过渡插值中的滞后几何」重复累加而过冲（wardrobe 上实测过冲 119px）。
+ *  2. **工具行也要 clamp** —— M6-1 在工具行加了「播报开关」，3 个元素后手机 390 宽下
+ *     右缘 395 越界 5px（实测），所以这里把输入条与工具行一起管。
+ */
+function centerShift(el, margin = 8) {
+  if (!el) return 0
+  const host = el.offsetParent
+  const hRect = host ? host.getBoundingClientRect() : null
+  const hostLeft = hRect ? hRect.left : 0
+  const hostW = host ? host.offsetWidth : (hRect ? hRect.width : 0)
+  const w = el.offsetWidth
+  const left = hostLeft + hostW / 2 - w / 2      // CSS: left:50% + translateX(-50%)
+  let dx = 0
+  if (left + w > innerWidth - margin) dx = innerWidth - margin - (left + w)
+  else if (left < margin) dx = margin - left
+  return Math.round(dx)
+}
+
 const inputBar = ref(null)
 const inputShift = ref(0)
-function clampInputBar() {
-  const el = inputBar.value
-  if (!el) { inputShift.value = 0; return }
-  const r = el.getBoundingClientRect()   // 已含当前 shift，dx 为增量修正（多次调用收敛）
-  const margin = 8
-  let dx = 0
-  if (r.right > innerWidth - margin) dx = innerWidth - margin - r.right
-  else if (r.left < margin) dx = margin - r.left
-  inputShift.value = Math.round(inputShift.value + dx)
+const toolsEl = ref(null)
+const toolsShift = ref(0)
+const toolsStyle = computed(() => (toolsShift.value ? { transform: `translate(calc(-50% + ${toolsShift.value}px), 0)` } : {}))
+
+function clampFloating() {
+  inputShift.value = centerShift(inputBar.value)
+  toolsShift.value = centerShift(toolsEl.value)
 }
 watch(chatOpen, (v) => {
-  if (v) nextTick(() => { clampInputBar(); requestAnimationFrame(() => { clampInputBar(); requestAnimationFrame(clampInputBar) }) })
-  else inputShift.value = 0
+  if (v) nextTick(() => { clampFloating(); requestAnimationFrame(clampFloating) })
+  else { inputShift.value = 0; toolsShift.value = 0 }
 })
 
 
@@ -826,6 +933,16 @@ watch(chatOpen, (v) => {
 }
 .xm-dnd:hover { opacity: 1; }
 .xm-dnd.is-on { background: #f0ece2; opacity: 1; }
+/* M6-1：播报开关 —— 出声时轻轻脉动，用「呼吸」暗示她在说话 */
+.xm-voice.is-on { color: #b0446f; border-color: #b0446f; }
+.xm-voice.is-speaking { animation: xmVoicePulse 1.1s ease-in-out infinite; }
+@keyframes xmVoicePulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.12); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .xm-voice.is-speaking { animation: none; }
+}
 .xm-mini-input input {
   flex: 1;
   min-width: 0;

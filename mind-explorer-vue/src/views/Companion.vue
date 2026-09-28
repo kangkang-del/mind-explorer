@@ -17,6 +17,27 @@
       >
         <span aria-hidden="true">📖</span><span class="hidden sm:inline">故事书</span>
       </RouterLink>
+      <!-- M6-1：播报开关（D9：浏览器不支持朗读时隐藏） -->
+      <button
+        v-if="voiceSupported"
+        type="button"
+        data-xm="voiceToggle"
+        class="text-[12px] px-2.5 py-1.5 rounded-full border transition shrink-0 flex items-center gap-1"
+        :class="prefs.voiceOn
+          ? 'border-[#e7a8c2] bg-[#fdeef5] text-[#b0446f]'
+          : 'border-[#e6efe9] bg-white text-[#9aa6b2] hover:border-[#a8cbb4]'"
+        :title="prefs.voiceOn ? '小木会把回复读出来（点此关闭）' : '让小木把回复读出来'"
+        :aria-label="prefs.voiceOn ? '关闭朗读' : '开启朗读'"
+        @click="toggleVoice"
+      >
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M11 5 6 9H3v6h3l5 4V5z" />
+          <path v-if="prefs.voiceOn" d="M15.5 8.5a5 5 0 0 1 0 7" />
+          <path v-if="prefs.voiceOn" d="M18.5 6a9 9 0 0 1 0 12" />
+          <line v-if="!prefs.voiceOn" x1="4" y1="20" x2="20" y2="4" />
+        </svg>
+        <span class="hidden sm:inline">{{ prefs.voiceOn ? '朗读中' : '朗读' }}</span>
+      </button>
       <button v-if="messages.length" @click="clearChat" class="text-[12px] text-[#9aa6b2] hover:text-[#e07a3f] transition px-2 py-1 shrink-0">清空</button>
     </header>
 
@@ -218,7 +239,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, nextTick, onMounted, onBeforeUnmount } from 'vue'
+import { ref, reactive, computed, nextTick, onMounted, onBeforeUnmount, watch } from 'vue'
 import { companionApi } from '../api/companion'
 import { moodApi } from '../api/mood'
 import { checkinsApi } from '../api/checkins'
@@ -227,6 +248,9 @@ import { useBadgeStore } from '../stores/badges'
 import { useCrisisStore } from '../stores/crisisStore'
 import { detectCrisis, crisisReply } from '../lib/crisis'
 import { useIdentity } from '../composables/useIdentity'
+// M6-1：语音播报（浏览器原生，零成本）。与桌宠共用同一份 prefs 与播报队列。
+import { useXiaomuPrefs } from '../companion/composables/useXiaomuPrefs'
+import { useXiaomuVoice, voiceSupported } from '../companion/composables/useXiaomuVoice'
 
 const auth = useAuthStore()
 const badgesStore = useBadgeStore()
@@ -236,6 +260,37 @@ const crisisStore = useCrisisStore()
 const ident = useIdentity()
 const userId = ident.userId
 const userNickname = ident.nickname
+
+// M6-1：语音播报
+const prefs = useXiaomuPrefs()
+const voice = useXiaomuVoice()
+
+/** 是否允许现在出声：支持 + 开启 + 非免打扰（D5） */
+function voiceAllowed() {
+  return voiceSupported && prefs.voiceOn && !prefs.dnd
+}
+
+/** 念一句小木的话（打断上一条；空文本/占位符不念） */
+function speakReply(text) {
+  if (!voiceAllowed()) return false
+  const t = String(text == null ? '' : text).trim()
+  if (!t || t === '……') return false
+  return voice.speak(t, { voiceURI: prefs.voiceURI, rate: prefs.voiceRate })
+}
+
+function toggleVoice() {
+  const on = !prefs.voiceOn
+  prefs.voiceOn = on
+  if (on) {
+    voice.loadVoices()
+    speakReply('嗯，我可以说话了。')
+  } else {
+    voice.stop()
+  }
+}
+
+/** 免打扰一开 → 立刻闭嘴（与桌宠同规则） */
+watch(() => prefs.dnd, (on) => { if (on) voice.stop() })
 
 const STORAGE_KEY = 'xiaomu_history_v1'
 const MAX_HISTORY = 12
@@ -371,6 +426,7 @@ async function pushAssistant(text) {
   }
   sending.value = false
   saveHistory()
+  speakReply(text)   // M6-1：复盘/CBT/睡前这类非流式回复，打完后也念出来
 }
 
 // 本周情绪复盘（结构化卡片）
@@ -519,6 +575,7 @@ async function send() {
 // 以指定文本触发一次小木对话（供「情绪命名」等引导模块复用）
 async function sendText(text) {
   if (!text || sending.value) return
+  voice.stop()   // M6-1：用户又开口了 → 掐断上一句播报
 
   messages.push({ role: 'user', content: text })
   sending.value = true
@@ -550,6 +607,7 @@ async function sendText(text) {
       scrollToBottom()
     },
     onError: async (msg) => {
+      voice.stop()   // M6-1：出错就别说话了
       // 服务不可用（如本地 dev 无函数 / 404）时，前端本地降级为模板语录
       if (isServiceUnavailable(msg)) {
         await localFallback(text)
@@ -562,6 +620,7 @@ async function sendText(text) {
       activeAssistant.thinking = false
       sending.value = false
       saveHistory()
+      speakReply(activeAssistant.content)   // M6-1：回完就念出来
     },
   })
 }
@@ -615,6 +674,7 @@ async function localFallback(text) {
   }
   sending.value = false
   saveHistory()
+  speakReply(reply)   // M6-1：本地降级语录同样念出来
 }
 
 // 挂载时：若已登录，从服务端恢复对话（跨设备连续性）；失败则保留本地 localStorage
@@ -635,6 +695,7 @@ onMounted(async () => {
 
 onBeforeUnmount(() => {
   controller?.abort()
+  voice.stop()   // M6-1：离开页面掐断播报
 })
 </script>
 

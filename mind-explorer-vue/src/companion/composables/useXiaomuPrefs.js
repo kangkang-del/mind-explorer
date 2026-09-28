@@ -8,6 +8,12 @@
  *   collapsed —— 收起态（任务 7 用，先占位）
  *   dnd     —— 免打扰（M2 批次 F：true = 主动搭话全静默）
  *
+ * M6-1 新增（语音播报）：
+ *   voiceOn       —— 小木回复后是否读出声（D6：默认 false，用户可开）
+ *   voiceURI      —— 选中的系统音色（'' = 自动挑一个中文音色）
+ *   voiceRate     —— 语速（0.6~1.6，默认 1）
+ *   voiceProactive—— 主动搭话时也出声（D6：默认 false）
+ *
  * 读写全部 try/catch：隐私模式/禁存储时静默降级为不持久化。
  */
 import { reactive, watch } from 'vue'
@@ -20,6 +26,11 @@ const defaults = () => ({
   pos: null,          // { x, y }
   collapsed: false,
   dnd: false,         // M2 批次 F：免打扰（true = 小木不主动搭话，被动聊天不受影响）
+  // ---- M6-1 语音 ----
+  voiceOn: false,         // 播报开关
+  voiceURI: '',           // 系统音色 voiceURI
+  voiceRate: 1,           // 语速
+  voiceProactive: false,  // 主动出声
 })
 
 /** M3 迁移：旧版布尔（hat:true）→ 物品 id；新版字符串原样；缺失 → none */
@@ -31,6 +42,12 @@ function normWear(v, noneId, onId) {
 
 /** 形态白名单：wood / dog / custom（custom 的图片是否存在由 useXiaomuSkin 判定，缺失时渲染层回落 wood） */
 const VARIANTS = ['wood', 'dog', 'custom']
+
+/** 语速夹取：与播报层 useXiaomuVoice 的 clampRate 保持一致 */
+function normRate(v) {
+  if (!Number.isFinite(v)) return 1
+  return Math.min(1.6, Math.max(0.6, v))
+}
 
 function load() {
   const base = defaults()
@@ -49,6 +66,11 @@ function load() {
       pos: saved.pos && Number.isFinite(saved.pos.x) && Number.isFinite(saved.pos.y) ? saved.pos : null,
       collapsed: !!saved.collapsed,
       dnd: !!saved.dnd,
+      // ---- M6-1 语音 ----
+      voiceOn: !!saved.voiceOn,
+      voiceURI: typeof saved.voiceURI === 'string' ? saved.voiceURI : '',
+      voiceRate: normRate(saved.voiceRate),
+      voiceProactive: !!saved.voiceProactive,
     }
   } catch {
     return base

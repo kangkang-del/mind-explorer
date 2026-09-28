@@ -9,15 +9,15 @@
       @click.stop
     >
       <div class="xm-wd-head">
-        <span class="xm-wd-title">{{ top === 'wear' ? '小木的衣柜' : '小木的模型' }}</span>
+        <span class="xm-wd-title">{{ topTitle }}</span>
         <span v-if="top === 'wear'" class="xm-wd-days">陪伴第 {{ wd.activeDays.value }} 天</span>
         <button type="button" class="xm-wd-close" aria-label="关闭面板" @click="emit('close')">×</button>
       </div>
 
-      <!-- 一级导航（M5-3）：穿戴 / 模型 -->
+      <!-- 一级导航（M5-3 穿戴/模型；M6-1 加「声音」） -->
       <div class="xm-wd-top">
         <button
-          v-for="t in TOPS" :key="t.key" type="button"
+          v-for="t in tops" :key="t.key" type="button"
           class="xm-wd-topbtn" :class="{ 'is-active': top === t.key }"
           @click="top = t.key"
         >{{ t.name }}</button>
@@ -74,20 +74,26 @@
 
       <!-- ===== 我的模型（M5-3，D10 并入本面板） ===== -->
       <XiaomuModelPanel v-if="top === 'model'" @register="onRegister" />
+
+      <!-- ===== 声音（M6-1，浏览器原生播报；无身份门槛） ===== -->
+      <XiaomuVoicePanel v-if="top === 'voice'" />
     </div>
   </Transition>
 </template>
 
 <script setup>
 /**
- * XiaomuWardrobe —— 小木面板（M3 批次 I 换装；M5-3 并入自定义模型设置）
+ * XiaomuWardrobe —— 小木面板（M3 批次 I 换装；M5-3 并入自定义模型；M6-1 并入声音设置）
  *
- * 一级导航：穿戴 / 模型。
+ * 一级导航：穿戴 / 模型 / 声音。
  *   · 穿戴 —— 槽位 tab + 物品格子；已解锁点击即穿（写 prefs，实时生效）；
  *     锁定态灰显并显示解锁条件（保底天数差值 / 里程碑描述）。
  *     「皮肤」槽位底部为「我的形象」区（批次 J）：上传/预览/清除图片皮肤。
  *   · 模型 —— 自定义模型设置（M5-3，D10）：直接渲染 XiaomuModelPanel。
  *     门槛（D6）与请求时机由该子组件自己掌握，本文件不碰。
+ *   · 声音 —— 播报设置（M6-1）：渲染 XiaomuVoicePanel。
+ *     ⚠️ 与「模型」不同，**本 tab 没有身份门槛**（浏览器原生朗读零成本）；
+ *     浏览器不支持朗读（D9）时整个 tab 隐藏。
  * 手机遇小木贴边时做视口 clamp（同输入条 translateX 方案）。
  */
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
@@ -96,8 +102,10 @@ import { useXiaomuPrefs } from '../composables/useXiaomuPrefs'
 import { useXiaomuWardrobe } from '../composables/useXiaomuWardrobe'
 import { useXiaomuSkin } from '../composables/useXiaomuSkin'
 import { useXiaomuSync } from '../composables/useXiaomuSync'
+import { voiceSupported } from '../composables/useXiaomuVoice'
 import { useIdentity } from '../../composables/useIdentity'
 import XiaomuModelPanel from './XiaomuModelPanel.vue'   // M5-3
+import XiaomuVoicePanel from './XiaomuVoicePanel.vue'   // M6-1
 
 const props = defineProps({ open: Boolean })
 const emit = defineEmits(['close'])
@@ -127,12 +135,20 @@ const syncText = computed(() => {
   return '待同步'
 })
 
-/** 一级导航（M5-3）：穿戴 = 原衣柜；模型 = 自定义模型设置 */
-const TOPS = [
-  { key: 'wear', name: '穿戴' },
-  { key: 'model', name: '模型' },
-]
+/** 一级导航（M5-3 穿戴/模型；M6-1 加「声音」）——
+ *  「声音」在浏览器不支持朗读时整体隐藏（D9：不支持则隐藏入口）。 */
+const tops = computed(() => {
+  const list = [
+    { key: 'wear', name: '穿戴' },
+    { key: 'model', name: '模型' },
+  ]
+  if (voiceSupported) list.push({ key: 'voice', name: '声音' })
+  return list
+})
 const top = ref('wear')
+
+const TOP_TITLE = { wear: '小木的衣柜', model: '小木的模型', voice: '小木的声音' }
+const topTitle = computed(() => TOP_TITLE[top.value] || '小木')
 
 const slots = SLOTS
 const slot = ref('hat')
@@ -198,21 +214,35 @@ function onRegister() {
   ident.auth.openLogin('register')
 }
 
-/* ---- 视口 clamp（同输入条方案）：按当前 shift 做增量修正，多次调用收敛 ---- */
+/* ---- 视口 clamp（同输入条方案）----
+ * ⚠️ 必须用「绝对位置」算，**不能像旧实现那样累加 dx**：
+ * 本面板外壳带 `xm-drawer` 过渡（transition: transform .16s），clamp 的几次调用会落在
+ * 过渡中间 → getBoundingClientRect() 拿到的是**插值中的滞后几何**；旧实现 `shift += dx`
+ * 会把滞后量重复累加 → 过冲出屏。移动端实测：正确应偏移 −66px，实际累加成了 **−185px**，
+ * 面板左缘被推出视口 17px（`left:-17`）。
+ * 绝对式算法把「当前偏移」从计算里剔除（用 offsetParent 中心 + offsetWidth 反推未偏移左缘），
+ * 因此重复调用结果一致、幂等、与过渡状态无关。
+ */
 const panelEl = ref(null)
 const panelShift = ref(0)
 function clampPanel() {
   const el = panelEl.value
   if (!el) { panelShift.value = 0; return }
-  const r = el.getBoundingClientRect()   // 已含当前 shift，因此 dx 是「还差多少」
+  const host = el.offsetParent
+  const hRect = host ? host.getBoundingClientRect() : null
+  const hostLeft = hRect ? hRect.left : 0
+  const hostW = host ? host.offsetWidth : (hRect ? hRect.width : 0)
+  const w = el.offsetWidth
+  // CSS 是 left:50% + translateX(-50%)：未偏移左缘 = 宿主中心 − 面板宽/2
+  const left = hostLeft + hostW / 2 - w / 2
   const margin = 8
   let dx = 0
-  if (r.right > innerWidth - margin) dx = innerWidth - margin - r.right
-  else if (r.left < margin) dx = margin - r.left
-  panelShift.value = Math.round(panelShift.value + dx)
+  if (left + w > innerWidth - margin) dx = innerWidth - margin - (left + w)
+  else if (left < margin) dx = margin - left
+  panelShift.value = Math.round(dx)
 }
 watch(() => props.open, (v) => {
-  if (v) nextTick(() => { clampPanel(); requestAnimationFrame(() => { clampPanel(); requestAnimationFrame(clampPanel) }) })
+  if (v) nextTick(() => { clampPanel(); requestAnimationFrame(clampPanel) })
   else panelShift.value = 0
 })
 addEventListener('resize', clampPanel, { passive: true })

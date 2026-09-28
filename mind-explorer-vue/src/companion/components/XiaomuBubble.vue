@@ -4,7 +4,7 @@
       v-if="visible"
       ref="bubbleEl"
       class="xm-bubble"
-      :class="[{ 'is-user': mode === 'user', 'is-typing': typing }]"
+      :class="[{ 'is-user': mode === 'user', 'is-typing': typing, 'is-raised': raised }]"
       :style="clampStyle"
       @pointerdown.stop="onLongPressStart"
       @pointerup.stop="onLongPressEnd"
@@ -54,6 +54,13 @@ const props = defineProps({
   mode: { type: String, default: 'xomu' },
   /** [{ key, label }] */
   chips: { type: Array, default: null },
+  /**
+   * M6-1：抬升态。迷你输入条打开时，小木头顶上方会多出一行工具条
+   * （完整对话页入口 / 免打扰铃铛 / 播报开关）；气泡默认的 `bottom: 100%+14px`
+   * 会与那行工具条纵向重叠。置 true 把气泡抬到工具条之上。
+   * 默认 false → 对既有调用方零影响。
+   */
+  raised: { type: Boolean, default: false },
 })
 
 const emit = defineEmits(['typed', 'chip', 'open-chat', 'history'])
@@ -260,6 +267,10 @@ defineExpose({ skipTyping, typing, beginStream, pushChunk, endStream, abortStrea
   font-family: 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif;
 }
 .xm-bubble.is-user { background: #f4efe4; }
+/* M6-1：抬升态（迷你输入条打开时）。86 = 工具条 bottom 偏移 56 + 工具条高 22 + 间隙 8 */
+.xm-bubble.is-raised { bottom: calc(100% + 86px); }
+/* 抬上去以后箭头指向空处，隐藏更干净 */
+.xm-bubble.is-raised::after { display: none; }
 .xm-bubble::after {
   content: "";
   position: absolute;
