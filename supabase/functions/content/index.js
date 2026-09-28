@@ -734,9 +734,23 @@ async function voiceIatTicket(body) {
 
   // 签名原文格式固定：host / date 各占一行，末行为请求行（差一个 \n 就签不过）
   const signatureOrigin = `host: ${IAT_HOST}\ndate: ${date}\nGET ${IAT_PATH} HTTP/1.1`
-  const authorization = await hmacSha256B64(XFYUN_API_SECRET, signatureOrigin)
+  const signature = await hmacSha256B64(XFYUN_API_SECRET, signatureOrigin)
 
-  // authorization 是 base64，含 + / = → 必须 encodeURIComponent 后才可放进 query
+  // 🔴 authorization 是**两段式**的 —— 不是「对签名原文签一次」就完事，这里最容易签错：
+  //    ① signature     = base64(HMAC-SHA256(signatureOrigin, apiSecret))   ← 上一步已是
+  //    ② authOrigin    = api_key="…", algorithm="hmac-sha256",
+  //                      headers="host date request-line", signature="…"
+  //      （headers 是**固定字面量**，写的是「参数名」不是参数值；
+  //        逗号后用空格、algorithm 固定 hmac-sha256 —— 跟随官方 demo 的写法）
+  //    ③ authorization = base64(authOrigin)                                ← 这才是放进 query 的值
+  //    少 ②③ → 握手直接 401「HMAC signature cannot be verified」。
+  //    依据：讯飞《语音听写（流式版）WebAPI》§接口鉴权 · authorization 参数生成规则（第 6/7 步）。
+  const authOrigin =
+    `api_key="${XFYUN_API_KEY}", algorithm="hmac-sha256", ` +
+    `headers="host date request-line", signature="${signature}"`
+  const authorization = btoa(authOrigin)
+
+  // authorization 是 base64（含 + / =）→ 必须 encodeURIComponent 后才可放进 query
   const url =
     `${IAT_WS_URL}?authorization=${encodeURIComponent(authorization)}` +
     `&date=${encodeURIComponent(date)}&host=${encodeURIComponent(IAT_HOST)}`
