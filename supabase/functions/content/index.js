@@ -27,6 +27,7 @@
 //   account.purge                                                       ← 批次 P 新增
 //   model.presets / model.get / model.set / model.toggle
 //   model.clear / model.test                                            ← M5 新增
+//   voice.iatTicket                                                     ← M6 新增
 //
 // M5：自定义模型（用户自带 Key / 自建 endpoint）
 //   配置存 xiaomu_model_config，Key 以 AES-GCM 加密落库（_shared/crypto.js，明文不落库）。
@@ -50,6 +51,15 @@
 //   真 DELETE、无软删除残留；分两档范围 —— 核心记忆无条件删、社区足迹需显式勾选。
 //   鉴权是硬要求（同 auth.migrate）：必须持有该身份的签名令牌，否则知道别人 uid
 //   就能删光他的数据。三条易错边界写在 purgeIdentity 上方注释里。
+//
+// M6：语音输入票据（voice.iatTicket）
+//   讯飞语音听写要求 WSS 直连 + HMAC-SHA256 签名 URL，而官方 demo 把 apiKey/apiSecret
+//   放在**前端**算签名 —— 这违反「Key 只在后端」红线。改为由本函数签发**短期签名 URL**
+//   （约 5 分钟有效），前端拿它直连 `wss://iat-api.xfyun.cn/v2/iat`。
+//   好处：既守住密钥，又**绕开 Supabase Edge 的 EarlyDrop / CPU 400ms 限制**（不维持长连接）。
+//   代价：限流只能按「签发次数」计（领了不用也算一次）；签发即消耗额度。
+//   门槛按 M6 清单 D10（仅要求有 uid）；额度按 D3（站点默认 30 次/天，可被 Edge Secret 覆盖）。
+//   未配 XFYUN_* → 本 action 503，站点其余行为不受影响（可先上代码后配密钥）。
 
 import { detectCrisis, crisisReply } from '../_shared/crisis.js'
 import {
@@ -76,6 +86,19 @@ const LLM_API_KEY = Deno.env.get('DEEPSEEK_API_KEY') ?? ''
 const LLM_BASE_URL = (Deno.env.get('DEEPSEEK_BASE_URL') || 'https://api.deepseek.com/v1').replace(/\/+$/, '')
 const LLM_MODEL = Deno.env.get('LLM_MODEL') || 'deepseek-chat'
 const memoryEnabled = !!(SUPABASE_URL && SERVICE_KEY)
+
+// ---------- M6：语音输入（讯飞语音听写）凭据 ----------
+// 只用于**签发短期签名 URL**，APISecret 永不出后端（守「Key 只在后端」）。
+// 三者齐备才算就绪；缺任一 → voice.iatTicket 返回 503，站点其余行为不受影响
+// （沿用 M5 的 KEY_ENC_SECRET 降级范式：可先上代码、后配密钥）。
+const XFYUN_APP_ID = Deno.env.get('XFYUN_APP_ID') ?? ''
+const XFYUN_API_KEY = Deno.env.get('XFYUN_API_KEY') ?? ''
+const XFYUN_API_SECRET = Deno.env.get('XFYUN_API_SECRET') ?? ''
+const voiceEnabled = !!(XFYUN_APP_ID && XFYUN_API_KEY && XFYUN_API_SECRET)
+
+const IAT_HOST = 'iat-api.xfyun.cn'
+const IAT_PATH = '/v2/iat'
+const IAT_WS_URL = `wss://${IAT_HOST}${IAT_PATH}`
 
 // GLM 混合推理型 / DeepSeek V4+ 默认开思考，须显式关闭（与 companion 同一白名单）
 const THINKING_MODEL_RE = /^(glm-(4\.[5-9]|[5-9])|deepseek-v[4-9])/
@@ -550,6 +573,18 @@ const MODEL_TEST_WINDOW_MS = 60 * 1000
 const MODEL_TEST_MAX_PER_WINDOW = 3
 const modelTestHits = new Map() // uid → number[]（时间戳）—— Edge 实例级，够用
 
+// M6 语音输入额度（按 M6 清单 §10 的 D3：站点默认 30 次/天）。
+// 🔴 上限支持 **Edge Secret 覆盖**，使「紧急关停」无需重部署：
+//    把 VOICE_TICKET_MAX_PER_WINDOW 设为 0 → 全部 429，等于临时停用本功能（秒级生效）。
+const VOICE_TICKET_WINDOW_MS = 24 * 60 * 60 * 1000
+const VOICE_TICKET_MAX_PER_WINDOW = (() => {
+  const raw = Deno.env.get('VOICE_TICKET_MAX_PER_WINDOW')
+  if (raw === undefined || raw === '') return 30
+  const n = Number(raw)
+  return Number.isFinite(n) && n >= 0 ? Math.floor(n) : 30
+})()
+const voiceTicketHits = new Map() // uid → number[]（时间戳）—— Edge 实例级，重启清零
+
 const RE_ITEM_ID = /^[a-z0-9-]{1,32}$/
 const RE_DAY_KEY = /^\d{8}$/
 
@@ -639,6 +674,87 @@ function rateAllow(map, key, max, windowMs) {
     }
   }
   return true
+}
+
+// ---------- M6：voice.* 实现（讯飞语音听写的短期票据签发） ----------
+
+/** 与 modelErr 同构。独立命名，避免 M6 的报错语义与 M5 混淆。 */
+const voiceErr = (msg, reason, status = 403) => {
+  const e = new Error(msg)
+  e.status = status
+  e.reason = reason
+  return e
+}
+
+/**
+ * HMAC-SHA256 → base64。与 `_shared/auth.js` 的 hmacKey() 同构，但**密钥不同**
+ * （XFYUN_API_SECRET 而非 HMAC_SECRET），且那个函数是模块私有的，**无法直接复用**。
+ *
+ * 🔴 刻意放在本文件内部、**不加进 `_shared/`**：
+ *    `companion/index.js` 也 import 了 `_shared/crypto.js`，而共享模块是 import 依赖
+ *    → 改它就必须**连带重部署 companion**（项目红线）。
+ *    放在这里 ⇒ 只有 content 需要重部署，**回滚面缩小一半**。
+ */
+let _xyHmacKey = null
+async function hmacSha256B64(secret, msg) {
+  const enc = new TextEncoder()
+  if (!_xyHmacKey) {
+    _xyHmacKey = crypto.subtle.importKey('raw', enc.encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign'])
+  }
+  const sig = await crypto.subtle.sign('HMAC', await _xyHmacKey, enc.encode(msg))
+  return btoa(String.fromCharCode(...new Uint8Array(sig)))
+}
+
+/**
+ * 签发讯飞 IAT 的短期签名 URL。
+ *
+ * 为什么只签 URL、不代理音频：
+ *   ① 守住「Key 只在后端」—— APISecret 永不出现在响应里；
+ *   ② 前端拿 URL 直连讯飞 WS，**绕开 Supabase Edge 的 EarlyDrop / CPU 400ms 限制**（不维持长连接）。
+ * 代价（已知局限）：限流只能按「签发次数」计，无法按实际音频时长 —— 领了不用也算一次。
+ *
+ * 身份门槛按 M6 清单 §10 的 **D10（仅要求有 uid）** ⇒ 用 ownerDeny，**不用** requireConfirmed。
+ *   理由：额度是**站点自己的**（讯飞账号级每日 500 次），该由**限流**控、不该由身份门槛控；
+ *   且 M6-1 的 TTS 播报是零门槛的 —— 这里保持一致，才不会出现「能听、不能说」。
+ *
+ * 不读数据库 → 未启用存储（memoryEnabled=false）时本 action 仍可用。
+ */
+async function voiceIatTicket(body) {
+  const uid = await ownerDeny(body.userId, body.authToken, 'content.voice.iatTicket')
+
+  if (!voiceEnabled) throw voiceErr('语音输入功能尚未启用', 'feature_disabled', 503)
+
+  // 签发即消耗额度。把 VOICE_TICKET_MAX_PER_WINDOW 设 0 → 全部 429（免重部署的关停开关）
+  if (!rateAllow(voiceTicketHits, uid, VOICE_TICKET_MAX_PER_WINDOW, VOICE_TICKET_WINDOW_MS)) {
+    throw voiceErr('今天的语音输入次数用完了', 'quota_exceeded', 429)
+  }
+
+  // 必须是 RFC1123 GMT（如 "Mon, 28 Sep 2026 04:13:51 GMT"），且需落在讯飞的时钟容忍窗口内
+  const date = new Date().toUTCString()
+
+  // 签名原文格式固定：host / date 各占一行，末行为请求行（差一个 \n 就签不过）
+  const signatureOrigin = `host: ${IAT_HOST}\ndate: ${date}\nGET ${IAT_PATH} HTTP/1.1`
+  const authorization = await hmacSha256B64(XFYUN_API_SECRET, signatureOrigin)
+
+  // authorization 是 base64，含 + / = → 必须 encodeURIComponent 后才可放进 query
+  const url =
+    `${IAT_WS_URL}?authorization=${encodeURIComponent(authorization)}` +
+    `&date=${encodeURIComponent(date)}&host=${encodeURIComponent(IAT_HOST)}`
+
+  // ⚠️ url 是**约 5 分钟有效的凭据**（等价于 Bearer）：不写日志、不落库。
+  //    响应体只回 url 与 appId —— apiKey / apiSecret 绝不出后端。
+  //    （本函数共用的 json() 没有额外响应头钩子；POST + application/json 不会被缓存，够用。）
+  return {
+    ok: true,
+    url,
+    appId: XFYUN_APP_ID,
+    host: IAT_HOST,
+    path: IAT_PATH,
+    rate: 16000,
+    format: 'audio/L16;rate=16000',
+    expiresInSec: 300,
+    quota: { max: VOICE_TICKET_MAX_PER_WINDOW, windowMs: VOICE_TICKET_WINDOW_MS },
+  }
 }
 
 // ---------- M5：model.* 实现 ----------
@@ -1692,6 +1808,13 @@ Deno.serve(async (req) => {
         return json(await modelClear(body))
       case 'model.test':
         return json(await modelTest(body))
+
+      // ---------- 语音输入（M6） ----------
+      // 🔴 APISecret 永不出后端：只签发短期签名 URL，前端拿它直连讯飞 WS。
+      // 这样也绕开了 Supabase Edge 的 EarlyDrop / CPU 400ms 限制（不在 Edge 维持长连接）。
+      // 未配 XFYUN_* → 本 action 503 静默停用，其余 action 不受影响。
+      case 'voice.iatTicket':
+        return json(await voiceIatTicket(body))
 
       default:
         return json({ error: '无效的操作类型：' + action }, 400)
