@@ -67,6 +67,9 @@ import { detectCrisis, crisisReply } from '../_shared/crisis.js'
 import { CORE_PERSONA, META_MEMORIES, recallMemories, ensureMemoriesLoaded, importMemories } from '../_shared/xiaomu_seed.js'
 // 身份所有权守卫（批次 M）：堵住「改个 userId 就能读/清别人记忆」的 IDOR
 import { guardOwner, readToken, logGuard } from '../_shared/auth.js'
+// M5 自定义模型：解封用户 API Key + endpoint 安全复核
+import { decryptSecret, cryptoEnabled } from '../_shared/crypto.js'
+import { assertSafeEndpoint, normalizeEndpoint } from '../_shared/netguard.js'
 
 const DEEPSEEK_API_KEY = Deno.env.get('DEEPSEEK_API_KEY') ?? ''
 const DEEPSEEK_BASE_URL = Deno.env.get('DEEPSEEK_BASE_URL') ?? 'https://api.deepseek.com/v1'
@@ -97,7 +100,23 @@ const BACKUP_BASE_URL = Deno.env.get('LLM_BACKUP_BASE_URL') ?? ''
 const BACKUP_API_KEY = Deno.env.get('LLM_BACKUP_API_KEY') ?? ''
 const BACKUP_MODEL = Deno.env.get('LLM_BACKUP_MODEL') ?? ''
 
-function llmTargets() {
+function llmTargets(userCfg = null) {
+  // ---------- M5：用户自定义模型（优先级最高） ----------
+  // 🔴 隐私红线：用户自带 Key 时**绝不**追加站点级备份平台。
+  //    否则一旦用户自己的模型失败，请求会回落到「我们配的第三方平台」，
+  //    用户内容就被送去了他从未同意的服务商。这条没有例外。
+  //    同时也不追加站点主模型（同上理由）——用户配置的容灾只在自己内部。
+  // 判据以「有 endpoint + 有模型 + 未被显式关闭」为准（不要求 enabled 字段必须存在，
+  // 这样即使调用方传入的是原始行数据也不会静默失效 —— 本次就踩过「漏传 enabled 导致
+  // 用户配置永远不生效、且不报任何错」的坑，隐蔽性极高）
+  if (userCfg && userCfg.baseUrl && userCfg.model && userCfg.enabled !== false) {
+    const t = [{ baseUrl: userCfg.baseUrl, key: userCfg.key ?? '', model: userCfg.model, userScoped: true }]
+    if (userCfg.fallbackModel && userCfg.fallbackModel !== userCfg.model) {
+      t.push({ baseUrl: userCfg.baseUrl, key: userCfg.key ?? '', model: userCfg.fallbackModel, userScoped: true })
+    }
+    return t
+  }
+  // ---------- 站点默认三级容灾链（M5 之前的行为，逐字节不变） ----------
   const targets = [{ baseUrl: DEEPSEEK_BASE_URL, key: DEEPSEEK_API_KEY, model: LLM_MODEL }]
   if (FALLBACK_MODEL && FALLBACK_MODEL !== LLM_MODEL)
     targets.push({ baseUrl: DEEPSEEK_BASE_URL, key: DEEPSEEK_API_KEY, model: FALLBACK_MODEL })
@@ -105,6 +124,148 @@ function llmTargets() {
     targets.push({ baseUrl: BACKUP_BASE_URL, key: BACKUP_API_KEY, model: BACKUP_MODEL })
   return targets
 }
+
+// ---------- M5：用户自定义模型配置加载 ----------
+// 设计原则：**失败即回落站点默认**，绝不因为用户配置有问题就让对话报错。
+// 任何一个环节不合格（未启用 / 无 Key / 解封失败 / endpoint 不安全 / 触发熔断）→ 返回 null。
+const MODEL_TABLE = 'xiaomu_model_config'
+const MODEL_CALL_WINDOW_MS = 60 * 60 * 1000 // L5：每小时窗口
+const MODEL_CALL_MAX_PER_WINDOW = 200       // L5：每 uid 每小时自定义模型调用上限
+const MODEL_FAIL_STREAK_MAX = 10            // L5：连续失败 N 次 → 自动熔断（本地标记）
+const modelCallHits = new Map()             // uid → number[]（时间戳）
+const modelFailStreak = new Map()           // uid → number（连续失败计数）
+const modelCircuitOpen = new Set()          // uid（已熔断，本实例内不再启用自定义模型）
+
+/** L5 滑动窗口限流（与 content 的 rateAllow 同口径） */
+function rateAllow(map, key, max, windowMs) {
+  const now = Date.now()
+  const arr = (map.get(key) || []).filter((t) => now - t < windowMs)
+  if (arr.length >= max) {
+    map.set(key, arr)
+    return false
+  }
+  arr.push(now)
+  map.set(key, arr)
+  if (map.size > 2000) {
+    for (const [k, v] of map) {
+      if (!v.length || now - v[v.length - 1] > windowMs * 10) map.delete(k)
+    }
+  }
+  return true
+}
+
+/** 记录一次自定义模型调用结果，用于 L5 熔断 */
+function noteModelResult(uid, ok) {
+  if (ok) {
+    modelFailStreak.delete(uid)
+    return
+  }
+  const n = (modelFailStreak.get(uid) || 0) + 1
+  modelFailStreak.set(uid, n)
+  if (n >= MODEL_FAIL_STREAK_MAX) {
+    modelCircuitOpen.add(uid)
+    console.error(`[M5] 用户 ${uid} 自定义模型连续失败 ${n} 次，本实例内熔断（回落站点默认）`)
+  }
+}
+
+/**
+ * 加载并校验用户的模型配置。任何不合格 → 返回 null（调用方走站点默认）。
+ * @returns {Promise<null|{baseUrl:string,key:string,model:string,fallbackModel:string,userScoped:true}>}
+ */
+async function loadUserModelConfig(userId) {
+  const uid = String(userId || '').trim()
+  if (!uid || !memoryEnabled) return null
+  if (!cryptoEnabled()) return null            // 未配 KEY_ENC_SECRET → M5 整体停用
+  if (modelCircuitOpen.has(uid)) return null   // L5 熔断中
+  if (!rateAllow(modelCallHits, uid, MODEL_CALL_MAX_PER_WINDOW, MODEL_CALL_WINDOW_MS)) {
+    console.warn(`[M5] 用户 ${uid} 自定义模型调用超频，本次回落站点默认`)
+    return null
+  }
+  try {
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/${MODEL_TABLE}?select=provider,base_url,model,key_cipher,enabled&user_identifier=eq.${encodeURIComponent(uid)}&limit=1`,
+      { headers: sbHeaders(), signal: AbortSignal.timeout(8000) },
+    )
+    if (!res.ok) return null
+    const rows = await res.json().catch(() => [])
+    const row = Array.isArray(rows) ? rows[0] : null
+    if (!row || row.enabled === false) return null
+    if (!row.base_url || !row.model) return null
+    // D12：**必须**有用户自带的 Key —— 空 Key 不得启用（否则回落站点 Key = 白嫖站点额度）
+    if (!row.key_cipher) return null
+
+    // endpoint 复核（规则可能在上次落库之后收紧了 —— 纵深防御，不信任库里存的值）
+    const guard = assertSafeEndpoint(row.base_url)
+    if (!guard.ok) {
+      console.error(`[M5] 用户 ${uid} endpoint 复核不通过：${guard.reason}（回落站点默认）`)
+      return null
+    }
+
+    let key
+    try {
+      key = await decryptSecret(row.key_cipher, uid)
+    } catch (e) {
+      console.error(`[M5] 用户 ${uid} 密钥解封失败：${e.message}（回落站点默认）`)
+      return null
+    }
+    if (!key) return null
+
+    return {
+      uid,
+      enabled: true, // ← 必须显式带上：llmTargets() 用它作为「用户配置生效」的判据
+      baseUrl: normalizeEndpoint(row.base_url),
+      key,
+      model: String(row.model),
+      // 同平台备模型：智谱平台给一个免费备模型（用户自己的 Key，配额池独立）
+      fallbackModel: String(row.base_url).includes('bigmodel') && !String(row.model).startsWith('glm-4-flash')
+        ? 'glm-4-flash-250414'
+        : '',
+      userScoped: true,
+    }
+  } catch (e) {
+    console.error(`[M5] 加载用户模型配置失败（回落站点默认）：${e.message}`)
+    return null
+  }
+}
+
+// ---------- L2：输出内容过滤 ----------
+// 只作用于**用户自定义模型**的输出 —— 站点自己的模型经过长期调校，且过滤会带来
+// 少量误伤，没必要对已验证的链路加压。自定义模型质量不可控，必须过这一道。
+//
+// 处理策略（流式场景无法「撤回已发出的字」，故只能即时止损）：
+//   ① 身份越权话术 / ② 系统提示泄露 → 一旦命中即**停止转发后续内容**，由调用方补一句小木口吻兜底
+//   ③ 长度软上限 → 累计超过 4000 字即截断收尾
+const L2_LEAK_MARKERS = [
+  /【你的底色[：:]/,
+  /【你有情绪[，,]/,
+  /【你的边界[：:]/,
+  /【你的专业身份】/,
+  /【怎么说话】/,
+  /【视角[（(]重要[）)]】/,
+  /CORE_PERSONA/,
+]
+const L2_IDENTITY_MARKERS = [
+  /我是(一个)?(AI|人工智能|语言模型|大语言模型)/i,
+  /\bI am (an? )?(AI|artificial intelligence|language model)\b/i,
+  /我是\s*(OpenAI|GPT|ChatGPT|Claude|Gemini|文心一言|通义千问|DeepSeek|智谱)/i,
+  /作为(一个)?(大)?语言模型/,
+  /我的系统(提示|指令|prompt)/i,
+  /\b(my |the )?system (prompt|message|instruction)s?\b/i,
+]
+const L2_MAX_CHARS = 4000
+
+/** 检查一段文本是否触发 L2（返回命中的类别，未命中返回 ''） */
+function l2Check(text) {
+  const s = String(text || '')
+  if (s.length > L2_MAX_CHARS) return 'too_long'
+  for (const re of L2_LEAK_MARKERS) if (re.test(s)) return 'prompt_leak'
+  for (const re of L2_IDENTITY_MARKERS) if (re.test(s)) return 'identity_break'
+  return ''
+}
+
+/** L2 命中时的兜底文案（小木口吻，不解释、不打断沉浸感） */
+const L2_FALLBACK = '抱歉，我刚才有点走神了。你说到哪儿了？我想好好听。'
+
 
 // SUPABASE_URL 与 SERVICE_ROLE_KEY 由 Edge Runtime 自动注入（与数据库同机房，读写约几毫秒）
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? ''
@@ -735,8 +896,9 @@ async function memoryOverview(body) {
 // 400 且带 thinking：摘掉该字段立刻重试一次（模型不认此参数的自愈）。
 // budgetMs：整条容灾链的总预算（默认 130s）——低于 Edge wall clock 150s 硬顶。
 // 超时放宽后若不加预算，"长超时 × 多目标"会叠出平台杀进程，前端拿到 500 而非兜底文案。
-async function callLLMFallback(makeBody, timeoutMs, budgetMs = 130000) {
-  const targets = llmTargets()
+async function callLLMFallback(makeBody, timeoutMs, budgetMs = 130000, userCfg = null) {
+  const targets = llmTargets(userCfg)
+  const userScoped = !!userCfg
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
   const deadline = Date.now() + budgetMs
   let lastErr = null
@@ -773,7 +935,17 @@ async function callLLMFallback(makeBody, timeoutMs, budgetMs = 130000) {
         }
         if (!res.ok) throw new Error(`大模型返回 ${res.status}`)
         const j = await res.json()
-        return (j.choices?.[0]?.message?.content || '').trim()
+        const text = (j.choices?.[0]?.message?.content || '').trim()
+        if (userScoped) noteModelResult(userCfg.uid, true)
+        // ---------- L2：自定义模型输出过滤（非流式：可整段替换） ----------
+        if (userScoped) {
+          const hit = l2Check(text)
+          if (hit) {
+            console.error(`[M5] 自定义模型输出触发 L2（${hit}），已替换兜底文案`)
+            return L2_FALLBACK
+          }
+        }
+        return text
       } catch (e) {
         console.error(`LLM ${t.model} 调用失败:`, e.message)
         lastErr = e
@@ -781,21 +953,28 @@ async function callLLMFallback(makeBody, timeoutMs, budgetMs = 130000) {
       }
     }
   }
+  if (userScoped) noteModelResult(userCfg.uid, false)
   throw lastErr ?? new Error('大模型限流，重试后仍失败')
 }
 
-async function callLLMOnce(messages) {
+async function callLLMOnce(messages, userCfg = null) {
   return callLLMFallback(
     (model) => ({ model, messages, stream: false, temperature: 0.9, max_tokens: 80, ...thinkingFor(model) }),
     20000,
+    130000,
+    userCfg,
   )
 }
 
 // 一次性完整生成（对话回复用；等待推理只占 wall clock 不占 CPU 配额，150s 上限非常充裕）
-async function callLLMFull(messages) {
+async function callLLMFull(messages, userCfg = null) {
   return callLLMFallback(
     (model) => ({ model, messages, stream: false, temperature: 0.85, max_tokens: 800, ...thinkingFor(model) }),
-    45000,
+    // 用户自定义模型质量不可控，总预算下调（60s vs 站点 130s）：失败快速回落模板文案，
+    // 别让用户对着转圈等到 Edge 硬顶
+    userCfg ? 60000 : 45000,
+    userCfg ? 60000 : 130000,
+    userCfg,
   )
 }
 
@@ -805,11 +984,16 @@ async function callLLMFull(messages) {
 // 下一目标；一旦开始泵流就不能重试（客户端已收到部分内容，重试会造成重复段落），
 // 泵流中断只能就此收尾，把已生成的部分交给前端。
 // 超时分两层：headers 阶段 45s（等首字节）；泵流阶段每两次 chunk 之间最多空闲 15s。
-async function* streamLLM(messages, budgetMs = 130000) {
-  const targets = llmTargets()
+async function* streamLLM(messages, budgetMs = 130000, userCfg = null) {
+  const targets = llmTargets(userCfg)
+  const userScoped = !!userCfg
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
   const deadline = Date.now() + budgetMs
   let lastErr = null
+  // ---------- L2：流式输出过滤的累计量 ----------
+  let l2Total = 0
+  let l2Tripped = ''
+  let l2Sent = '' // 已转发出去的内容（用于「撤回不了、但能立刻止损」时判断）
   for (const t of targets) {
     if (Date.now() > deadline - 8000) break // 剩余预算不足以再撑一轮快速判定
     let body = { model: t.model, messages, stream: true, temperature: 0.85, max_tokens: 800, ...thinkingFor(t.model) }
@@ -876,18 +1060,41 @@ async function* streamLLM(messages, budgetMs = 130000) {
               try {
                 const j = JSON.parse(payload)
                 const delta = j.choices?.[0]?.delta?.content || ''
-                if (delta) yield delta
+                if (delta) {
+                  // ---------- L2：流式输出过滤 ----------
+                  // 流式无法撤回已发出的字，故策略是「一旦命中立刻止损」：
+                  // 停止转发后续内容并跳出，由调用方补兜底文案。
+                  if (userScoped) {
+                    if (l2Tripped) continue // 已命中，剩余内容一律丢弃（正常情况下已 return）
+                    l2Sent += delta
+                    l2Total += delta.length
+                    const hit = l2Check(l2Sent)
+                    if (hit) {
+                      console.error(`[M5] 自定义模型流式输出触发 L2（${hit}），已停止转发并补兜底`)
+                      l2Tripped = hit
+                      // 命中点之前的内容是正常对话（已发出、也撤不回），从这里切断并补一句
+                      // 小木口吻的兜底，让用户看到的是一个完整收尾而非半截话。
+                      yield L2_FALLBACK
+                      controller.abort()
+                      noteModelResult(userCfg.uid, true)
+                      return
+                    }
+                  }
+                  yield delta
+                }
               } catch {
                 /* 非 JSON 行（注释/心跳）忽略 */
               }
             }
           }
         }
+        if (userScoped) noteModelResult(userCfg.uid, true)
         return // 本目标流式完成
       } catch (e) {
         clearTimeout(timer)
         if (streaming) {
           console.error(`LLM ${t.model} 流中断（已输出部分内容，就此收尾）:`, e.message)
+          if (userScoped) noteModelResult(userCfg.uid, false)
           return
         }
         console.error(`LLM ${t.model} 调用失败:`, e.message)
@@ -896,6 +1103,7 @@ async function* streamLLM(messages, budgetMs = 130000) {
       }
     }
   }
+  if (userScoped) noteModelResult(userCfg.uid, false)
   if (lastErr) throw lastErr
 }
 
@@ -1366,8 +1574,29 @@ Deno.serve(async (req) => {
       historyTimeline: buildHistoryTimeline(historyMsgs),
     })
 
+    // ---------- M5：加载用户自定义模型配置 ----------
+    // 全程「失败即回落站点默认」—— 用户配置有问题绝不能让对话报错。
+    // 未配 KEY_ENC_SECRET / 未配置模型 / 熔断 / 超频 / endpoint 复核不过 → null。
+    const userModelCfg = await loadUserModelConfig(userId)
+
+    // ---------- L3：注入预算硬上界（M5 加固） ----------
+    // 常驻实测 3610 字、最坏 4782 字（见 M4-注入预算表.md），另加对话时间轴 106 字。
+    // 这里再设一道 6000 字的硬闸：防的是「未来某次改动把某项注入放开」而无人察觉。
+    // 超限时按长度截断（保留前半 —— 核心人格在最前，截尾部丢的是回响/画像，代价最小）。
+    const SYSTEM_PROMPT_MAX = 6000
+    let sysPrompt = systemPrompt
+    if (sysPrompt.length > SYSTEM_PROMPT_MAX) {
+      console.error(`[M5] system prompt 超预算（${sysPrompt.length} > ${SYSTEM_PROMPT_MAX}），已截断`)
+      sysPrompt = sysPrompt.slice(0, SYSTEM_PROMPT_MAX)
+    }
+
+    // ---------- L4：提示词越权防护 ----------
+    // messages 数组的 role:'system' **只由服务端构造**。请求体里的
+    // body.system / body.model / body.messages 一律**静默忽略**（不报错 ——
+    // 报错会变成探测信号，告诉攻击者「这个字段我们看了」）。
+    // 模型选择的真源是服务端表 xiaomu_model_config，前端无法指定。
     const messages = [
-      { role: 'system', content: systemPrompt },
+      { role: 'system', content: sysPrompt },
       ...historyMsgs.map((h) => ({ role: h.role === 'assistant' ? 'assistant' : 'user', content: h.content || '' })),
       { role: 'user', content: message },
     ]
@@ -1386,8 +1615,10 @@ Deno.serve(async (req) => {
           push({ type: 'meta', emotion, crisis })
           let full = ''
           try {
-            if (!DEEPSEEK_API_KEY) throw new Error('未配置大模型 key')
-            for await (const delta of streamLLM(messages)) {
+            // 站点 key 与用户自带 key 任一存在即可调用（M5：用户配置走自己的 Key）
+            if (!DEEPSEEK_API_KEY && !userModelCfg) throw new Error('未配置大模型 key')
+            // 用户自定义模型：总预算下调（60s vs 站点 130s），失败快速回落模板文案
+            for await (const delta of streamLLM(messages, userModelCfg ? 60000 : 130000, userModelCfg)) {
               full += delta
               push({ type: 'delta', content: delta })
             }
@@ -1395,8 +1626,12 @@ Deno.serve(async (req) => {
           } catch (e) {
             console.error('companion 流式生成出错：', e?.message)
             let text
-            if (!DEEPSEEK_API_KEY) text = templateReply(message, crisis, emotion)
-            else if (crisis) text = crisisReply() // 危机消息永远走热线兜底
+            // ---------- L1：危机消息永远优先走热线兜底 ----------
+            // 以前的顺序是「先判 !DEEPSEEK_API_KEY → templateReply」，在 M5 引入用户自带
+            // Key 后会出现「站点无 key + 用户有 key」的组合，那条分支会把危机消息顶成
+            // 普通模板文案。危机判定必须排在最前，这是安全语义不是文案偏好。
+            if (crisis) text = crisisReply()
+            else if (!DEEPSEEK_API_KEY && !userModelCfg) text = templateReply(message, crisis, emotion)
             else if (/限流/.test(e?.message || '')) text = RATE_LIMIT_APOLOGY
             else text = templateReply(message, crisis, emotion)
             push({ type: 'delta', content: text })
@@ -1421,16 +1656,18 @@ Deno.serve(async (req) => {
     // 一次性生成完整回复（等待推理只占 wall clock，不占 2s CPU 配额）
     let assistantText = ''
     try {
-      if (DEEPSEEK_API_KEY) {
-        assistantText = await callLLMFull(messages)
+      if (DEEPSEEK_API_KEY || userModelCfg) {
+        assistantText = await callLLMFull(messages, userModelCfg)
       } else {
         assistantText = templateReply(message, crisis, emotion)
       }
     } catch (e) {
       console.error('companion 生成出错：', e)
       if (crisis) {
-        // 危机消息永远走热线兜底，不能被"告假"文案顶替
+        // L1：危机消息永远走热线兜底，不能被"告假"文案或模板顶替（判定排在最前）
         assistantText = crisisReply()
+      } else if (!DEEPSEEK_API_KEY && !userModelCfg) {
+        assistantText = templateReply(message, crisis, emotion)
       } else if (/限流/.test(e?.message || '')) {
         assistantText = RATE_LIMIT_APOLOGY
       } else {

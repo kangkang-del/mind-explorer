@@ -147,10 +147,35 @@ export async function guardOwner({ userId, token } = {}) {
   if (!payload) return { ok: false, mode: 'reject', reason: 'token_invalid' }
   if (payload.uid !== uid) return { ok: false, mode: 'reject', reason: 'token_uid_mismatch' }
   if (payload.exp < Math.floor(Date.now() / 1000)) {
-    return { ok: true, mode: 'warn', reason: 'token_expired', uid }
+    return { ok: true, mode: 'warn', reason: 'token_expired', uid, kind: payload.kind }
   }
-  return { ok: true, mode: 'strict', uid }
+  return { ok: true, mode: 'strict', uid, kind: payload.kind }
 }
+
+/**
+ * 身份强度判定（M5 D6）。
+ *
+ * ⚠️ 为什么必须**单独**给出这个函数，而不能靠 guardOwner().ok 判断：
+ *   guardOwner 对「无 token」「令牌过期」都是 ok=true 放行（见文件头「过渡期双轨」）。
+ *   若拿 ok 当「身份已确权」，那「无 token」会被误判为合格 —— 这正是本项目
+ *   已经写错过两份文档探针期望值的那个坑。
+ *
+ * 强度三分（与 content/index.js 的 issueToken 一一对应）：
+ *   'github' → 强：GitHub token 反查 login 比对
+ *   'guest'  → 强：username + password_hash 查 guest_users 比对
+ *   'quick'  → 弱：本机生成，首用即信，无密码（清 localStorage 即换新 uid）
+ *   ''       → 无从判定（无 token / 过期且无从取 kind / 鉴权未启用）
+ *
+ * @returns {Promise<'github'|'guest'|'quick'|''>}
+ */
+export async function identityStrength({ userId, token } = {}) {
+  const g = await guardOwner({ userId, token })
+  if (!g.ok) return ''
+  return typeof g.kind === 'string' ? g.kind : ''
+}
+
+/** 是否为「确权账号」（M5 D6 门槛）：github / guest 为真，quick 与空为假 */
+export const isConfirmedKind = (kind) => kind === 'github' || kind === 'guest'
 
 /**
  * 从请求中取令牌：优先 header `x-xm-token`，回退 body.authToken。

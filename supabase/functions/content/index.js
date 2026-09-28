@@ -25,6 +25,16 @@
 //   auth.issueToken / auth.verify / auth.migrate                        ← 批次 M 新增
 //   state.get / state.put / state.putSkin / state.clearSkin             ← 批次 N 新增
 //   account.purge                                                       ← 批次 P 新增
+//   model.presets / model.get / model.set / model.toggle
+//   model.clear / model.test                                            ← M5 新增
+//
+// M5：自定义模型（用户自带 Key / 自建 endpoint）
+//   配置存 xiaomu_model_config，Key 以 AES-GCM 加密落库（_shared/crypto.js，明文不落库）。
+//   门槛（D6）＝**仅确权账号**（github / guest），快速游客 g:g_xxx 一律 403 ——
+//   否则「清 localStorage 即换新 uid」会把本函数变成零成本匿名出网代理。
+//   endpoint 过 _shared/netguard.js 的 SSRF 过滤 + L6 策略白名单（端口仅 443 / 路径仅 /v1 /
+//   域名黑名单拒站点自家平台）。
+//   未配 KEY_ENC_SECRET → 本组 action 返回 503，站点其余行为不受影响（可安全先上代码后配密钥）。
 //
 // 批次 M：身份与会话令牌（HMAC，详见 _shared/auth.js）
 //   会话令牌的「签发」放在本函数（content 是数据中转定位，且游客可直连，verify_jwt=false）
@@ -48,10 +58,15 @@ import {
   guardOwner,
   logGuard,
   authEnabled,
+  identityStrength,
+  isConfirmedKind,
   RE_GITHUB_UID,
   RE_GUEST_UID,
   RE_QUICK_UID,
 } from '../_shared/auth.js'
+// M5 自定义模型：用户 API Key 加密存取（明文永不落库）+ endpoint 安全校验
+import { encryptSecret, decryptSecret, maskSecret, cryptoEnabled } from '../_shared/crypto.js'
+import { assertSafeEndpoint, normalizeEndpoint } from '../_shared/netguard.js'
 
 // ---------- 环境与常量 ----------
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? ''
@@ -169,6 +184,22 @@ async function sbPatchReturning(table, filter, patch) {
   }
   const rows = await res.json().catch(() => [])
   return Array.isArray(rows) ? rows.length : 0
+}
+
+// upsert（M5 自定义模型配置用）：PostgREST 的 on_conflict + merge-duplicates。
+// 为什么不用「先查再写」：两条并发请求会互相覆盖；upsert 由数据库保证原子性。
+async function sbUpsert(table, row, onConflict) {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?on_conflict=${encodeURIComponent(onConflict)}`, {
+    method: 'POST',
+    headers: { ...sbHeaders(), Prefer: 'resolution=merge-duplicates,return=minimal' },
+    body: JSON.stringify(row),
+    signal: AbortSignal.timeout(FETCH_T),
+  })
+  if (!res.ok) {
+    const txt = await res.text().catch(() => '')
+    throw new Error(`写入 ${table} 失败 ${res.status}: ${txt.slice(0, 200)}`)
+  }
+  return true
 }
 
 // ---------- 作者解析 ----------
@@ -490,6 +521,35 @@ const STATE_TS_MAX = 4102444800000       // 2100-01-01，时间戳上界（防�
 const NICKNAME_MAX = 20                  // 与 companion 的同名常量对齐（社区表按昵称匹配时的入口截断）
 const RE_UUID = /^[0-9a-fA-F-]{36}$/     // 裸 UUID（guest_users.id）；用于剥掉 'g:' 前缀后的二次校验
 
+// ---------- M5：自定义模型配置 ----------
+// 决策依据见 M5-任务清单.md：D1 用户级 / D2 后端加密存表 / D6 仅确权账号 /
+//                            D12 只认自带 Key / L6 endpoint 策略白名单
+const MODEL_PROVIDERS = ['zhipu', 'deepseek', 'openai', 'ollama', 'custom']
+const MODEL_NAME_MAX = 80                // 模型 ID 长度上限（注入 URL 前的入口校验）
+const MODEL_KEY_MAX = 200                // API Key 长度上限（超长一律可疑）
+const MODEL_TABLE = 'xiaomu_model_config'
+
+// D11 兜底开关：置 CUSTOM_MODEL_ALLOW（逗号分隔 userId）后，门槛瞬时收紧为「仅白名单」，
+// 无需改代码、无需重新部署。留空 = 按 D6「确权账号」判定。
+const CUSTOM_MODEL_ALLOW = (Deno.env.get('CUSTOM_MODEL_ALLOW') ?? '')
+  .split(',')
+  .map((s) => s.trim())
+  .filter(Boolean)
+
+// 预置平台清单（**不含任何 Key**，仅给前端下拉用）
+const MODEL_PRESETS = [
+  { id: 'zhipu', label: '智谱 GLM', baseUrl: 'https://open.bigmodel.cn/api/paas/v4', models: ['glm-4-flash-250414', 'glm-4.6-flash'], customEndpoint: false },
+  { id: 'deepseek', label: 'DeepSeek', baseUrl: 'https://api.deepseek.com/v1', models: ['deepseek-chat'], customEndpoint: false },
+  { id: 'openai', label: 'OpenAI', baseUrl: 'https://api.openai.com/v1', models: ['gpt-4o-mini'], customEndpoint: false },
+  { id: 'ollama', label: 'Ollama（自建）', baseUrl: '', models: ['qwen2.5:7b', 'llama3.1:8b'], customEndpoint: true },
+  { id: 'custom', label: '自定义（OpenAI 兼容）', baseUrl: '', models: [], customEndpoint: true },
+]
+
+// L5 限流：model.test 是唯一「服务端代发真实外网请求」的接口，不限流即为免费出网探测点
+const MODEL_TEST_WINDOW_MS = 60 * 1000
+const MODEL_TEST_MAX_PER_WINDOW = 3
+const modelTestHits = new Map() // uid → number[]（时间戳）—— Edge 实例级，够用
+
 const RE_ITEM_ID = /^[a-z0-9-]{1,32}$/
 const RE_DAY_KEY = /^\d{8}$/
 
@@ -514,6 +574,235 @@ async function ownerDeny(userId, token, tag = 'content') {
   e.status = 403
   e.reason = g.reason
   throw e
+}
+
+// ---------- M5：自定义模型的统一前置（D6 门槛 + D11 兜底开关） ----------
+
+const modelErr = (msg, reason, status = 403) => {
+  const e = new Error(msg)
+  e.status = status
+  e.reason = reason
+  return e
+}
+
+/**
+ * model.* 系列的统一前置。比 ownerDeny 更严 —— 在「是谁」之外还要问「够不够格」。
+ *
+ * D6：仅「确权账号」可开自定义模型 —— github / guest 放行，**quick（快速游客）拒绝**。
+ *     理由（M5-任务清单 §0.1）：快速游客 g:g_xxx 无密码、首用即信、清 localStorage 即换新 uid；
+ *     若放开，等于把 companion 变成一台**零成本匿名出网代理**。
+ *
+ * 🔴 关键易错点：**不能拿 guardOwner().ok 当「身份已确权」**——
+ *    它对「无 token」「令牌过期」都是 ok=true 放行。必须走 identityStrength() 取 kind，
+ *    且 kind 为空（鉴权未启用 / 无 token / 无从判定）一律视为不合格。
+ */
+async function requireConfirmed(userId, token, tag = 'content.model') {
+  // ① 先过所有权（签名无效 / uid 不一致 → 403）
+  await ownerDeny(userId, token, tag)
+
+  // ② D11 兜底开关：白名单非空时，只有白名单内 uid 放行
+  if (CUSTOM_MODEL_ALLOW.length && !CUSTOM_MODEL_ALLOW.includes(String(userId).trim())) {
+    throw modelErr('自定义模型暂未对你开放', 'not_in_allowlist')
+  }
+
+  // ③ D6 身份强度门槛
+  const kind = await identityStrength({ userId, token })
+  if (!kind) {
+    // 鉴权未启用（HMAC_SECRET 缺失）或无 token / 无从判定 —— 无法确权故不放行
+    throw modelErr('请先登录后再配置自己的模型', 'identity_unknown')
+  }
+  if (!isConfirmedKind(kind)) {
+    throw modelErr('请先注册账号（或用 GitHub 登录），再配置自己的模型', 'quick_not_allowed')
+  }
+
+  // ④ 加密功能是否就绪（未配 KEY_ENC_SECRET → 无法安全存 Key → 整体停用）
+  if (!cryptoEnabled()) {
+    throw modelErr('自定义模型功能尚未启用', 'feature_disabled', 503)
+  }
+  return { uid: String(userId).trim(), kind }
+}
+
+/** L5 限流：滑动窗口。返回 true 表示放行，false 表示超限。 */
+function rateAllow(map, key, max, windowMs) {
+  const now = Date.now()
+  const arr = (map.get(key) || []).filter((t) => now - t < windowMs)
+  if (arr.length >= max) {
+    map.set(key, arr)
+    return false
+  }
+  arr.push(now)
+  map.set(key, arr)
+  // 防内存无界：定期清理冷 key（每次写入时顺带清，代价可忽略）
+  if (map.size > 2000) {
+    for (const [k, v] of map) {
+      if (!v.length || now - v[v.length - 1] > windowMs * 10) map.delete(k)
+    }
+  }
+  return true
+}
+
+// ---------- M5：model.* 实现 ----------
+
+async function modelGet(body) {
+  const { uid } = await requireConfirmed(body.userId, body.authToken, 'content.model.get')
+  if (!memoryEnabled) return { ok: true, exists: false, note: '未启用存储' }
+  const rows = await sbSelect(MODEL_TABLE, {
+    // ⚠️ select 白名单：**绝不包含 key_cipher** —— 读取路径不碰密文、不解密，
+    //    把解密面积压到最小（掩码是写入时算好存下的）
+    select: 'provider,base_url,model,key_mask,enabled,updated_at',
+    user_identifier: `eq.${uid}`,
+    limit: '1',
+  })
+  const row = rows[0]
+  if (!row) return { ok: true, exists: false }
+  return {
+    ok: true,
+    exists: true,
+    provider: row.provider || '',
+    baseUrl: row.base_url || '',
+    model: row.model || '',
+    keyMask: row.key_mask || '',   // 掩码，非明文
+    enabled: row.enabled !== false,
+    updatedAt: row.updated_at || null,
+  }
+}
+
+async function modelSet(body) {
+  const { uid, kind } = await requireConfirmed(body.userId, body.authToken, 'content.model.set')
+  if (!memoryEnabled) return { ok: false, error: '未启用存储' }
+
+  const provider = String(body.provider || '').trim()
+  if (!MODEL_PROVIDERS.includes(provider)) {
+    throw modelErr('不支持的模型平台', 'bad_provider', 400)
+  }
+
+  const model = String(body.model || '').trim()
+  if (!model) throw modelErr('请填写模型名称', 'model_required', 400)
+  if (model.length > MODEL_NAME_MAX) throw modelErr(`模型名称过长（上限 ${MODEL_NAME_MAX} 字）`, 'model_too_long', 400)
+  // 模型名会拼进 URL 与请求体，拦掉控制字符与空白
+  if (/[\s\u0000-\u001f]/.test(model)) throw modelErr('模型名称含非法字符', 'model_bad_char', 400)
+
+  // endpoint：ollama / custom 必须自带；其余平台用预置地址
+  const preset = MODEL_PRESETS.find((p) => p.id === provider)
+  const rawBase = preset?.customEndpoint
+    ? String(body.baseUrl || '').trim()
+    : String(body.baseUrl || preset?.baseUrl || '').trim()
+  if (!rawBase) throw modelErr('请填写 endpoint 地址', 'base_url_required', 400)
+
+  // L6 + L1：endpoint 策略白名单 + SSRF 静态过滤（唯一真源在 _shared/netguard.js）
+  const guard = assertSafeEndpoint(rawBase)
+  if (!guard.ok) throw modelErr(`endpoint 不被允许：${guard.reason}`, 'unsafe_endpoint', 400)
+  const baseUrl = normalizeEndpoint(rawBase)
+
+  // D12：用户级路径**必须自带 Key**（不许留空后回落站点 DEEPSEEK_API_KEY —— 那等于白嫖站点额度）
+  const rawKey = String(body.key ?? '').trim()
+  const hadKey = !!rawKey
+  if (hadKey && rawKey.length > MODEL_KEY_MAX) {
+    throw modelErr(`API Key 过长（上限 ${MODEL_KEY_MAX} 字）`, 'key_too_long', 400)
+  }
+  // 允许「只改模型不改 Key」：未传 key 时沿用库中已有密文
+  let keyCipher, keyMask
+  if (hadKey) {
+    keyCipher = await encryptSecret(rawKey, uid)
+    keyMask = maskSecret(rawKey)
+  } else {
+    const cur = await sbSelect(MODEL_TABLE, {
+      select: 'key_cipher,key_mask',
+      user_identifier: `eq.${uid}`,
+      limit: '1',
+    })
+    keyCipher = cur[0]?.key_cipher || null
+    keyMask = cur[0]?.key_mask || null
+    if (!keyCipher) throw modelErr('请填写你的 API Key', 'key_required', 400)
+  }
+
+  const row = {
+    user_identifier: uid,
+    provider,
+    base_url: baseUrl,
+    model,
+    key_cipher: keyCipher,
+    key_mask: keyMask,
+    enabled: body.enabled === false ? false : true,
+    kind_at_creation: kind, // D6 留痕：便于日后「不合规时期创建的配置」批量清理
+    updated_at: new Date().toISOString(),
+  }
+  // upsert：主键冲突时覆盖（PostgREST 的 on_conflict）
+  await sbUpsert(MODEL_TABLE, row, 'user_identifier')
+  return { ok: true, keyMask }
+}
+
+async function modelToggle(body) {
+  const { uid } = await requireConfirmed(body.userId, body.authToken, 'content.model.toggle')
+  if (!memoryEnabled) return { ok: false, error: '未启用存储' }
+  const enabled = body.enabled !== false
+  const hit = await sbPatchReturning(MODEL_TABLE, { user_identifier: `eq.${uid}` }, { enabled, updated_at: new Date().toISOString() })
+  if (!hit) throw modelErr('尚未配置自定义模型', 'no_config', 404)
+  return { ok: true, enabled }
+}
+
+async function modelClear(body) {
+  const { uid } = await requireConfirmed(body.userId, body.authToken, 'content.model.clear')
+  if (!memoryEnabled) return { ok: false, error: '未启用存储' }
+  await sbDelete(MODEL_TABLE, { user_identifier: `eq.${uid}` })
+  return { ok: true }
+}
+
+async function modelTest(body) {
+  const { uid } = await requireConfirmed(body.userId, body.authToken, 'content.model.test')
+  if (!memoryEnabled) return { ok: false, error: '未启用存储' }
+
+  // L5 限流：本接口会代发一次真实外网请求，不限流即免费出网探测点
+  if (!rateAllow(modelTestHits, uid, MODEL_TEST_MAX_PER_WINDOW, MODEL_TEST_WINDOW_MS)) {
+    throw modelErr('测试太频繁，请稍后再试', 'rate_limited', 429)
+  }
+
+  const rows = await sbSelect(MODEL_TABLE, {
+    select: 'provider,base_url,model,key_cipher,enabled',
+    user_identifier: `eq.${uid}`,
+    limit: '1',
+  })
+  const row = rows[0]
+  if (!row) throw modelErr('尚未配置自定义模型', 'no_config', 404)
+  if (!row.key_cipher) throw modelErr('请先填写 API Key', 'key_required', 400)
+
+  // 落库时的校验可能已过期（历史数据 / 规则收紧），此处**再校验一次**（纵深防御）
+  const guard = assertSafeEndpoint(row.base_url)
+  if (!guard.ok) throw modelErr(`endpoint 不被允许：${guard.reason}`, 'unsafe_endpoint', 400)
+
+  let key
+  try {
+    key = await decryptSecret(row.key_cipher, uid)
+  } catch (e) {
+    // AAD 不匹配 / 密文损坏 / 换了 KEY_ENC_SECRET —— 一律按「配置失效」处理，不泄露原因
+    throw modelErr('密钥无法解封，请重新填写 API Key', 'key_unsealable', 400)
+  }
+
+  const t0 = Date.now()
+  try {
+    const res = await fetch(`${normalizeEndpoint(row.base_url)}/chat/completions`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
+      // 只为探活：1 个 token、明确要求不解释
+      body: JSON.stringify({
+        model: row.model,
+        messages: [{ role: 'user', content: 'hi' }],
+        max_tokens: 1,
+        stream: false,
+        ...thinkingFor(row.model),
+      }),
+      signal: AbortSignal.timeout(15000),
+    })
+    const latencyMs = Date.now() - t0
+    if (!res.ok) {
+      const txt = await res.text().catch(() => '')
+      // 不回显上游原文（可能含账号信息）；只给状态码与截断后的短提示
+      return { ok: false, latencyMs, model: row.model, error: `上游返回 ${res.status}`, detail: String(txt).slice(0, 120) }
+    }
+    return { ok: true, latencyMs, model: row.model }
+  } catch (e) {
+    return { ok: false, latencyMs: Date.now() - t0, model: row.model, error: e.name === 'TimeoutError' ? '连接超时' : '连接失败' }
+  }
 }
 
 // ---------- payload 净化（白名单 + 封顶） ----------
@@ -1387,6 +1676,22 @@ Deno.serve(async (req) => {
         return json(await statePutSkin(body))
       case 'state.clearSkin':
         return json(await stateClearSkin(body))
+
+      // ---------- 自定义模型（M5） ----------
+      // 统一前置 requireConfirmed：D6 仅确权账号 + D11 白名单兜底 + 加密功能就绪检查。
+      // 模型选择的真源在服务端表 xiaomu_model_config —— 前端**无法**在请求体里指定模型。
+      case 'model.presets':
+        return json({ ok: true, presets: MODEL_PRESETS })
+      case 'model.get':
+        return json(await modelGet(body))
+      case 'model.set':
+        return json(await modelSet(body))
+      case 'model.toggle':
+        return json(await modelToggle(body))
+      case 'model.clear':
+        return json(await modelClear(body))
+      case 'model.test':
+        return json(await modelTest(body))
 
       default:
         return json({ error: '无效的操作类型：' + action }, 400)
