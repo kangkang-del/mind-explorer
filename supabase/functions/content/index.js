@@ -744,7 +744,12 @@ async function voiceIatTicket(body) {
   //        逗号后用空格、algorithm 固定 hmac-sha256 —— 跟随官方 demo 的写法）
   //    ③ authorization = base64(authOrigin)                                ← 这才是放进 query 的值
   //    少 ②③ → 握手直接 401「HMAC signature cannot be verified」。
-  //    依据：讯飞《语音听写（流式版）WebAPI》§接口鉴权 · authorization 参数生成规则（第 6/7 步）。
+  //    一手来源（2026-09-29 逐字核对）：
+  //      《语音听写（流式版）WebAPI》§接口鉴权 · authorization 参数生成规则（第 6/7 步）
+  //      https://www.xfyun.cn/doc/asr/voicedictation/API.html#接口鉴权
+  //    ⚠️ 没有「来源标注 + 查阅日期」的外部契约实现 = 未验证的实现 —— 上游静默改版会让它悄悄失效。
+  //      （前车之鉴：2026-09-28 首版漏了第 7 步的第二层 base64 → 线上必 401；这条注释就是为了
+  //        让同类错误在 code review / 复核时一眼可见，而不是等握手 401 才暴露。）
   const authOrigin =
     `api_key="${XFYUN_API_KEY}", algorithm="hmac-sha256", ` +
     `headers="host date request-line", signature="${signature}"`
