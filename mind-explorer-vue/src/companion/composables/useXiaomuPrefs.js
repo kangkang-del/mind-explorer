@@ -14,6 +14,9 @@
  *   voiceRate     —— 语速（0.6~1.6，默认 1）
  *   voiceProactive—— 主动搭话时也出声（D6：默认 false）
  *
+ * M6-2c 新增（语音输入）：
+ *   iatOn         —— 是否开启「按住说话」（默认 false：纯加法，未开启者完全无感）
+ *
  * 读写全部 try/catch：隐私模式/禁存储时静默降级为不持久化。
  */
 import { reactive, watch } from 'vue'
@@ -31,6 +34,8 @@ const defaults = () => ({
   voiceURI: '',           // 系统音色 voiceURI
   voiceRate: 1,           // 语速
   voiceProactive: false,  // 主动出声
+  // ---- M6-2c 语音输入 ----
+  iatOn: false,           // 「按住说话」开关（默认关：语音输入要占麦克风，必须用户显式打开）
 })
 
 /** M3 迁移：旧版布尔（hat:true）→ 物品 id；新版字符串原样；缺失 → none */
@@ -71,6 +76,8 @@ function load() {
       voiceURI: typeof saved.voiceURI === 'string' ? saved.voiceURI : '',
       voiceRate: normRate(saved.voiceRate),
       voiceProactive: !!saved.voiceProactive,
+      // ---- M6-2c 语音输入 ----
+      iatOn: !!saved.iatOn,
     }
   } catch {
     return base

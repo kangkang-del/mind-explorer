@@ -47,6 +47,13 @@ const _active = ref(false)
 const _level = ref(0)      // 0..1，归一化 RMS
 const _inRate = ref(0)     // 实际 AudioContext.sampleRate（诊断用）
 const _error = ref('')
+/**
+ * 原始错误名（`NotAllowedError` / `NotFoundError` / `'Unsupported'` …）。
+ * M6-2c 增量：`error` 是给人看的中文句子，**调用方无法据此可靠分流**
+ * （「权限被拒」要不要走图文授权引导，是产品行为，不能靠猜中文）。
+ * 这里额外把浏览器给的名字原样带出来，让上层**判据稳定**。
+ */
+const _errorName = ref('')
 const _muted = ref(false)
 
 let ctx = null
@@ -55,6 +62,7 @@ let node = null
 let src = null
 let onChunkCb = null
 let onLevelCb = null
+let onEndedCb = null       // 轨道结束（拔设备/系统回收/权限被撤）回调
 let _flushWait = null      // flush() 的 resolve 挂在这
 
 /** 把 getUserMedia / 音频管线的异常翻译成人话（小木的语气，不甩栈） */
@@ -99,9 +107,12 @@ async function teardown() {
   try { if (node) node.port.onmessage = null } catch { /* ignore */ }
   try { if (src) src.disconnect() } catch { /* ignore */ }
   try { if (node) node.disconnect() } catch { /* ignore */ }
-  try { if (stream) stream.getTracks().forEach((t) => t.stop()) } catch { /* ignore */ }
+  // 🔴 必须**先摘 `onended` 再 `stop()`**：`stop()` 自己也会派发 ended，
+  //    不摘的话「正常收尾」会被上层误读成「设备掉了」。
+  try { if (stream) stream.getTracks().forEach((t) => { t.onended = null; t.stop() }) } catch { /* ignore */ }
   try { if (ctx && ctx.state !== 'closed') await ctx.close() } catch { /* ignore */ }
   ctx = null; stream = null; node = null; src = null
+  onEndedCb = null
   _active.value = false
   _level.value = 0
   _muted.value = false
@@ -110,17 +121,23 @@ async function teardown() {
 
 /**
  * 启动采集。
- * @param {{ onChunk?: (bytes: Uint8Array, rate: number) => void, onLevel?: (rms: number) => void }} [hooks]
- * @returns {Promise<boolean>} 是否启动成功（失败原因读 `error`）
+ * @param {{ onChunk?: (bytes: Uint8Array, rate: number) => void,
+ *           onLevel?: (rms: number) => void,
+ *           onEnded?: () => void }} [hooks] `onEnded` = 轨道被外部终止（拔设备/系统回收/权限撤销）；
+ *          ⚠️ 正常 `stop()` 触发的 `ended` 已在 teardown 里摘掉，**不会**回调
+ * @returns {Promise<boolean>} 是否启动成功（失败原因读 `error` / 错误名读 `errorName`）
  */
 async function start(hooks = {}) {
   if (_active.value) return true
   _error.value = ''
+  _errorName.value = ''
   onChunkCb = hooks.onChunk || null
   onLevelCb = hooks.onLevel || null
+  onEndedCb = hooks.onEnded || null
 
   if (!micSupported) {
     _error.value = '这个浏览器不支持麦克风采集。'
+    _errorName.value = 'Unsupported'
     return false
   }
 
@@ -135,8 +152,20 @@ async function start(hooks = {}) {
       video: false,
     })
   } catch (e) {
+    _errorName.value = (e && e.name) || 'Error'
     _error.value = describeError(e)
     return false
+  }
+
+  // 设备被拔掉 / 系统回收 / 权限被中途撤销 ⇒ 轨道会 `ended`。
+  // **必须把这个信号交出去**：上层收到后立刻收场（「音频不连续，送半截比不送更糟」），
+  // 否则用户会一直对着一个已经死掉的麦克风说话，最后只拿到「木有听清」——线上无从排查。
+  if (onEndedCb) {
+    try {
+      stream.getTracks().forEach((t) => {
+        t.onended = () => { try { onEndedCb() } catch { /* 静默 */ } }
+      })
+    } catch { /* 静默 */ }
   }
 
   try {
@@ -163,6 +192,7 @@ async function start(hooks = {}) {
     if (ctx.state === 'suspended') { try { await ctx.resume() } catch { /* ignore */ } }
     return true
   } catch (e) {
+    _errorName.value = (e && e.name) || 'Error'
     _error.value = describeError(e)
     await teardown()
     return false
@@ -209,6 +239,7 @@ export function useMicCapture() {
     level: readonly(_level),
     sampleRate: readonly(_inRate),
     error: readonly(_error),
+    errorName: readonly(_errorName),
     muted: readonly(_muted),
     start,
     stop,

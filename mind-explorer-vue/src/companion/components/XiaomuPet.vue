@@ -85,10 +85,31 @@
             <line v-if="!prefs.voiceOn" x1="4" y1="20" x2="20" y2="4" />
           </svg>
         </button>
+        <!--
+          M6-2c：语音输入入口。
+          ⚠️ **点击 = 展开 PTT 条**，不是「按住说话」—— 桌宠本体的手势以「位移 > 8px」判拖拽
+          （M1 起），本体上的「按住」必然与拖拽打架。真正的「按住」只发生在展开后的 PTT 条上。
+        -->
+        <button
+          v-if="iatReady"
+          type="button"
+          class="xm-dnd xm-ptt-quick"
+          :class="{ 'is-on': pttOpen, 'is-live': iat.live.value }"
+          :title="pttOpen ? '收起语音输入' : '语音输入（点一下展开）'"
+          :aria-label="pttOpen ? '收起语音输入' : '展开语音输入'"
+          data-xm="pttQuick"
+          @click="togglePtt"
+        >
+          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="9" y="3" width="6" height="11" rx="3" />
+            <path d="M5 11a7 7 0 0 0 14 0" />
+            <line x1="12" y1="18" x2="12" y2="22" />
+          </svg>
+        </button>
       </div>
     </Transition>
     <Transition name="xm-drawer">
-      <div v-if="chatOpen" ref="inputBar" class="xm-mini-input" :style="inputShift ? { transform: `translate(calc(-50% + ${inputShift}px), 0)` } : {}" @pointerdown.stop>
+      <div v-if="chatOpen && !pttOpen" ref="inputBar" class="xm-mini-input" :style="inputShift ? { transform: `translate(calc(-50% + ${inputShift}px), 0)` } : {}" @pointerdown.stop>
         <input
           ref="inputEl"
           v-model="draft"
@@ -99,6 +120,46 @@
         />
         <button type="button" @click="send()">发送</button>
         <button type="button" class="xm-close" aria-label="收起输入" @click="chatOpen = false">×</button>
+      </div>
+    </Transition>
+    <!-- M6-2c：PTT 条 —— **「按住」语义只在这里**（与迷你输入条同一槽位，互斥显示） -->
+    <Transition name="xm-drawer">
+      <div
+        v-if="chatOpen && pttOpen"
+        ref="pttBarEl"
+        class="xm-mini-ptt"
+        :class="{ 'is-warn': iat.warn.value }"
+        :style="pttShift ? { transform: `translate(calc(-50% + ${pttShift}px), 0)` } : {}"
+        @pointerdown.stop
+        @click.stop
+      >
+        <div class="xm-ptt-head">
+          <span class="xm-ptt-msg" data-xm="pttMsg">{{ iat.visible.value ? iat.uiText.value : '按住下面这颗，说完松手' }}</span>
+          <button
+            v-if="iat.dismissible.value"
+            type="button" class="xm-ptt-x" aria-label="关闭提示" @click="iat.dismiss()"
+          >×</button>
+        </div>
+        <button
+          type="button"
+          ref="pttHoldEl"
+          data-xm="pttHold"
+          class="xm-ptt-hold"
+          :class="{ 'is-live': iat.live.value, 'is-near': iat.modifiers.value.nearLimit }"
+          :aria-label="iat.pttLabel.value"
+          @pointerdown.prevent="onPttDown"
+          @pointerup.prevent="onPttUp"
+          @pointercancel.prevent="onPttUp"
+          @pointerleave="onPttUp"
+          @keydown.space.prevent="onPttKeyDown"
+          @keyup.space.prevent="onPttKeyUp"
+        >
+          <span class="xm-ptt-label">{{ iat.pttLabel.value }}</span>
+          <span v-if="iat.live.value" class="xm-ptt-wave" aria-hidden="true">
+            <i v-for="n in 5" :key="n" :style="{ height: waveHeight(n) }"></i>
+          </span>
+        </button>
+        <button type="button" class="xm-ptt-close" aria-label="收起语音输入" @click="pttOpen = false">收起</button>
       </div>
     </Transition>
   </div>
@@ -132,6 +193,7 @@ import { useXiaomuWardrobe } from '../composables/useXiaomuWardrobe'
 import { useXiaomuSkin } from '../composables/useXiaomuSkin'
 import { useXiaomuSync } from '../composables/useXiaomuSync'
 import { useXiaomuVoice, voiceSupported } from '../composables/useXiaomuVoice'   // M6-1
+import { useXiaomuIat } from '../composables/useXiaomuIat'                        // M6-2c
 import { useIdentity } from '../../composables/useIdentity'
 import { ACTION } from '../core/actions'
 import { itemOf } from '../core/wardrobe'
@@ -154,6 +216,13 @@ const sync = useXiaomuSync()
 
 /* M6-1：播报（模块级单例）。与对话页、声音面板共用同一条播报队列。 */
 const voice = useXiaomuVoice()
+
+/* M6-2c：语音输入（模块级单例）。⚠️ 与对话页 `Companion.vue` **共享同一 state、
+ * 同一状态机、同一条 WS** —— 两个入口不会各开一套（否则麦克风被争抢、票签两张、额度扣两次）。 */
+const iat = useXiaomuIat()
+
+/** 语音输入入口是否出现：麦克风可用 && 用户已在「声音」面板开启（D9 同规则：不可用则隐藏） */
+const iatReady = computed(() => iat.supported && !!prefs.iatOn)
 
 /** 渲染形态（批次 J）：选中 custom 但本机还没有图片时回落木灵，避免出现空白形象 */
 const effVariant = computed(() =>
@@ -302,6 +371,7 @@ const CHIP_REST = { key: 'rest', label: '休息' }
 const CHIP_REGISTER = { key: 'register', label: '去登录' }   // M3/M4：身份引导
 const CHIP_LATER = { key: 'later', label: '以后再说' }
 const CHIP_STORYBOOK = { key: 'storybook', label: '你还记得我什么' }  // 批次 O
+const CHIP_VOICE = { key: 'voice', label: '按住说话' }                 // M6-2c
 const SORRY_LINES = [
   '刚才走神了，再说一遍好不好？',
   '唔……我这边愣了一下，可以再说一次吗？',
@@ -325,7 +395,7 @@ function openBubble(text, { mode = 'xomu', withChips = false, chips = null } = {
   bubble.visible = true
   bubble.mode = mode
   bubble.text = text
-  bubble.chips = chips || (withChips ? [CHIP_FACT, CHIP_STORYBOOK, CHIP_WARDROBE, CHIP_REST] : null)
+  bubble.chips = chips || (withChips ? defaultChips() : null)
   clearTimeout(bubbleFallback)
   bubbleFallback = setTimeout(() => { if (!chatOpen.value) bubble.visible = false }, 14000)
 }
@@ -400,6 +470,61 @@ watch(() => voice.speaking.value, (on) => {
 /* 免打扰一开 → 立刻闭嘴（哪怕话说到一半） */
 watch(() => prefs.dnd, (on) => { if (on) voice.stop() })
 
+/* ================= M6-2c：语音输入（按住说话） =================
+ * ⚠️ 为什么桌宠**本体**不能做「按住说话」：M1 的手势系统以「位移 > 8px」判拖拽，
+ * 按住不动 500ms 又会被判成「摸头」。所以入口只做**点击展开**，
+ * 真正的按住语义落在展开后的 PTT 条上（与对话页 PTT 同一 composable、同一状态机）。
+ */
+const pttOpen = ref(false)
+let pttKeyHeld = false
+
+function togglePtt() {
+  pttOpen.value = !pttOpen.value
+  if (pttOpen.value) { bubble.visible = false; historyOpen.value = false }
+}
+
+function onPttDown() {
+  if (!iatReady.value) return
+  iat.press({ onResult: applyTranscript })
+}
+function onPttUp() { iat.release() }
+
+/** 空格键 keydown 会自动重复 ⇒ 必须自己防抖，否则会反复 press */
+function onPttKeyDown() {
+  if (pttKeyHeld) return
+  pttKeyHeld = true
+  onPttDown()
+}
+function onPttKeyUp() {
+  pttKeyHeld = false
+  onPttUp()
+}
+
+/** 转写结果只写进迷你输入框（不自动发送）；`draft` 是字符串 ref，v-model 自动同步视图 */
+function applyTranscript(t) {
+  const s = String(t == null ? '' : t).trim()
+  if (!s) return
+  draft.value = draft.value ? draft.value + s : s
+  pttOpen.value = false
+  nextTick(() => { try { inputEl.value && inputEl.value.focus() } catch { /* 静默 */ } })
+}
+
+/** 波形条高度（纯展示） */
+function waveHeight(n) {
+  const lv = Math.max(0, Math.min(1, Number(iat.level.value) || 0))
+  const base = 3 + lv * 14
+  const wobble = [1, 0.55, 0.85, 0.5, 1][n - 1] || 0.7
+  return `${Math.round(base * wobble)}px`
+}
+
+/** 气泡默认快捷项（语音输入开启后才多一颗，避免每句话都多一个按钮） */
+function defaultChips() {
+  const list = [CHIP_FACT, CHIP_STORYBOOK]
+  if (iatReady.value) list.push(CHIP_VOICE)
+  list.push(CHIP_WARDROBE, CHIP_REST)
+  return list
+}
+
 function onChip(chip) {
   if (chip.key === 'fact') send(chip.label)
   else if (chip.key === 'wardrobe') openWardrobe()
@@ -408,6 +533,8 @@ function onChip(chip) {
   else if (chip.key === 'later') bubble.visible = false
   // 批次 O：跳转到故事书子页（同页导航，不重载）
   else if (chip.key === 'storybook') { bubble.visible = false; router.push('/companion/story') }
+  // M6-2c：展开 PTT 条（**不是**立刻开始录音：按住语义在 PTT 条上）
+  else if (chip.key === 'voice') { bubble.visible = false; chatOpen.value = true; pttOpen.value = true }
 }
 
 /* ---- M3 批次 I：换装面板开关（与气泡/聊天互斥） ---- */
@@ -417,6 +544,7 @@ function openWardrobe() {
   bubble.visible = false
   chatOpen.value = false
   historyOpen.value = false
+  pttOpen.value = false        // M6-2c：面板与 PTT 条互斥
   wardrobeOpen.value = true
 }
 
@@ -804,14 +932,22 @@ const inputShift = ref(0)
 const toolsEl = ref(null)
 const toolsShift = ref(0)
 const toolsStyle = computed(() => (toolsShift.value ? { transform: `translate(calc(-50% + ${toolsShift.value}px), 0)` } : {}))
+const pttBarEl = ref(null)      // M6-2c：PTT 条（与输入条同槽位，互斥显示）
+const pttShift = ref(0)
 
 function clampFloating() {
   inputShift.value = centerShift(inputBar.value)
   toolsShift.value = centerShift(toolsEl.value)
+  pttShift.value = centerShift(pttBarEl.value)
 }
 watch(chatOpen, (v) => {
   if (v) nextTick(() => { clampFloating(); requestAnimationFrame(clampFloating) })
-  else { inputShift.value = 0; toolsShift.value = 0 }
+  else { inputShift.value = 0; toolsShift.value = 0; pttOpen.value = false }
+})
+// PTT 条与输入条交替出现时也要重新 clamp（两者宽度不同）
+watch(pttOpen, (v) => {
+  if (v) nextTick(() => { clampFloating(); requestAnimationFrame(clampFloating) })
+  else pttShift.value = 0
 })
 
 
@@ -850,6 +986,7 @@ watch(chatOpen, (v) => {
 @media (max-width: 480px) {
   .xm-pet { width: 148px; right: 8px; }
   .xm-mini-input { width: min(230px, 74vw); }
+  .xm-mini-ptt { width: min(230px, 74vw); }
 }
 
 /* 历史抽屉 */
@@ -933,6 +1070,57 @@ watch(chatOpen, (v) => {
 }
 .xm-dnd:hover { opacity: 1; }
 .xm-dnd.is-on { background: #f0ece2; opacity: 1; }
+/* M6-2c：语音输入快捷入口（点击展开 PTT 条；录音时脉动） */
+.xm-ptt-quick.is-on { background: #fdeef5; color: #b0446f; border-color: #b0446f; opacity: 1; }
+.xm-ptt-quick.is-live { animation: xmVoicePulse 1.1s ease-in-out infinite; }
+
+/* M6-2c：PTT 条（与迷你输入条同槽位；「按住」语义只在这里） */
+.xm-mini-ptt {
+  position: absolute;
+  bottom: calc(100% + 10px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(250px, 78vw);
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  background: #fff;
+  border: 1.5px solid var(--xm-line, #2b2b2b);
+  border-radius: 16px;
+  padding: 9px 10px;
+  z-index: 7;
+  font-family: 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif;
+}
+.xm-mini-ptt.is-warn { border-color: #e7b06a; background: #fffaf3; }
+.xm-ptt-head { display: flex; align-items: flex-start; gap: 6px; }
+.xm-ptt-msg { flex: 1; font-size: 11px; line-height: 1.45; color: #2b2b2b; opacity: .8; }
+.xm-ptt-x {
+  flex: none; border: 0; background: transparent; color: #2b2b2b;
+  opacity: .5; font-size: 15px; line-height: 1; cursor: pointer; padding: 0 2px;
+}
+.xm-ptt-x:hover { opacity: 1; }
+.xm-ptt-hold {
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  min-height: 38px;
+  border: 1.5px solid var(--xm-line, #2b2b2b);
+  border-radius: 999px;
+  background: #fff; color: #2b2b2b;
+  font-family: inherit; font-size: 12.5px;
+  cursor: pointer;
+  user-select: none; -webkit-user-select: none;
+  touch-action: none;
+  transition: background .14s, border-color .14s, color .14s, transform .08s;
+}
+.xm-ptt-hold.is-live { background: #fdeef5; border-color: #e7a8c2; color: #b0446f; transform: scale(.98); }
+.xm-ptt-hold.is-near { background: #fff7ec; border-color: #f6dcc4; color: #b07a2e; }
+.xm-ptt-wave { display: inline-flex; align-items: center; gap: 2px; height: 18px; }
+.xm-ptt-wave i { width: 3px; border-radius: 2px; background: #ff9ec4; transition: height .09s linear; }
+.xm-ptt-close {
+  align-self: flex-end;
+  border: 0; background: transparent; color: #2b2b2b; opacity: .45;
+  font-family: inherit; font-size: 11px; cursor: pointer; padding: 0;
+}
+.xm-ptt-close:hover { opacity: 1; }
 /* M6-1：播报开关 —— 出声时轻轻脉动，用「呼吸」暗示她在说话 */
 .xm-voice.is-on { color: #b0446f; border-color: #b0446f; }
 .xm-voice.is-speaking { animation: xmVoicePulse 1.1s ease-in-out infinite; }

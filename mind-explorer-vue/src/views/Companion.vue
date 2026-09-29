@@ -218,23 +218,70 @@
     </div>
 
     <!-- 输入区 -->
-    <footer class="mt-3 shrink-0 flex items-end gap-2">
-      <textarea
-        ref="inputEl"
-        v-model="input"
-        rows="1"
-        @keydown.enter.exact.prevent="send"
-        placeholder="和小木说点什么…（Enter 发送）"
-        class="flex-1 max-h-32 px-4 py-3 border border-[#e0e6ec] rounded-2xl resize-none text-[14px] focus:outline-none focus:border-[#7c9cb8]"
-      ></textarea>
-      <button
-        @click="send"
-        :disabled="!input.trim() || sending"
-        class="px-5 py-3 bg-gradient-to-r from-[#7c9cb8] to-[#a8c3d6] text-white rounded-2xl text-[14px] font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition hover:opacity-90 shrink-0"
-      >
-        {{ sending ? '…' : '发送' }}
-      </button>
-    </footer>
+    <div class="mt-3 shrink-0">
+      <!-- M6-2c：语音输入状态条（录音中显示波形；提示态可关闭） -->
+      <Transition name="xm-iat-fade">
+        <div
+          v-if="iat.visible.value"
+          class="xm-iat-bar"
+          :class="{ 'is-live': iat.live.value, 'is-warn': iat.warn.value }"
+          data-xm="iatBar"
+        >
+          <span class="xm-iat-dot" aria-hidden="true"></span>
+          <span class="xm-iat-msg" data-xm="iatMsg">{{ iat.uiText.value }}</span>
+          <span v-if="iat.live.value" class="xm-iat-wave" aria-hidden="true">
+            <i v-for="n in 5" :key="n" :style="{ height: waveHeight(n) }"></i>
+          </span>
+          <button
+            v-if="iat.dismissible.value"
+            type="button" class="xm-iat-x" aria-label="关闭提示"
+            @click="iat.dismiss()"
+          >×</button>
+        </div>
+      </Transition>
+
+      <footer class="flex items-end gap-2">
+        <!-- M6-2c：真 PTT（按住说话 / 松开发送）。⚠️ 只在用户于「声音」面板开启后出现 -->
+        <button
+          v-if="pttSupported"
+          ref="pttBtnEl"
+          type="button"
+          data-xm="pttBtn"
+          class="xm-ptt"
+          :class="{ 'is-live': iat.live.value, 'is-near': iat.modifiers.value.nearLimit }"
+          :aria-label="iat.pttLabel.value"
+          :title="iat.pttLabel.value + '（聚焦后也可按住空格）'"
+          @pointerdown.prevent="onPttDown"
+          @pointerup.prevent="onPttUp"
+          @pointercancel.prevent="onPttUp"
+          @pointerleave="onPttUp"
+          @keydown.space.prevent="onPttKeyDown"
+          @keyup.space.prevent="onPttKeyUp"
+        >
+          <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="9" y="3" width="6" height="11" rx="3" />
+            <path d="M5 11a7 7 0 0 0 14 0" />
+            <line x1="12" y1="18" x2="12" y2="22" />
+          </svg>
+          <span class="hidden sm:inline">{{ iat.pttLabel.value }}</span>
+        </button>
+        <textarea
+          ref="inputEl"
+          v-model="input"
+          rows="1"
+          @keydown.enter.exact.prevent="send"
+          placeholder="和小木说点什么…（Enter 发送）"
+          class="flex-1 max-h-32 px-4 py-3 border border-[#e0e6ec] rounded-2xl resize-none text-[14px] focus:outline-none focus:border-[#7c9cb8]"
+        ></textarea>
+        <button
+          @click="send"
+          :disabled="!input.trim() || sending"
+          class="px-5 py-3 bg-gradient-to-r from-[#7c9cb8] to-[#a8c3d6] text-white rounded-2xl text-[14px] font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition hover:opacity-90 shrink-0"
+        >
+          {{ sending ? '…' : '发送' }}
+        </button>
+      </footer>
+    </div>
   </main>
 </template>
 
@@ -251,6 +298,8 @@ import { useIdentity } from '../composables/useIdentity'
 // M6-1：语音播报（浏览器原生，零成本）。与桌宠共用同一份 prefs 与播报队列。
 import { useXiaomuPrefs } from '../companion/composables/useXiaomuPrefs'
 import { useXiaomuVoice, voiceSupported } from '../companion/composables/useXiaomuVoice'
+// M6-2c：语音输入（按住说话）。⚠️ 模块级单例 —— 与桌宠入口共享同一状态机与同一条 WS。
+import { useXiaomuIat } from '../companion/composables/useXiaomuIat'
 
 const auth = useAuthStore()
 const badgesStore = useBadgeStore()
@@ -264,6 +313,55 @@ const userNickname = ident.nickname
 // M6-1：语音播报
 const prefs = useXiaomuPrefs()
 const voice = useXiaomuVoice()
+// M6-2c：语音输入
+const iat = useXiaomuIat()
+
+/**
+ * PTT 入口是否出现：**麦克风能力 && 用户已开启**。
+ * ⚠️ 与 D9（不支持则隐藏入口）同规则；`voiceSupported` 与语音输入无关，不参与本判据。
+ */
+const pttSupported = computed(() => iat.supported && !!prefs.iatOn)
+
+/* ---------------- M6-2c：按住说话 ---------------- */
+
+let pttKeyHeld = false
+
+function onPttDown() {
+  if (!pttSupported.value) return
+  iat.press({ onResult: applyTranscript })
+}
+function onPttUp() { iat.release() }
+
+/** 空格键：keydown 会**自动重复** ⇒ 必须自己防抖，否则会反复 press */
+function onPttKeyDown() {
+  if (pttKeyHeld) return
+  pttKeyHeld = true
+  onPttDown()
+}
+function onPttKeyUp() {
+  pttKeyHeld = false
+  onPttUp()
+}
+
+/**
+ * 转写结果只**写进输入框**，不自动发送（用户要能改）。
+ * 🔴 写的是字符串 ref `input`（不是 textarea 的 `inputEl`）—— v-model 会自动同步视图；
+ *    手动 `inputEl.value = …` + 派发 input 事件会绕开 Vue。
+ */
+function applyTranscript(t) {
+  const s = String(t == null ? '' : t).trim()
+  if (!s) return
+  input.value = input.value ? input.value + s : s
+  nextTick(() => { try { inputEl.value && inputEl.value.focus() } catch { /* 静默 */ } })
+}
+
+/** 波形条高度（纯展示；录音时的音量反馈） */
+function waveHeight(n) {
+  const lv = Math.max(0, Math.min(1, Number(iat.level.value) || 0))
+  const base = 3 + lv * 14
+  const wobble = [1, 0.55, 0.85, 0.5, 1][n - 1] || 0.7
+  return `${Math.round(base * wobble)}px`
+}
 
 /** 是否允许现在出声：支持 + 开启 + 非免打扰（D5） */
 function voiceAllowed() {
@@ -300,6 +398,7 @@ const sending = ref(false)
 const messages = reactive(loadHistory())
 const scrollEl = ref(null)
 const inputEl = ref(null)
+const pttBtnEl = ref(null)   // M6-2c：PTT 按钮（留给验收用 data-xm 定位；ref 便于聚焦）
 const emotionLabel = ref('')
 const emotionEmoji = ref('')
 const greeting = ref('')
@@ -696,6 +795,7 @@ onMounted(async () => {
 onBeforeUnmount(() => {
   controller?.abort()
   voice.stop()   // M6-1：离开页面掐断播报
+  iat.reset()    // M6-2c：拆掉麦克风与 WS，别把按钮「按一半」的状态带到别的页面
 })
 </script>
 
@@ -705,4 +805,65 @@ onBeforeUnmount(() => {
   50% { opacity: 0.2; }
 }
 .animate-blink { animation: blink 1s step-end infinite; }
+
+/* ===== M6-2c：语音输入（PTT）===== */
+.xm-ptt {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 12px 12px;
+  border-radius: 16px;
+  border: 1px solid #e0e6ec;
+  background: #fff;
+  color: #5a7d9a;
+  font-family: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;          /* 按住时不要触发滚动手势 */
+  transition: background .15s, border-color .15s, color .15s, transform .08s;
+}
+.xm-ptt:hover { border-color: #c5d8ea; background: #f7fafc; }
+.xm-ptt.is-live {
+  border-color: #e7a8c2;
+  background: #fdeef5;
+  color: #b0446f;
+  transform: scale(.97);
+}
+.xm-ptt.is-near { border-color: #f6dcc4; background: #fff7ec; color: #b07a2e; }
+
+.xm-iat-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  padding: 7px 12px;
+  border-radius: 14px;
+  border: 1px solid #e6efe9;
+  background: #f5faf7;
+  font-size: 12.5px;
+  color: #4a6b58;
+  line-height: 1.4;
+}
+.xm-iat-bar.is-warn { border-color: #f6dcc4; background: #fff7ec; color: #8a6a3a; }
+.xm-iat-msg { flex: 1; }
+.xm-iat-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: #a8cbb4; flex: none;
+}
+.xm-iat-bar.is-live .xm-iat-dot { background: #ff9ec4; animation: blink 1s ease-in-out infinite; }
+.xm-iat-bar.is-warn .xm-iat-dot { background: #e7b06a; }
+.xm-iat-wave { display: inline-flex; align-items: center; gap: 2px; height: 18px; flex: none; }
+.xm-iat-wave i { width: 3px; border-radius: 2px; background: #ff9ec4; transition: height .09s linear; }
+.xm-iat-x {
+  flex: none;
+  border: 0; background: transparent; color: inherit; opacity: .55;
+  font-size: 16px; line-height: 1; cursor: pointer; padding: 0 2px;
+}
+.xm-iat-x:hover { opacity: 1; }
+
+.xm-iat-fade-enter-active, .xm-iat-fade-leave-active { transition: opacity .16s ease, transform .16s ease; }
+.xm-iat-fade-enter-from, .xm-iat-fade-leave-to { opacity: 0; transform: translateY(4px); }
 </style>

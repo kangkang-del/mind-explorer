@@ -60,6 +60,38 @@
         <template v-else>开了免打扰时，小木会安静地只弹字。</template>
       </p>
     </template>
+
+    <!-- ===== M6-2c：语音输入（按住说话） =====
+     与上面的「说出声」是**两件独立的事**：播报是「小木说」，这里是「你说的让小木听」。
+     所以开关也独立（iatOn，默认关），且**不共用**朗读的可用性判据。 -->
+    <div class="xm-vc-sep"></div>
+
+    <div v-if="!iat.supported" class="xm-vc-unsupported">
+      <p>这个浏览器（或当前页面）暂时用不了语音输入，换一个浏览器试试，或者在对话页打字。</p>
+    </div>
+
+    <template v-else>
+      <label class="xm-vc-switch">
+        <input type="checkbox" data-xm="iatOn" :checked="prefs.iatOn" @change="prefs.iatOn = $event.target.checked" />
+        <span>按住说话（说完松手，转成文字填进输入框）</span>
+      </label>
+
+      <p class="xm-vc-lead">
+        在对话页输入框旁，或小木头顶的 🎤 里按住说话。识别出的文字会填进输入框，
+        <b>不会自动发送</b>，你可以改完再发。
+      </p>
+
+      <!-- D16：站点每日次数用完后，引导用户用自己的密钥（真入口属 M6-1b） -->
+      <div class="xm-vc-key" data-xm="iatKeySlot">
+        <span class="xm-vc-key-t">用自己的密钥</span>
+        <span class="xm-vc-key-d">即将开放</span>
+      </div>
+
+      <p class="xm-vc-note">
+        音频只在你和设备之间处理，<b>不会存到服务器</b>。识别用的密钥由站点服务端签发，
+        你的浏览器拿不到它。
+      </p>
+    </template>
   </div>
 </template>
 
@@ -72,13 +104,20 @@
  * 这也是开工时把语音设置从「模型面板」挪出来、单开一级 tab 的原因（见 M6-任务清单 §4.3）。
  *
  * 面板只读写本地 prefs + 调用 useXiaomuVoice，**不发任何网络请求**。
+ *
+ * M6-2c 追加：本面板同时承载「语音输入」（按住说话）的开关与说明。
+ * ⚠️ 与播报**完全独立**：播报用 `voiceOn`、这里用 `iatOn`；可用性判据也不共用
+ *    （`voice.supported` 是 speechSynthesis，`iat.supported` 是麦克风 + WS）。
+ *    面板本身仍然**不发网络请求**（签票发生在用户真的按下说话时）。
  */
 import { computed, ref, watch } from 'vue'
 import { useXiaomuPrefs } from '../composables/useXiaomuPrefs'
 import { useXiaomuVoice, clampRate } from '../composables/useXiaomuVoice'
+import { useXiaomuIat } from '../composables/useXiaomuIat'
 
 const prefs = useXiaomuPrefs()
 const voice = useXiaomuVoice()
+const iat = useXiaomuIat()
 
 const playing = ref(false)
 
@@ -193,4 +232,18 @@ function onRate(val) {
   font-size: 10px; line-height: 1.5; opacity: .55;
 }
 .xm-vc-note.is-warn { color: #c2410c; opacity: .9; }
+
+/* M6-2c：语音输入小节 */
+.xm-vc-sep { margin: 4px 0 2px; border-top: 1px solid #ece6da; }
+.xm-vc-key {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px dashed #d8d2c6;
+  border-radius: 10px;
+  padding: 7px 10px;
+  background: #faf8f4;
+}
+.xm-vc-key-t { font-size: 11.5px; color: #2b2b2b; }
+.xm-vc-key-d { margin-left: auto; font-size: 10.5px; opacity: .5; }
 </style>
