@@ -24,7 +24,9 @@
 4. 配置构建设置：
    - **Build command**: `node node_modules/vite/bin/vite.js build`
    - **Publish directory**: `dist`
-   - **Functions directory**: `netlify/functions`
+   - **Functions directory**: `mind-explorer-vue/netlify/functions`
+     （`netlify.toml` 已配 `base = "mind-explorer-vue"` + `functions = "netlify/functions"`，函数路径按 base **相对**解析；
+      仓库根那份同名副本已于 2026-10-30 删除，改它线上零变化）
 5. 在 **Environment variables** 中添加：
    ```
    GITHUB_CLIENT_ID = 你的 Client ID
