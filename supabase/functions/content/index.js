@@ -153,6 +153,20 @@ const cleanParams = (obj) =>
   new URLSearchParams(
     Object.fromEntries(Object.entries(obj).filter(([, v]) => v !== undefined && v !== null)),
   )
+// C5：缺参数时必须报「缺什么」，不能把 PostgREST 的 400 包成「读取 xxx 失败 400」。
+// 后者与「数据库真挂了」长得一模一样，线上排查时无法区分（体检报告 C5）。
+// 用法：need(body, ['id']) —— 缺任一字段即抛 400 + reason=missing_params。
+function need(body, fields) {
+  const b = body || {}
+  const missing = fields.filter((f) => b[f] === undefined || b[f] === null || b[f] === '')
+  if (missing.length) {
+    const err = new Error(`缺少参数：${missing.join('、')}`)
+    err.status = 400
+    err.reason = 'missing_params'
+    throw err
+  }
+  return b
+}
 async function sbSelect(table, params) {
   const qs = params instanceof URLSearchParams ? params.toString() : cleanParams(params).toString()
   const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${qs}`, { headers: sbHeaders(), signal: AbortSignal.timeout(FETCH_T) })
@@ -1680,6 +1694,7 @@ Deno.serve(async (req) => {
       case 'post.list':
         return json({ posts: memoryEnabled ? await sbSelect('community_posts', { select: '*', order: 'created_at.desc', limit: '200' }) : [] })
       case 'post.get': {
+        need(body, ['id'])
         if (!memoryEnabled) return json({ post: null })
         const rows = await sbSelect('community_posts', { select: '*', id: `eq.${body.id}`, limit: '1' })
         return json({ post: rows[0] || null })
@@ -1688,11 +1703,13 @@ Deno.serve(async (req) => {
         if (!memoryEnabled) return json({ ok: false, error: '未启用存储' })
         return json(await addPost(body))
       case 'post.comments':
+        need(body, ['postId'])
         return json({ comments: memoryEnabled ? await listComments(body.postId) : [] })
       case 'post.comment':
         if (!memoryEnabled) return json({ ok: false, error: '未启用存储' })
         return json(await addComment(body))
       case 'post.likes':
+        need(body, ['postId'])
         return json({ likes: memoryEnabled ? await sbSelect('post_likes', { select: 'user_identifier', post_id: `eq.${body.postId}` }) : [] })
       case 'post.likesBatch':
         return json({ map: memoryEnabled ? await likesBatch(body.ids) : {} })
@@ -1718,6 +1735,7 @@ Deno.serve(async (req) => {
       case 'card.mine':
         return json({ cards: memoryEnabled && body.author_id ? await listCards({ author_id: `eq.${body.author_id}` }) : [] })
       case 'card.get': {
+        need(body, ['id'])
         if (!memoryEnabled) return json({ card: null })
         const rows = await sbSelect('user_cards', { select: '*', id: `eq.${body.id}`, limit: '1' })
         return json({ card: shapeCard(rows[0] || null) })
