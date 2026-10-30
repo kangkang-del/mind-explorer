@@ -1,27 +1,37 @@
 <template>
-  <div v-if="auth.showLoginModal" class="login-modal" @click.self="auth.closeLogin()">
-    <div class="login-modal-content">
-      <h3>{{ auth.loginMode === 'login' ? '登录' : '注册账号' }}</h3>
-      <p class="modal-sub">{{ auth.loginMode === 'login' ? '欢迎回来，继续你的心灵之旅' : '注册后可同步收藏、对话与互动记录' }}</p>
+  <!--
+    C8：必须 Teleport 到 body。
+    本组件被挂在 AppNavbar 的 <header class="sticky … backdrop-blur-md"> 里，
+    而 backdrop-filter / filter / transform / contain 会让该祖先成为 position:fixed 后代的**包含块** ——
+    于是 .login-modal 的 height:100% 被解析成 header 的 60px，内容垂直居中后顶部溢出视口，
+    「🔗 GitHub 登录」实测 top=-101px 点不到，遮罩也只盖住顶部 60px 一条。
+    同坑已在手机抽屉修过（AppNavbar.vue 里那段 Teleport 注释），这里补齐。
+  -->
+  <Teleport to="body">
+    <div v-if="auth.showLoginModal" class="login-modal" @click.self="auth.closeLogin()">
+      <div class="login-modal-content">
+        <h3>{{ auth.loginMode === 'login' ? '登录' : '注册账号' }}</h3>
+        <p class="modal-sub">{{ auth.loginMode === 'login' ? '欢迎回来，继续你的心灵之旅' : '注册后可同步收藏、对话与互动记录' }}</p>
 
-      <button @click="auth.login()" class="github-login-btn">🔗 GitHub 登录</button>
-      <div class="divider"><span>或</span></div>
+        <button @click="auth.login()" class="github-login-btn">🔗 GitHub 登录</button>
+        <div class="divider"><span>或</span></div>
 
-      <input v-model="guestName" :placeholder="guestMode === 'login' ? '昵称' : '设置昵称（至少2位）'" class="guest-input" />
-      <input v-if="guestMode === 'register'" v-model="guestDisplay" placeholder="显示名称（可选）" class="guest-input" />
-      <input v-model="guestPwd" type="password" :placeholder="guestMode === 'login' ? '密码' : '设置密码（至少6位）'" class="guest-input" @keyup.enter="guestMode === 'login' ? guestSignIn() : guestSignUp()" />
+        <input v-model="guestName" :placeholder="guestMode === 'login' ? '昵称' : '设置昵称（至少2位）'" class="guest-input" />
+        <input v-if="guestMode === 'register'" v-model="guestDisplay" placeholder="显示名称（可选）" class="guest-input" />
+        <input v-model="guestPwd" type="password" :placeholder="guestMode === 'login' ? '密码' : '设置密码（至少6位）'" class="guest-input" @keyup.enter="guestMode === 'login' ? guestSignIn() : guestSignUp()" />
 
-      <button v-if="guestMode === 'login'" @click="guestSignIn" :disabled="busy" class="guest-login-btn">👤 游客登录</button>
-      <button v-else @click="guestSignUp" :disabled="busy" class="guest-login-btn">👤 注册并登录</button>
+        <button v-if="guestMode === 'login'" @click="guestSignIn" :disabled="busy" class="guest-login-btn">👤 游客登录</button>
+        <button v-else @click="guestSignUp" :disabled="busy" class="guest-login-btn">👤 注册并登录</button>
 
-      <p class="login-tip">
-        <a href="#" @click.prevent="toggleGuestMode">
-          {{ guestMode === 'login' ? '没有账号？去注册' : '已有账号？去登录' }}
-        </a>
-      </p>
-      <button @click="auth.closeLogin()" class="close-btn">关闭</button>
+        <p class="login-tip">
+          <a href="#" @click.prevent="toggleGuestMode">
+            {{ guestMode === 'login' ? '没有账号？去注册' : '已有账号？去登录' }}
+          </a>
+        </p>
+        <button @click="auth.closeLogin()" class="close-btn">关闭</button>
+      </div>
     </div>
-  </div>
+  </Teleport>
 </template>
 
 <script setup>
