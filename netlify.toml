@@ -1,7 +1,10 @@
 [build]
   # 最终结构：Vue 应用位于 mind-explorer-vue/ 子目录
   base = "mind-explorer-vue"
-  command = "npm install && npm run build"
+  # C4：用 npm ci 而不是 npm install —— 严格按 package-lock.json 装，依赖不会漂移。
+  # lock 的 resolved 已从 mirrors.tencent.com 改回 registry.npmjs.org（构建机在海外，
+  # 国内镜像既慢又可能直接失败；2026-10-30 本地以官方源跑过一次洁净 npm ci 验证通过）。
+  command = "npm ci && npm run build"
   publish = "dist"
   functions = "netlify/functions"
 
