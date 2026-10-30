@@ -15,9 +15,13 @@
 const GITHUB_CLIENT_ID = ''  // TODO: 替换为你的 Client ID
 const GITHUB_CLIENT_SECRET = '' // TODO: 替换为你的 Client Secret (仅用于静态托管方案)
 
-// 回调地址 — 部署时根据实际情况修改
-// GitHub Pages: https://<user>.github.io/<repo>/callback.html
-// Netlify: https://<site>.netlify.app/mind-explorer/callback.html
+// 回调地址（由下面的 REDIRECT_URI 按当前 origin 自动算出，一般**无需手改**）
+// GitHub Pages（项目页，带子路径）: https://<user>.github.io/<repo>/callback.html
+// Netlify（部署在站点根）:         https://<site>.netlify.app/callback.html
+//   ⚠️ 本项目部署在 Netlify **根目录**，回调**没有** `/mind-explorer/` 这一段
+//      （早先这里误写成 `/<repo>/callback.html`，会让人把 OAuth 回调配成 404）。
+//   ⚠️ 真实站点是 https://keen-buttercream-697396.netlify.app ——
+//      不要用 `mind-explorer.netlify.app`，那个子域已被他人占用。
 const REDIRECT_URI = typeof window !== 'undefined'
   ? `${window.location.origin}${window.location.pathname.replace(/\/[^/]*$/, '/')}/callback.html`
   : ''
