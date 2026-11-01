@@ -13,7 +13,9 @@
 // 一律返回 `{ ok:false, reason }`：
 //   · `unsupported` ← 503 `feature_disabled`（未配 XFYUN_* 或紧急关停）
 //   · `quota`       ← 429 `quota_exceeded`（站点每日额度用完 ⇒ 前端走 D16 引导）
-//   · `network`     ← 网络 / 5xx / 其它非预期状态码
+//   · `notdeployed` ← 400「无效的操作类型」/ 404 —— 说明**后端还没上线这个 action**
+//                     （曾统一误报成 network，用户看到「网络好像不太稳」，白折腾）
+//   · `network`     ← 真·网络故障 / 5xx / 其它非预期状态码
 import { FUNCTIONS_BASE, edgeHeaders } from '../config.js'
 
 const ENDPOINT = `${FUNCTIONS_BASE}/content`
@@ -49,6 +51,12 @@ export async function iatTicket(userId, authToken) {
     }
     if (res.status === 429 || reason === 'quota_exceeded') {
       return { ok: false, status: res.status, reason: 'quota', error: d.error || '' }
+    }
+    // 后端根本没有这个 action（`content` 未部署到含 voice.iatTicket 的版本时，
+    // 分发器会回 400「无效的操作类型：voice.iatTicket」；函数整个不存在则是 404）。
+    // 这**不是**网络问题 —— 报「网络不稳」会让用户反复重试、白折腾。
+    if (res.status === 404 || (res.status === 400 && /无效的操作类型/.test(String(d.error || '')))) {
+      return { ok: false, status: res.status, reason: 'notdeployed', error: d.error || '' }
     }
     return { ok: false, status: res.status, reason: 'network', error: d.error || '' }
   }

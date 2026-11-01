@@ -105,6 +105,10 @@ export const MESSAGES = {
   'failed.config': '语音服务暂时不可用',
   'failed.clock': '你设备的时间好像不准，校一下再试试？',
   'failed.network': '网络好像不太稳，再试一次？',
+  // 后端还没上线语音能力（400「无效的操作类型」/ 404）—— 别再说成网络问题，
+  // 否则用户会反复重试，而重试一百次也不会好。
+  'failed.notdeployed': '语音输入还没上线，先用文字聊吧',
+  'failed.no-identity': '先刷新一下页面，我才能听到你说话',
   'failed.unsupported': '语音输入还没开启',
   'failed.biz': '刚才没听清，再说一次好吗？',
   quota: '今天的语音次数用完了。想继续说，可以填你自己的密钥（即将开放）。',
@@ -633,7 +637,16 @@ export function reduce(state, event) {
         return done(s, effects)
       }
       if (type === 'ticket:fail') {
-        const kind = event.kind === 'unsupported' ? 'unsupported' : event.kind === 'quota' ? 'quota' : 'network'
+        // 🔴 白名单必须显式列全，否则新 kind 会被静默吞成 network。
+        //    2026-11-01 之前只有 unsupported/quota，于是「后端没上线」也报成
+        //    「网络好像不太稳」，用户反复重试而重试永远不会成功。
+        const KIND_MAP = {
+          unsupported: 'unsupported',
+          quota: 'quota',
+          notdeployed: 'notdeployed',
+          'no-identity': 'no-identity',
+        }
+        const kind = KIND_MAP[event.kind] || 'network'
         if (kind === 'quota') {
           // D16：额度用完 → 引导（留在 idle，不占 phase）
           s.phase = 'idle'
