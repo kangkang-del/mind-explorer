@@ -19,8 +19,24 @@
  *
  * 音色挑选（D13「系统音色」，自动排序）：
  *   中文（zh）优先 → 其中本地音色优先 → 再按 zh-CN → 最后兜底第一个。
+ *
+ * ===== M6-1b：云端音色（用户自带 Key，站方零成本）=====
+ * 产品原则：本站只提供免费的语音；付费的一律用户自带 Key（R1–R3）。
+ * 所以这里**没有额度、没有计费、没有站点 Key** —— 只用用户自己在设置里填的那把。
+ *
+ * 两条路只替换「怎么拿到音频」：
+ *   system → speechSynthesis（本文件既有逻辑，**一行未改**）
+ *   cloud  → utils/cloudTts.synthesize()（拿到 Blob）→ <audio> 接力
+ * 切块 / 预取 / 接力 / stop 释放**只有一份编排**，避免两套逻辑各修各的 bug。
+ *
+ * 云端特有的三条规则：
+ *   ① **预取**：播第 i 块时就发第 i+1 块的请求 —— 否则块间会有肉眼可见的空档；
+ *   ② **回落**：云端失败时用系统音色把**剩余文本**接着念完（首块失败＝整段）；
+ *   ③ **例外**：`bad-key` **不回落** —— Key 错了就直说，静默回落会让用户以为 Key 生效了。
  */
 import { ref } from 'vue'
+import { useXiaomuPrefs } from './useXiaomuPrefs'
+import { synthesize, getKey, ZHIPU_VOICES } from '../../utils/cloudTts'
 
 const hasSS =
   typeof window !== 'undefined' &&
@@ -66,8 +82,43 @@ export function chunkForSpeech(text) {
   return out.filter(Boolean)
 }
 
-let shared = null
+/**
+ * 云端音色的切块粒度。
+ *
+ * 比系统音色（26–90 字）**更细**，原因是云端每块都要一次网络往返：
+ *   · 块太大 → 首音要等整块合成完（40 字 ≈ 8 秒音频，合成约 1–2 秒）
+ *   · 块太小 → 请求数暴涨，块间空档反而更明显
+ * 40 字是「首音延迟」与「请求数」的折中；实测后可调。
+ * 也顺带远低于上游 1024 字硬限，留足余量。
+ */
+const CLOUD_CHUNK_MAX = 40
+const CLOUD_CHUNK_MIN = 12
 
+/**
+ * 云端播报的切块：在句末/逗号处断，短句聚合，无标点长串按 max 硬切。
+ * 与 `chunkForSpeech` 分开写而**不去改它** —— 后者是 M6-1 已验收的路径，动它有回归风险。
+ */
+export function chunkForCloud(text, max = CLOUD_CHUNK_MAX) {
+  const s = String(text == null ? '' : text)
+    .replace(/[\r\n]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+  if (!s) return []
+  const out = []
+  let buf = ''
+  for (const ch of s) {
+    buf += ch
+    const isEnd = '。！？!?；;，,'.includes(ch)
+    if ((isEnd && buf.length >= CLOUD_CHUNK_MIN) || buf.length >= max) {
+      out.push(buf.trim())
+      buf = ''
+    }
+  }
+  if (buf.trim()) out.push(buf.trim())
+  return out.filter(Boolean)
+}
+
+let shared = null
 export function useXiaomuVoice() {
   if (shared) return shared
 
@@ -79,6 +130,8 @@ export function useXiaomuVoice() {
   const voicesReady = ref(false)
   /** 音色列表拿不到时的说明（仅用于面板提示） */
   const note = ref('')
+  /** 云端音色的最近一次失败说明（面板显示，成功后清空） */
+  const cloudNotice = ref('')
 
   let rawVoices = []        // 原始 SpeechSynthesisVoice 对象
   let queue = []            // 待播块
@@ -87,6 +140,12 @@ export function useXiaomuVoice() {
   let seqToken = 0          // 每次 speak/stop 自增；旧回调据此失效
   let hooked = false
   let pollTimer = null
+
+  // ---- 云端播报的运行时状态（与系统音色的状态刻意分开，互不干扰）----
+  let audioEl = null         // 当前播放的 <audio>
+  let cloudAbort = null      // 当前在途合成的 AbortController
+  const cloudUrls = new Set()  // 所有已创建、待回收的 blob URL
+  let cloudResolve = null    // 让 cloudPlay 的 Promise 在 stop() 时也能结束（否则 await 会挂住）
 
   const ZH_RE = /^zh(\b|[-_])/i
 
@@ -206,11 +265,19 @@ export function useXiaomuVoice() {
 
   /**
    * 播报一段文字（会打断上一条）。
+   * M6-1b 起按 `prefs.voiceEngine` 分流：system（默认，免费）/ cloud（用户自带 Key）。
    * @param {string} text
    * @param {{ voiceURI?:string, rate?:number, onStart?:Function, onEnd?:Function }} [opts]
    * @returns {boolean} 是否真的开始播（false = 不支持/空文本/异常）
    */
   function speak(text, opts = {}) {
+    const prefs = useXiaomuPrefs()
+    if (prefs.voiceEngine === 'cloud') return speakCloud(text, opts)
+    return speakSystem(text, opts)
+  }
+
+  /** 系统音色路径 —— 即 M6-1 的原实现，**一行未改**（已验收，不动它） */
+  function speakSystem(text, opts = {}) {
     if (!hasSS) { if (opts.onEnd) opts.onEnd('unsupported'); return false }
     const pieces = chunkForSpeech(text)
     if (!pieces.length) { if (opts.onEnd) opts.onEnd('empty'); return false }
@@ -225,6 +292,142 @@ export function useXiaomuVoice() {
     return true
   }
 
+  /** 云端音色路径的入口：切块 → 起一个 run，立刻返回（不阻塞 UI） */
+  function speakCloud(text, opts = {}) {
+    const pieces = chunkForCloud(text)
+    if (!pieces.length) { if (opts.onEnd) opts.onEnd('empty'); return false }
+    // 注意：这里不 require hasSS —— 云端播报靠 <audio>，与 speechSynthesis 无关。
+    // （但面板的入口仍以 hasSS 判定，属已知小瑕疵，见 M6-1b 清单「已知局限」。）
+    stop()
+    const token = ++seqToken
+    speaking.value = true
+    if (opts.onStart) opts.onStart()
+    cloudRun(token, pieces, opts)
+    return true
+  }
+
+  /**
+   * 云端播报主循环：串行合成 + **预取下一块** + 逐块接力播放。
+   *
+   * 为什么要预取：播第 i 块大约 8 秒，而合成第 i+1 块要 1–2 秒。
+   * 若等播完再请求，每块之间会有 1–2 秒静默（听感上像卡住了）；提前发就能把空档压到不可感知。
+   * 任何时刻**最多一个在途请求**，所以 `cloudAbort` 只存一个就够了。
+   */
+  async function cloudRun(token, pieces, opts) {
+    const prefs = useXiaomuPrefs()
+    const key = getKey()
+    if (!key) { onCloudFail(token, pieces, 0, { reason: 'bad-key', message: '还没有填密钥' }, opts); return }
+
+    const common = {
+      baseUrl: prefs.ttsBaseUrl,
+      model: prefs.ttsModel,
+      voice: prefs.ttsVoice,
+      speed: prefs.voiceRate,
+      key,
+    }
+    const fetchOne = (t) => {
+      const ctrl = new AbortController()
+      cloudAbort = ctrl
+      return synthesize({ ...common, text: t, signal: ctrl.signal })
+    }
+
+    let nextP = fetchOne(pieces[0])
+    for (let i = 0; i < pieces.length; i++) {
+      const r = await nextP
+      // 被打断（用户点了停止 / 又发了新一条）→ 静默退出，一个状态都别碰
+      if (token !== seqToken) return
+      if (!r.ok) { onCloudFail(token, pieces, i, r, opts); return }
+      // 先把下一块发出去，再播这一块 —— 顺序不能反，否则预取就白做了
+      if (i + 1 < pieces.length) nextP = fetchOne(pieces[i + 1])
+      await cloudPlay(r.blob, token)
+      if (token !== seqToken) return
+    }
+    finishCloud(opts)
+  }
+
+  /**
+   * 播放一个 Blob，正常播完 / 出错 / 被 stop() 打断**都会 resolve** ——
+   * 这是关键：stop() 里 `audio.pause()` 不会触发 onended，若不额外放行，await 会永远挂住。
+   */
+  function cloudPlay(blob, token) {
+    return new Promise((resolve) => {
+      if (token !== seqToken) { resolve(); return }
+      let url = ''
+      try { url = URL.createObjectURL(blob) } catch { resolve(); return }
+      cloudUrls.add(url)
+      const a = new Audio(url)
+      audioEl = a
+      let settled = false
+      const done = () => {
+        if (settled) return
+        settled = true
+        cloudResolve = null
+        if (audioEl === a) audioEl = null
+        cloudUrls.delete(url)
+        try { URL.revokeObjectURL(url) } catch { /* 静默 */ }
+        resolve()
+      }
+      cloudResolve = done
+      a.onended = done
+      // 解码失败 / 格式不被支持 → 结束，别把队列卡死
+      a.onerror = done
+      try {
+        const p = a.play()
+        // 自动播放被浏览器拦（无用户手势）→ 直接收尾，不重试、不报错弹窗
+        if (p && typeof p.catch === 'function') p.catch(done)
+      } catch {
+        done()
+      }
+    })
+  }
+
+  /** 云端失败：要么直说（bad-key），要么把**剩余文本**交给系统音色念完 */
+  function onCloudFail(token, pieces, idx, r, opts) {
+    if (token !== seqToken) return
+    if (r.reason === 'aborted') return          // 用户主动停的，什么都不做
+    cloudNotice.value = r.message || '云端音色出错了'
+    stopCloud()
+    speaking.value = false
+
+    // 🔴 bad-key 不回落：Key 错了必须让用户看见，静默回落会让他以为 Key 生效了
+    if (r.reason === 'bad-key') {
+      if (opts.onEnd) opts.onEnd('bad-key')
+      return
+    }
+    // 其余失败 → 用系统音色把剩下的念完（首块失败就等于整段）。播报是加分项，不能哑掉。
+    if (!hasSS) { if (opts.onEnd) opts.onEnd('error'); return }
+    const rest = pieces.slice(idx).join('')
+    speakSystem(rest, opts)
+  }
+
+  function finishCloud(opts) {
+    stopCloud()
+    speaking.value = false
+    if (opts.onEnd) opts.onEnd('end')
+  }
+
+  /** 释放云端资源（幂等）。注意：**不动 seqToken**，token 的失效只由 stop()/speak() 管 */
+  function stopCloud() {
+    if (cloudAbort) {
+      try { cloudAbort.abort() } catch { /* 静默 */ }
+      cloudAbort = null
+    }
+    if (audioEl) {
+      const a = audioEl
+      audioEl = null
+      try { a.pause() } catch { /* 静默 */ }
+      try { a.removeAttribute('src') } catch { /* 静默 */ }
+      try { a.load() } catch { /* 静默 */ }   // 让浏览器真正释放已缓冲的音频
+    }
+    for (const u of cloudUrls) {
+      try { URL.revokeObjectURL(u) } catch { /* 静默 */ }
+    }
+    cloudUrls.clear()
+    const r = cloudResolve
+    cloudResolve = null
+    if (r) r()   // 放行挂起的 cloudPlay，避免 await 永远不返回
+  }
+
   /** 打断当前播报（幂等；随时可调） */
   function stop() {
     seqToken++
@@ -234,12 +437,17 @@ export function useXiaomuVoice() {
     if (hasSS) {
       try { window.speechSynthesis.cancel() } catch { /* 静默 */ }
     }
+    stopCloud()
     speaking.value = false
   }
 
-  /** 试听（面板用）：念一句固定的话 */
+  /** 试听（面板用）：念一句固定的话，按当前引擎分流 */
   function preview(voiceURI, rate) {
-    return speak('嗯，我是小木。这样就可以听见我说话啦。', { voiceURI, rate })
+    const prefs = useXiaomuPrefs()
+    if (prefs.voiceEngine === 'cloud') {
+      return speakCloud('嗯，我是小木。这样就可以听见我说话啦。', {})
+    }
+    return speakSystem('嗯，我是小木。这样就可以听见我说话啦。', { voiceURI, rate })
   }
 
   /** 当前默认会用的音色名（面板显示用）；不需要精确，够用即可 */
@@ -256,12 +464,14 @@ export function useXiaomuVoice() {
     voicesReady,
     speaking,
     note,
+    cloudNotice,
     loadVoices,
     pickVoice,
     currentVoiceName,
     speak,
     stop,
     preview,
+    ZHIPU_VOICES,
   }
   return shared
 }

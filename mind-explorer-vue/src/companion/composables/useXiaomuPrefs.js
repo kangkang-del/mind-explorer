@@ -17,11 +17,52 @@
  * M6-2c 新增（语音输入）：
  *   iatOn         —— 是否开启「按住说话」（默认 false：纯加法，未开启者完全无感）
  *
+ * M6-1b 新增（云端音色 · 用户自带 Key）：
+ *   voiceEngine   —— 'system' | 'cloud'（默认 system：不配 Key 的人零感知）
+ *   ttsTransport  —— 'local' | 'account'（Key 存本机 / 加密存账号；M6-1b 只实现 local）
+ *   ttsBaseUrl    —— 兼容 OpenAI /audio/speech 的服务地址
+ *   ttsModel      —— 默认 glm-tts
+ *   ttsVoice      —— 默认 tongtong；自定义供应商时可自由填写，故**不做 7 项枚举限制**
+ *
+ * 🔴 **API Key 不在本对象里**，单独存 localStorage 键 `xm_tts_key`（见 utils/cloudTts.js）。
+ *    理由：prefs 会被整体 JSON.stringify 写盘、会被诊断脚本 dump、也更容易被顺手 console.log
+ *    —— Key 不进这个对象，就少三条泄露路径。
+ *
  * 读写全部 try/catch：隐私模式/禁存储时静默降级为不持久化。
  */
 import { reactive, watch } from 'vue'
 
 const KEY = 'xm-prefs-v1'
+
+// ---- M6-1b 云端音色的默认值与白名单 ----
+/** 智谱兼容端点（拼 /audio/speech）。用户可改成任意 OpenAI 兼容服务 */
+export const DEFAULT_TTS_BASE = 'https://open.bigmodel.cn/api/paas/v4'
+
+const ENGINES = ['system', 'cloud']
+const TRANSPORTS = ['local', 'account']
+
+/**
+ * 归一化兼容端点：必须能 new URL() 解析且是 https。
+ * 🔴 localStorage 是**用户可改的**，当不可信输入处理 —— 否则 `javascript:` / `data:` 会被原样拿去 fetch。
+ */
+function normBaseUrl(v) {
+  const s = typeof v === 'string' ? v.trim() : ''
+  if (!s || s.length > 200) return DEFAULT_TTS_BASE
+  try {
+    const u = new URL(s)
+    if (u.protocol !== 'https:') return DEFAULT_TTS_BASE
+    return (u.origin + u.pathname).replace(/\/+$/, '')
+  } catch {
+    return DEFAULT_TTS_BASE
+  }
+}
+
+/** 模型 / 音色：自定义供应商可能是任意字符串，故只做「非空 + 长度 + 字符集」约束，不枚举 */
+function normIdent(v, dflt) {
+  const s = typeof v === 'string' ? v.trim() : ''
+  if (!s || s.length > 80) return dflt
+  return /^[A-Za-z0-9._:-]+$/.test(s) ? s : dflt
+}
 
 const defaults = () => ({
   variant: 'wood',
@@ -36,6 +77,12 @@ const defaults = () => ({
   voiceProactive: false,  // 主动出声
   // ---- M6-2c 语音输入 ----
   iatOn: false,           // 「按住说话」开关（默认关：语音输入要占麦克风，必须用户显式打开）
+  // ---- M6-1b 云端音色（自带 Key） ----
+  voiceEngine: 'system',  // 'system' | 'cloud'
+  ttsTransport: 'local',  // 'local' | 'account'
+  ttsBaseUrl: DEFAULT_TTS_BASE,
+  ttsModel: 'glm-tts',
+  ttsVoice: 'tongtong',
 })
 
 /** M3 迁移：旧版布尔（hat:true）→ 物品 id；新版字符串原样；缺失 → none */
@@ -78,6 +125,12 @@ function load() {
       voiceProactive: !!saved.voiceProactive,
       // ---- M6-2c 语音输入 ----
       iatOn: !!saved.iatOn,
+      // ---- M6-1b 云端音色 ----
+      voiceEngine: ENGINES.includes(saved.voiceEngine) ? saved.voiceEngine : 'system',
+      ttsTransport: TRANSPORTS.includes(saved.ttsTransport) ? saved.ttsTransport : 'local',
+      ttsBaseUrl: normBaseUrl(saved.ttsBaseUrl),
+      ttsModel: normIdent(saved.ttsModel, 'glm-tts'),
+      ttsVoice: normIdent(saved.ttsVoice, 'tongtong'),
     }
   } catch {
     return base
