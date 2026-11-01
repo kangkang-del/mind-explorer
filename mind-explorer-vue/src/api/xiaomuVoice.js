@@ -78,3 +78,132 @@ export async function iatTicket(userId, authToken) {
 }
 
 export const xmVoice = { iatTicket }
+
+// ============================================================
+// M6-1c：云端音色的「加密存到账号」模式（用户自带 Key）
+//
+// 🔴 站方零成本：这里代发的是**用户自己的** Key，本站不持有任何 TTS Key。
+// ⚠️ 前端**默认不走这里**（「只存本机」直连更快、Key 也不经服务器），
+//    只有用户主动选了「加密存到账号」才用 —— 好处是换设备可用，
+//    以及上游不放 CORS 时唯一可行的路。
+// ============================================================
+
+/** 后端 reason → 前端统一词汇（与 cloudTts / core/iat 的 reason 对齐） */
+function mapReason(status, reason) {
+  const r = String(reason || '')
+  if (status === 503 || r === 'feature_disabled') return 'unsupported'
+  if (status === 429 || r === 'quota_exceeded' || r === 'rate_limited') return 'quota'
+  if (r === 'upstream_auth') return 'bad-key'
+  if (r === 'no_config' || r === 'key_required' || r === 'key_unsealable' || r === 'disabled') return 'no-config'
+  if (r === 'unsafe_endpoint' || r === 'bad_ident' || r === 'bad_voice') return 'bad-config'
+  if (r === 'text_too_long') return 'text-too-long'
+  if (r === 'missing_params') return 'bad-request'
+  if (status === 404) return 'notdeployed'
+  return 'network'
+}
+
+/**
+ * 统一调用。**绝不抛**，永远回 `{ ok, ... }`（同 iatTicket 风格）。
+ * @returns {Promise<{ok:true,data:object}|{ok:false,reason:string,status?:number,error?:string}>}
+ */
+async function callContent(payload) {
+  let res
+  try {
+    res = await fetch(ENDPOINT, {
+      method: 'POST',
+      headers: edgeHeaders(),
+      body: JSON.stringify(payload),
+    })
+  } catch (e) {
+    return { ok: false, reason: 'network', error: String((e && e.message) || e) }
+  }
+
+  let data = null
+  try { data = await res.json() } catch { /* 空响应体 / 非 JSON */ }
+  const d = data && typeof data === 'object' ? data : {}
+
+  if (!res.ok) {
+    // 后端根本没有这个 action（content 还没部署到含 M6-1c 的版本）
+    if (res.status === 400 && /无效的操作类型/.test(String(d.error || ''))) {
+      return { ok: false, status: res.status, reason: 'notdeployed', error: d.error || '' }
+    }
+    return {
+      ok: false,
+      status: res.status,
+      reason: mapReason(res.status, d.reason),
+      error: d.error || '',
+      backendReason: d.reason || '',
+    }
+  }
+  return { ok: true, data: d }
+}
+
+/**
+ * 代发合成：把用户的文字交给**用户自己的** Key 去合成。
+ * @returns {Promise<{ok:true,audioBase64:string,mime:string,chars:number}
+ *                  | {ok:false,reason:string,error?:string}>}
+ */
+export async function ttsServer(userId, authToken, text, opts = {}) {
+  if (!userId) return { ok: false, reason: 'no-identity' }
+  const r = await callContent({
+    action: 'audio.tts',
+    userId,
+    authToken,
+    text: String(text == null ? '' : text),
+    speed: opts.speed,
+  })
+  if (!r.ok) return { ok: false, reason: r.reason, error: r.error }
+  const d = r.data || {}
+  if (!d.ok || !d.audioBase64) {
+    return { ok: false, reason: 'network', error: d.error || '没有音频' }
+  }
+  return {
+    ok: true,
+    audioBase64: String(d.audioBase64),
+    mime: String(d.mime || 'audio/wav'),
+    chars: Number(d.chars) || 0,
+  }
+}
+
+/** 存到账号：加密落库，只回掩码 */
+export async function voiceKeySet(userId, authToken, cfg) {
+  if (!userId) return { ok: false, reason: 'no-identity' }
+  const r = await callContent({
+    action: 'voice.keySet',
+    userId,
+    authToken,
+    baseUrl: cfg.baseUrl,
+    model: cfg.model,
+    voice: cfg.voice,
+    key: cfg.key,
+  })
+  if (!r.ok) return { ok: false, reason: r.reason, error: r.error }
+  return { ok: true, mask: String((r.data || {}).mask || '') }
+}
+
+/** 读账号里的配置（只回掩码，永不回密文/明文） */
+export async function voiceKeyGet(userId, authToken) {
+  if (!userId) return { ok: false, reason: 'no-identity' }
+  const r = await callContent({ action: 'voice.keyGet', userId, authToken })
+  if (!r.ok) return { ok: false, reason: r.reason, error: r.error }
+  const d = r.data || {}
+  return {
+    ok: true,
+    exists: !!d.exists,
+    mask: String(d.mask || ''),
+    baseUrl: String(d.baseUrl || ''),
+    model: String(d.model || ''),
+    voice: String(d.voice || ''),
+    enabled: d.enabled !== false,
+  }
+}
+
+/** 清除账号里的配置 */
+export async function voiceKeyClear(userId, authToken) {
+  if (!userId) return { ok: false, reason: 'no-identity' }
+  const r = await callContent({ action: 'voice.keyClear', userId, authToken })
+  if (!r.ok) return { ok: false, reason: r.reason, error: r.error }
+  return { ok: true }
+}
+
+export const xmVoiceCloud = { ttsServer, voiceKeySet, voiceKeyGet, voiceKeyClear }

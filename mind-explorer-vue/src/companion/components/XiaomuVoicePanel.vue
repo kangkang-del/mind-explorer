@@ -67,7 +67,7 @@
       <!-- 云端设置（只在选了云端音色时出现；没填 Key 时默认展开） -->
       <details v-if="isCloud" class="xm-vc-cloud" :open="!hasKey" data-xm="ttsCloudBox">
         <summary class="xm-vc-cloud-sum">
-          云端设置 · {{ hasKey ? '已填密钥' : '还没填密钥' }}
+          云端设置 · {{ isAccount ? (accountExists ? '账号里已存密钥' : '账号里还没存密钥') : (hasKey ? '已填密钥' : '还没填密钥') }}
         </summary>
 
         <div class="xm-vc-row">
@@ -93,10 +93,15 @@
               class="xm-vc-input" type="password" data-xm="ttsKey" v-model="keyInput"
               placeholder="粘贴你自己的密钥" autocomplete="off" spellcheck="false"
             />
-            <button type="button" class="xm-vc-mini" data-xm="ttsKeySave" @click="onSaveKey">保存</button>
+            <button type="button" class="xm-vc-mini" data-xm="ttsKeySave" :disabled="accountBusy" @click="onSaveKey">保存</button>
           </div>
           <span class="xm-vc-hint">
-            只存在这台设备的浏览器里，<b>不会上传到本站</b>。换设备或清缓存后要重填。
+            <template v-if="isAccount">
+              密钥会加密后存到你的账号（<b>换设备也能用</b>），本站只保存密文。
+            </template>
+            <template v-else>
+              只存在这台设备的浏览器里，<b>不会上传到本站</b>。换设备或清缓存后要重填。
+            </template>
           </span>
         </div>
 
@@ -105,25 +110,31 @@
           <label class="xm-vc-switch">
             <input
               type="radio" value="local" data-xm="ttsTransportLocal"
-              :checked="prefs.ttsTransport === 'local'" @change="prefs.ttsTransport = 'local'"
+              :checked="!isAccount" @change="onTransport('local')"
             />
             <span>只存在这台设备 · 最快</span>
           </label>
-          <label class="xm-vc-switch is-dim">
-            <input type="radio" value="account" disabled data-xm="ttsTransportAccount" />
-            <span>加密存到我的账号（下一版开放）</span>
+          <label class="xm-vc-switch">
+            <input
+              type="radio" value="account" data-xm="ttsTransportAccount"
+              :checked="isAccount" @change="onTransport('account')"
+            />
+            <span>加密存到我的账号 · 换设备可用</span>
           </label>
+          <span v-if="isAccount" class="xm-vc-hint" data-xm="ttsAccountMask">
+            {{ accountExists ? `已保存：${accountMask}` : '账号里还没有保存语音密钥' }}
+          </span>
         </div>
 
         <div class="xm-vc-picker">
           <button
             type="button" class="xm-vc-mini" data-xm="ttsTest"
-            :disabled="testing || !hasKey" @click="onTest"
+            :disabled="testing || !canTest" @click="onTest"
           >{{ testing ? '测试中…' : '测试连接' }}</button>
           <button
             type="button" class="xm-vc-mini" data-xm="ttsKeyClear"
-            :disabled="!hasKey" @click="onClearKey"
-          >清除密钥</button>
+            :disabled="!canClear" @click="onClearKey"
+          >{{ isAccount ? '删除账号里的密钥' : '清除密钥' }}</button>
         </div>
 
         <p class="xm-vc-hint" data-xm="ttsMsg" :class="{ 'is-err': msgIsErr }">{{ cloudMsg }}</p>
@@ -213,7 +224,9 @@ import { computed, ref, watch } from 'vue'
 import { useXiaomuPrefs, DEFAULT_TTS_BASE } from '../composables/useXiaomuPrefs'
 import { useXiaomuVoice, clampRate } from '../composables/useXiaomuVoice'
 import { useXiaomuIat } from '../composables/useXiaomuIat'
-import { ZHIPU_VOICES, getKey, setKey, clearKey, synthesize } from '../../utils/cloudTts'
+import { ZHIPU_VOICES, getKey, setKey, clearKey, synthesize, synthesizeViaServer } from '../../utils/cloudTts'
+import { voiceKeySet, voiceKeyGet, voiceKeyClear } from '../../api/xiaomuVoice'
+import { useIdentity } from '../../composables/useIdentity'
 
 const prefs = useXiaomuPrefs()
 const voice = useXiaomuVoice()
@@ -222,7 +235,9 @@ const iat = useXiaomuIat()
 const playing = ref(false)
 
 // ===== M6-1b：云端音色（用户自带 Key）=====
-// 面板仍然**不主动发网络请求**（与 M6-1/M6-2c 一致）：只有用户点「测试连接」或「试听」时才发。
+// 面板**不主动发合成请求**（与 M6-1/M6-2c 一致）：只有点「测试连接」或「试听」才会合成。
+// 唯一例外是「账号模式」拉一次自己的保存状态（只读、只回掩码）——
+// 不给这次读取，「存到账号」的用户就看不到自己到底存没存过。
 const isCloud = computed(() => prefs.voiceEngine === 'cloud')
 
 /** 两档共用一个下拉：系统档写 voiceURI，云端档写 ttsVoice */
@@ -240,6 +255,47 @@ const testing = ref(false)
 const cloudMsg = ref('')
 const msgIsErr = ref(false)
 
+// ---- M6-1c：账号模式（服务端加密存 Key，后端代发）----
+const ident = useIdentity()
+const isAccount = computed(() => prefs.ttsTransport === 'account')
+const accountBusy = ref(false)
+const accountExists = ref(false)
+const accountMask = ref('')
+
+/** 能不能测试：本机模式看有没有本地 Key，账号模式看账号里有没有存 */
+const canTest = computed(() => (isAccount.value ? accountExists.value : hasKey.value))
+const canClear = computed(() => (isAccount.value ? accountExists.value : hasKey.value))
+
+/** 读一次账号里的配置状态（只回掩码） */
+async function refreshAccount() {
+  if (!ident.userId.value) {
+    accountExists.value = false
+    accountMask.value = ''
+    return
+  }
+  const r = await voiceKeyGet(ident.userId.value, ident.token())
+  if (r.ok) {
+    accountExists.value = r.exists
+    accountMask.value = r.mask || ''
+  }
+}
+
+function onTransport(t) {
+  prefs.ttsTransport = t === 'account' ? 'account' : 'local'
+  if (prefs.ttsTransport === 'account') {
+    // 账号模式要落库 ⇒ 必须有确权账号（后端也是这个门槛，这里提前拦，省一次 403）
+    if (!ident.userId.value || ident.isQuickGuest.value) {
+      say('账号模式需要先注册账号（或用 GitHub 登录）。', true)
+      prefs.ttsTransport = 'local'
+      return
+    }
+    refreshAccount()
+    say('账号模式：密钥加密后存在服务器，换设备也能用。')
+  } else {
+    say('')
+  }
+}
+
 function say(text, isErr = false) {
   cloudMsg.value = text
   msgIsErr.value = isErr
@@ -250,7 +306,14 @@ function onEngine(engine) {
   // 切来源先停掉正在念的，否则上一档的声音还在响，用户会以为切换没生效
   voice.stop()
   playing.value = false
-  if (prefs.voiceEngine === 'cloud' && !getKey()) say('先把你的密钥填进来，再点「测试连接」。')
+  if (prefs.voiceEngine !== 'cloud') { say(''); return }
+  // 切到云端时按当前存放方式判断"能不能用"，不要把账号模式的用户错判成没配 Key
+  if (isAccount.value) {
+    refreshAccount()
+    say('')
+    return
+  }
+  if (!getKey()) say('先把你的密钥填进来，再点「测试连接」。')
   else say('')
 }
 
@@ -287,14 +350,67 @@ function onModel(e) {
   say('')
 }
 
-function onSaveKey() {
+async function onSaveKey() {
+  // ---- 账号模式：加密存到服务器 ----
+  if (isAccount.value) {
+    if (!ident.userId.value) { say('请先登录后再保存到账号。', true); return }
+    if (!keyInput.value && !accountExists.value) { say('请先填写密钥。', true); return }
+    accountBusy.value = true
+    say('正在保存…')
+    const r = await voiceKeySet(ident.userId.value, ident.token(), {
+      baseUrl: prefs.ttsBaseUrl,
+      model: prefs.ttsModel,
+      voice: prefs.ttsVoice,
+      key: keyInput.value,
+    })
+    accountBusy.value = false
+    if (r.ok) {
+      accountExists.value = true
+      accountMask.value = r.mask || ''
+      // 存到账号后就不在本机留明文了（否则「存到账号」变成两份 Key）
+      clearKey()
+      keyInput.value = ''
+      hasKey.value = false
+      say('已加密保存到你的账号。')
+    } else {
+      say(accountErrMsg(r), true)
+    }
+    return
+  }
+
+  // ---- 本机模式 ----
   const v = setKey(keyInput.value)
   keyInput.value = v
   hasKey.value = !!v
   say(v ? '已保存到这台设备。' : '密钥是空的，没有保存。', !v)
 }
 
-function onClearKey() {
+function accountErrMsg(r) {
+  const m = {
+    'no-identity': '请先登录',
+    unsupported: '账号模式的后端还没上线（需要先部署 content 函数）',
+    'bad-config': '接口地址或音色名不被允许',
+    quota: '操作太频繁，稍等一下',
+    network: '连不上服务器，稍后再试',
+  }
+  return r.error || m[r.reason] || '保存失败'
+}
+
+async function onClearKey() {
+  if (isAccount.value) {
+    if (!ident.userId.value) { say('请先登录。', true); return }
+    accountBusy.value = true
+    const r = await voiceKeyClear(ident.userId.value, ident.token())
+    accountBusy.value = false
+    if (r.ok) {
+      accountExists.value = false
+      accountMask.value = ''
+      say('已从账号删除。')
+    } else {
+      say(accountErrMsg(r), true)
+    }
+    return
+  }
   clearKey()
   keyInput.value = ''
   hasKey.value = false
@@ -302,21 +418,28 @@ function onClearKey() {
 }
 
 async function onTest() {
-  if (!getKey()) { say('还没有填密钥。', true); return }
+  const useServer = isAccount.value
+  if (useServer && !ident.userId.value) { say('请先登录。', true); return }
+  if (!useServer && !getKey()) { say('还没有填密钥。', true); return }
+  if (useServer && !accountExists.value) { say('账号里还没有保存密钥。', true); return }
+
   testing.value = true
   say('正在测试…')
-  const r = await synthesize({
+  const common = {
     baseUrl: prefs.ttsBaseUrl,
     model: prefs.ttsModel,
     voice: prefs.ttsVoice,
     text: '嗯，我是小木。',
     speed: prefs.voiceRate,
     key: getKey(),
-  })
+  }
+  const r = useServer
+    ? await synthesizeViaServer({ userId: ident.userId.value, authToken: ident.token(), text: common.text, speed: common.speed })
+    : await synthesize(common)
   testing.value = false
   // 成功就不播、不落盘：Blob 交给 GC 即可（没有创建 object URL，也就没有要 revoke 的东西）
   if (r.ok) say('✓ 可以了，这个密钥能用。')
-  else say(r.message || '测试失败', true)
+  else say(r.message || accountErrMsg({ reason: r.reason }) || '测试失败', true)
 }
 
 /** 播报过程中的云端失败（例如 Key 中途失效）—— 让面板也能看到，而不是只在控制台 */
@@ -351,6 +474,9 @@ const rateLabel = computed(() => {
 
 /** 打开面板即尝试拉音色列表（部分浏览器列表就绪很慢，需要轮询兜底） */
 voice.loadVoices()
+
+// 上次选的是账号模式 → 顺手拉一次账号里的保存状态（只回掩码，不解密）
+if (isAccount.value) refreshAccount()
 
 function onToggleOn(on) {
   prefs.voiceOn = on

@@ -22,6 +22,9 @@
  *   reason ∈ bad-key | quota | cors | upstream | network | aborted | text-too-long | bad-request
  */
 
+// 账号模式要用它（服务端代发）；本机模式完全不碰网络层封装。
+import { ttsServer } from '../api/xiaomuVoice'
+
 const KEY_STORE = 'xm_tts_key'
 
 /** 智谱 7 个内置音色（来源：docs.bigmodel.cn …/glm-tts「可选音色」，2026-11-01 查阅） */
@@ -181,4 +184,53 @@ export async function synthesize(o = {}) {
   return { ok: true, blob }
 }
 
-export const cloudTts = { synthesize, getKey, setKey, clearKey, ZHIPU_VOICES, TTS_INPUT_MAX }
+// ============================================================
+// M6-1c：账号模式（服务端代发）
+//
+// 与上面的 `synthesize()` **返回同样的形状**（`{ ok, blob }`），
+// 这样上层（useXiaomuVoice 的切块/预取/接力）只换一个函数，编排代码一行不用改。
+//
+// 什么时候用它：①用户勾了「加密存到账号」（换设备可用）
+//              ②上游不放 CORS，浏览器直连必失败
+// ============================================================
+
+/** base64 → Uint8Array。atob 不能用 ...展开，逐字节填（与后端 b64FromBytes 对称） */
+function bytesFromB64(b64) {
+  const bin = atob(String(b64 || ''))
+  const out = new Uint8Array(bin.length)
+  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i)
+  return out
+}
+
+const SERVER_MSG = {
+  'no-config': '账号里还没有保存语音密钥',
+  'bad-config': '接口地址或音色名不被允许',
+  unsupported: '云端音色功能尚未启用',
+  quota: '念得有点频繁，稍等一下',
+  'bad-key': '你的密钥无效或已过期',
+  network: '云端音色暂时不可用',
+  notdeployed: '语音后端还没上线这个功能',
+  'no-identity': '请先登录',
+}
+
+/**
+ * 经后端代发合成。
+ * @param {{userId:string, authToken:string, text:string, speed?:number}} o
+ * @returns {Promise<{ok:true, blob:Blob} | {ok:false, reason:string, message:string}>}
+ */
+export async function synthesizeViaServer(o = {}) {
+  const r = await ttsServer(o.userId, o.authToken, o.text, { speed: o.speed })
+  if (!r.ok) {
+    return { ok: false, reason: r.reason, message: r.error || SERVER_MSG[r.reason] || '云端音色出错了' }
+  }
+  let bytes
+  try {
+    bytes = bytesFromB64(r.audioBase64)
+  } catch {
+    return { ok: false, reason: 'upstream', message: '音频数据损坏' }
+  }
+  if (!bytes.length) return { ok: false, reason: 'upstream', message: '云端返回了空音频' }
+  return { ok: true, blob: new Blob([bytes], { type: r.mime || 'audio/wav' }) }
+}
+
+export const cloudTts = { synthesize, synthesizeViaServer, getKey, setKey, clearKey, ZHIPU_VOICES, TTS_INPUT_MAX }

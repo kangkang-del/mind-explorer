@@ -36,7 +36,8 @@
  */
 import { ref } from 'vue'
 import { useXiaomuPrefs } from './useXiaomuPrefs'
-import { synthesize, getKey, ZHIPU_VOICES } from '../../utils/cloudTts'
+import { synthesize, synthesizeViaServer, getKey, ZHIPU_VOICES } from '../../utils/cloudTts'
+import { useIdentity } from '../../composables/useIdentity'
 
 const hasSS =
   typeof window !== 'undefined' &&
@@ -315,20 +316,41 @@ export function useXiaomuVoice() {
    */
   async function cloudRun(token, pieces, opts) {
     const prefs = useXiaomuPrefs()
-    const key = getKey()
-    if (!key) { onCloudFail(token, pieces, 0, { reason: 'bad-key', message: '还没有填密钥' }, opts); return }
+    // 两种传输：local（Key 在本机，浏览器直连）/ account（Key 在服务端加密存，后端代发）
+    const useServer = prefs.ttsTransport === 'account'
+    let fetchOne = null
 
-    const common = {
-      baseUrl: prefs.ttsBaseUrl,
-      model: prefs.ttsModel,
-      voice: prefs.ttsVoice,
-      speed: prefs.voiceRate,
-      key,
-    }
-    const fetchOne = (t) => {
-      const ctrl = new AbortController()
-      cloudAbort = ctrl
-      return synthesize({ ...common, text: t, signal: ctrl.signal })
+    if (useServer) {
+      // 账号模式的 Key 存在服务端，本机不需要有 —— 但必须已登录才有 uid
+      const ident = useIdentity()
+      if (!ident.userId.value) {
+        onCloudFail(token, pieces, 0, { reason: 'no-identity', message: '请先登录后再用云端音色' }, opts)
+        return
+      }
+      const uid = ident.userId.value
+      const authToken = ident.token()
+      const speed = prefs.voiceRate
+      // ⚠️ 账号模式没有前端 AbortController（api 层不接 signal）：stop() 后**在途请求会自然跑完**，
+      //    结果被 token 检查丢弃。多花的那一次合成用的是用户自己的额度，已记为已知代价。
+      fetchOne = (t) => synthesizeViaServer({ userId: uid, authToken, text: t, speed })
+    } else {
+      const key = getKey()
+      if (!key) {
+        onCloudFail(token, pieces, 0, { reason: 'bad-key', message: '还没有填密钥' }, opts)
+        return
+      }
+      const common = {
+        baseUrl: prefs.ttsBaseUrl,
+        model: prefs.ttsModel,
+        voice: prefs.ttsVoice,
+        speed: prefs.voiceRate,
+        key,
+      }
+      fetchOne = (t) => {
+        const ctrl = new AbortController()
+        cloudAbort = ctrl
+        return synthesize({ ...common, text: t, signal: ctrl.signal })
+      }
     }
 
     let nextP = fetchOne(pieces[0])

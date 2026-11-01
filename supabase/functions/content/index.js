@@ -28,6 +28,14 @@
 //   model.presets / model.get / model.set / model.toggle
 //   model.clear / model.test                                            ← M5 新增
 //   voice.iatTicket                                                     ← M6 新增
+//   voice.keySet / voice.keyGet / voice.keyClear / audio.tts            ← M6-1c 新增
+//
+// M6-1c：云端音色的「加密存到账号」模式（**站方零成本**）
+//   产品原则（R1–R3）：本站只提供免费的语音；付费的一律用户自带 Key。
+//   ⇒ 本函数**没有任何站点 TTS Key**，只代发用户自己的 Key（AES-GCM 加密落库，明文不落库）。
+//   ⚠️ 与「只存本机」模式的分工：前端能直连的（智谱 CORS 已放行）走后端是**多余的一跳**；
+//      本组 action 只服务两件事：①换设备可用 ②上游不放 CORS 的自定义接口。
+//   endpoint 过 _shared/netguard.js（仅 https / 仅 443 / 拒内网），与 M5 同源。
 //
 // M5：自定义模型（用户自带 Key / 自建 endpoint）
 //   配置存 xiaomu_model_config，Key 以 AES-GCM 加密落库（_shared/crypto.js，明文不落库）。
@@ -787,6 +795,251 @@ async function voiceIatTicket(body) {
     format: 'audio/L16;rate=16000',
     expiresInSec: 300,
     quota: { max: VOICE_TICKET_MAX_PER_WINDOW, windowMs: VOICE_TICKET_WINDOW_MS },
+  }
+}
+
+// ---------- M6-1c：云端音色（用户自带 Key；站方零成本） ----------
+//
+// 🔴 本段**没有、也永远不会有**站点 TTS Key。S12 的语音 Key 是用户自己的，
+//    加密落库后由本函数解密代发；站点不承担任何第三方费用。
+//
+// 为什么还要后端（前端明明能直连智谱）：
+//   ① 「加密存到账号」—— 换设备可用，代价是密文不能回传前端，只能由后端代发；
+//   ② 用户填的服务若不放 CORS，浏览器直连必失败，只能走服务端。
+//   所以「只存本机」仍然是默认且更快的路径，本组 action 是**兜底**而非主路。
+
+const VOICE_TABLE = 'xiaomu_voice_config'
+const VOICE_DEFAULT_BASE = 'https://open.bigmodel.cn/api/paas/v4'
+const VOICE_DEFAULT_MODEL = 'glm-tts'
+const VOICE_DEFAULT_VOICE = 'tongtong'
+const VOICE_IDENT_MAX = 80
+const VOICE_KEY_MAX = 200
+/**
+ * 单次合成的文本上限。上游允许 1024，这里**故意压到 300**：
+ * 300 字 ≈ 60 秒音频 ≈ 2.8MB wav ≈ 3.8MB base64 —— 再大就会把 Edge 的响应体撑爆。
+ * 前端正常按 40 字切块，300 是 7 倍冗余，只用于兜住异常客户端。
+ */
+const VOICE_TEXT_MAX = 300
+/** 兜底护栏：上游返回的音频超过 4MB 就不回前端了（宁可报错，也不要把 Edge 打挂） */
+const VOICE_AUDIO_MAX = 4 * 1024 * 1024
+/** 只防暴力刷（用的是用户自己的 Key，站方无成本，所以阈值可以很宽松） */
+const VOICE_TTS_WINDOW_MS = 60 * 1000
+const VOICE_TTS_MAX_PER_WINDOW = 20
+const voiceTtsHits = new Map()
+
+const clampSpeed = (v) => {
+  const n = Number(v)
+  if (!Number.isFinite(n)) return 1
+  return Math.min(2, Math.max(0.5, n))
+}
+
+/**
+ * Uint8Array → base64。
+ * 🔴 不能写 `String.fromCharCode(...bytes)`：音频动辄几十万字节，展开成实参会**爆栈**
+ * （Chrome/V8 约 6 万实参上限），而且报错是 `Maximum call stack size exceeded`，
+ * 看起来像业务 bug。必须分段。
+ */
+function b64FromBytes(bytes) {
+  const CHUNK = 0x8000
+  let s = ''
+  for (let i = 0; i < bytes.length; i += CHUNK) {
+    s += String.fromCharCode.apply(null, bytes.subarray(i, i + CHUNK))
+  }
+  return btoa(s)
+}
+
+/**
+ * 身份门槛 + **换成语音语境的文案**。
+ *
+ * 为什么要包一层：`requireConfirmed` 的报错写死了「配置自己的模型」，
+ * 直接透给用户会说「请先注册账号再配置自己的模型」—— 而他在配声音。
+ * 这里只改文案、**不改任何判定**（reason 原样透传，M5 的语义一点没动）。
+ */
+async function voiceOwner(body, tag) {
+  try {
+    return await requireConfirmed(body.userId, body.authToken, tag)
+  } catch (e) {
+    if (e.reason === 'identity_unknown') throw voiceErr('请先登录后再用云端音色', 'identity_unknown', 403)
+    if (e.reason === 'quick_not_allowed') throw voiceErr('请先注册账号（或用 GitHub 登录），再用云端音色', 'quick_not_allowed', 403)
+    if (e.reason === 'not_in_allowlist') throw voiceErr('云端音色暂未对你开放', 'not_in_allowlist', 403)
+    if (e.reason === 'feature_disabled') throw voiceErr('云端音色功能尚未启用', 'feature_disabled', 503)
+    throw e
+  }
+}
+
+/** model / voice 这类会拼进上游请求体的短标识：非空、限长、无空白与控制字符 */
+function checkIdent(v, label) {
+  if (!v || v.length > VOICE_IDENT_MAX) throw voiceErr(`${label}名不合法`, 'bad_ident', 400)
+  if (/[\s\u0000-\u001f]/.test(v)) throw voiceErr(`${label}名含非法字符`, 'bad_ident', 400)
+  return v
+}
+
+/** 存用户的语音密钥（加密落库，只回掩码） */
+async function voiceKeySet(body) {
+  const { uid, kind } = await voiceOwner(body, 'content.voice.keySet')
+  if (!memoryEnabled) throw voiceErr('未启用存储', 'no_storage', 503)
+
+  const rawBase = String(body.baseUrl || '').trim() || VOICE_DEFAULT_BASE
+  // 与 M5 同一个 SSRF 过滤器（唯一真源在 _shared/netguard.js）
+  const guard = assertSafeEndpoint(rawBase)
+  if (!guard.ok) throw voiceErr(`接口地址不被允许：${guard.reason}`, 'unsafe_endpoint', 400)
+  const baseUrl = normalizeEndpoint(rawBase)
+
+  const model = checkIdent(String(body.model || VOICE_DEFAULT_MODEL).trim(), '模型')
+  const voice = checkIdent(String(body.voice || VOICE_DEFAULT_VOICE).trim(), '音色')
+
+  const rawKey = String(body.key || '').trim()
+  if (!rawKey) throw voiceErr('请填写你的 API Key', 'key_required', 400)
+  if (rawKey.length > VOICE_KEY_MAX) throw voiceErr(`API Key 过长（上限 ${VOICE_KEY_MAX} 字）`, 'key_too_long', 400)
+
+  const row = {
+    user_identifier: uid,
+    base_url: baseUrl,
+    model,
+    voice,
+    key_cipher: await encryptSecret(rawKey, uid),
+    key_mask: maskSecret(rawKey),
+    enabled: true,
+    kind_at_creation: kind,
+    updated_at: new Date().toISOString(),
+  }
+  await sbUpsert(VOICE_TABLE, row, 'user_identifier')
+  return { ok: true, mask: row.key_mask, baseUrl, model, voice }
+}
+
+/**
+ * 读配置。🔴 `select` 白名单里**没有 key_cipher** ——
+ * 读取路径绝不碰密文、绝不解密（与 model.get 同一纪律）。
+ */
+async function voiceKeyGet(body) {
+  const { uid } = await voiceOwner(body, 'content.voice.keyGet')
+  if (!memoryEnabled) return { ok: true, exists: false, note: '未启用存储' }
+
+  const rows = await sbSelect(VOICE_TABLE, {
+    select: 'base_url,model,voice,key_mask,enabled',
+    user_identifier: `eq.${uid}`,
+    limit: '1',
+  })
+  const row = rows[0]
+  if (!row) return { ok: true, exists: false }
+  return {
+    ok: true,
+    exists: true,
+    mask: row.key_mask || '',
+    baseUrl: row.base_url || VOICE_DEFAULT_BASE,
+    model: row.model || VOICE_DEFAULT_MODEL,
+    voice: row.voice || VOICE_DEFAULT_VOICE,
+    enabled: row.enabled !== false,
+  }
+}
+
+async function voiceKeyClear(body) {
+  const { uid } = await voiceOwner(body, 'content.voice.keyClear')
+  if (!memoryEnabled) throw voiceErr('未启用存储', 'no_storage', 503)
+  await sbDelete(VOICE_TABLE, { user_identifier: `eq.${uid}` })
+  return { ok: true }
+}
+
+/**
+ * 代发合成请求。
+ *
+ * ⚠️ 这条路比「本机直连」多一跳 + base64 膨胀，首音会慢 0.5–1 秒 ——
+ *    所以前端默认走本机，只有用户主动选了「加密存到账号」才来这里。
+ */
+async function voiceTts(body) {
+  const { uid } = await voiceOwner(body, 'content.audio.tts')
+
+  const text = String(body.text == null ? '' : body.text).trim()
+  if (!text) throw voiceErr('没有要念的内容', 'text_required', 400)
+  if (text.length > VOICE_TEXT_MAX) {
+    throw voiceErr(`一次最多 ${VOICE_TEXT_MAX} 字`, 'text_too_long', 400)
+  }
+
+  if (!cryptoEnabled()) throw voiceErr('云端音色功能尚未启用', 'feature_disabled', 503)
+  if (!memoryEnabled) throw voiceErr('未启用存储', 'no_storage', 503)
+
+  if (!rateAllow(voiceTtsHits, uid, VOICE_TTS_MAX_PER_WINDOW, VOICE_TTS_WINDOW_MS)) {
+    throw voiceErr('念得有点频繁，稍等一下', 'rate_limited', 429)
+  }
+
+  const rows = await sbSelect(VOICE_TABLE, {
+    select: 'base_url,model,voice,key_cipher,enabled',
+    user_identifier: `eq.${uid}`,
+    limit: '1',
+  })
+  const row = rows[0]
+  if (!row) throw voiceErr('还没有配置云端音色', 'no_config', 404)
+  if (row.enabled === false) throw voiceErr('云端音色已关闭', 'disabled', 400)
+  if (!row.key_cipher) throw voiceErr('请先填写 API Key', 'key_required', 400)
+
+  // 落库时的校验可能已过期（历史数据 / 规则收紧）→ 每次再校验一次（纵深防御，同 model.test）
+  const guard = assertSafeEndpoint(row.base_url)
+  if (!guard.ok) throw voiceErr(`接口地址不被允许：${guard.reason}`, 'unsafe_endpoint', 400)
+
+  let key
+  try {
+    key = await decryptSecret(row.key_cipher, uid)
+  } catch {
+    // AAD 不匹配 / 密文损坏 / 换了 KEY_ENC_SECRET —— 一律按「配置失效」处理，不泄露原因
+    throw voiceErr('密钥无法解封，请重新填写 API Key', 'key_unsealable', 400)
+  }
+
+  let res
+  try {
+    res = await fetch(`${normalizeEndpoint(row.base_url)}/audio/speech`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: row.model,
+        input: text,
+        voice: row.voice,
+        response_format: 'wav',
+        speed: clampSpeed(body.speed),
+        // 🔴 watermark_enabled 刻意不下发 —— 上游默认 true（显式+隐式水印，合规项），
+        //    不提供「关水印」这个选项。
+      }),
+      signal: AbortSignal.timeout(30000),
+    })
+  } catch {
+    // 超时 / DNS / TLS —— 不把底层异常原文回给前端（可能含上游主机名）
+    throw voiceErr('云端音色暂时不可用', 'upstream_unreachable', 502)
+  }
+
+  if (!res.ok) {
+    // 只读一小段用于分类，**不回显上游原文**（可能回显部分请求内容）
+    const body2 = await res.json().catch(() => null)
+    const code = String(body2?.error?.code ?? '')
+    if (res.status === 401 || res.status === 403) {
+      throw voiceErr('你的密钥无效或已过期', 'upstream_auth', 400)
+    }
+    if (res.status === 429) throw voiceErr('你的密钥额度或频率到上限了', 'quota_exceeded', 429)
+    if (code === '1214') throw voiceErr('这个音色不存在，换一个试试', 'bad_voice', 400)
+    throw voiceErr('云端音色暂时不可用', 'upstream_error', 502)
+  }
+
+  const ctype = String(res.headers.get('content-type') || '').toLowerCase()
+  if (ctype.includes('application/json')) {
+    // 有些服务「出错也回 200」，body 是 JSON —— 绝不能把它当音频转给前端
+    throw voiceErr('云端返回了错误，没有音频', 'upstream_error', 502)
+  }
+
+  let bytes
+  try {
+    bytes = new Uint8Array(await res.arrayBuffer())
+  } catch {
+    throw voiceErr('音频传输中断', 'upstream_error', 502)
+  }
+  if (!bytes.length) throw voiceErr('云端返回了空音频', 'empty_audio', 502)
+  if (bytes.length > VOICE_AUDIO_MAX) {
+    throw voiceErr('音频太大了，把文本拆短一点', 'audio_too_large', 413)
+  }
+
+  return {
+    ok: true,
+    audioBase64: b64FromBytes(bytes),
+    mime: ctype || 'audio/wav',
+    chars: text.length,
+    voice: row.voice,
   }
 }
 
@@ -1852,6 +2105,18 @@ Deno.serve(async (req) => {
       // 未配 XFYUN_* → 本 action 503 静默停用，其余 action 不受影响。
       case 'voice.iatTicket':
         return json(await voiceIatTicket(body))
+
+      // ---------- 云端音色（M6-1c，用户自带 Key；站方零成本） ----------
+      // 与 voice.iatTicket 一样：未配 KEY_ENC_SECRET → 503 静默停用，其余 action 不受影响。
+      // ⚠️ 前端**默认不走这里**（本机直连更快），只有用户选了「加密存到账号」才用。
+      case 'voice.keySet':
+        return json(await voiceKeySet(body))
+      case 'voice.keyGet':
+        return json(await voiceKeyGet(body))
+      case 'voice.keyClear':
+        return json(await voiceKeyClear(body))
+      case 'audio.tts':
+        return json(await voiceTts(body))
 
       default:
         return json({ error: '无效的操作类型：' + action }, 400)
