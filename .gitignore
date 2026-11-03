@@ -31,3 +31,6 @@ dist/
 .playwright-cli/
 # 临时日志/构建产物（本地）
 tmp-*.txt
+
+# Supabase CLI 本地临时目录（含 cli-latest 版本戳，不该入库）
+supabase/.temp/
