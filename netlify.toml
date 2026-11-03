@@ -8,6 +8,22 @@
   publish = "dist"
   functions = "netlify/functions"
 
+# ⚠️ 本段必须与 mind-explorer-vue/netlify.toml 里的 [functions] 保持一致。
+# 仓库里存在两份 netlify.toml（根 + base 目录），Netlify 官方文档没有明确写死
+# 「base 目录与仓库根同时存在时谁优先」——只说路径相对 base 解析、netlify.toml 覆盖 UI。
+# 因此这里补成自给自足：无论哪一份生效，函数打包方式都相同，避免「哪天换了优先级，
+# 线上 Netlify 函数突然被重新 bundle 成 CJS」这类难以复现的故障。
+#
+# node_bundler = "none"：让 ESM 源码原样部署（跳过 esbuild/zisi）。打包器会把
+# （export const handler）打成 CJS bundle，与 functions/package.json 的 type:module
+# 冲突，运行时抛 "module is not defined in ES module scope"。
+# included_files 基准 = base 目录 = mind-explorer-vue：
+#   _lib/ 是 community/companion/mood/user-cards 的相对依赖，必须随包带上；
+#   functions/package.json 声明 ESM，避免 Node 按 CJS 解析 export 语法。
+[functions]
+  node_bundler = "none"
+  included_files = ["netlify/functions/_lib/**", "netlify/functions/package.json"]
+
 # SPA fallback: 所有前端路由都返回 index.html
 [[redirects]]
   from = "/*"
