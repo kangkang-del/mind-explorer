@@ -300,6 +300,8 @@ import { useXiaomuPrefs } from '../companion/composables/useXiaomuPrefs'
 import { useXiaomuVoice, voiceSupported } from '../companion/composables/useXiaomuVoice'
 // M6-2c：语音输入（按住说话）。⚠️ 模块级单例 —— 与桌宠入口共享同一状态机与同一条 WS。
 import { useXiaomuIat } from '../companion/composables/useXiaomuIat'
+// 2026-11-06：功能可见性总开关（讯飞三要素未配 ⇒ 暂时不露出语音输入入口）
+import { IAT_UI_ENABLED } from '../companion/core/features'
 
 const auth = useAuthStore()
 const badgesStore = useBadgeStore()
@@ -317,10 +319,12 @@ const voice = useXiaomuVoice()
 const iat = useXiaomuIat()
 
 /**
- * PTT 入口是否出现：**麦克风能力 && 用户已开启**。
+ * PTT 入口是否出现：**功能对外开启 && 麦克风能力 && 用户已开启**。
  * ⚠️ 与 D9（不支持则隐藏入口）同规则；`voiceSupported` 与语音输入无关，不参与本判据。
+ * 🔴 加 `IAT_UI_ENABLED` 是给「老用户 localStorage 里 iatOn 仍为 true」兜底 ——
+ *    只看 prefs 会让下线后仍然冒出入口，一按就报「功能尚未启用」。
  */
-const pttSupported = computed(() => iat.supported && !!prefs.iatOn)
+const pttSupported = computed(() => IAT_UI_ENABLED && iat.supported && !!prefs.iatOn)
 
 /* ---------------- M6-2c：按住说话 ---------------- */
 

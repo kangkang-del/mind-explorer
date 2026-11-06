@@ -197,7 +197,11 @@ import { useXiaomuIat } from '../composables/useXiaomuIat'                      
 import { useIdentity } from '../../composables/useIdentity'
 import { ACTION } from '../core/actions'
 import { itemOf } from '../core/wardrobe'
-import { farewellActive, resetFarewell, FAREWELL_LINE } from '../core/farewell'   // 批次 P
+import { IAT_UI_ENABLED } from '../core/features'   // 2026-11-06：语音输入入口总开关
+import { shouldSuppressBubble } from '../core/bubble-scope'   // W3：抑制气泡的路由
+import { farewellActive, resetFarewell } from '../core/farewell'   // 批次 P
+// W1：FAREWELL_LINE 不再在这里用 —— 告别语由 AccountPurge 的遮罩独占渲染，
+// 桌宠只做情绪动作。`farewell.js` 仍导出它，供遮罩侧对齐文案。
 
 const petEl = ref(null)
 const inputEl = ref(null)
@@ -222,7 +226,7 @@ const voice = useXiaomuVoice()
 const iat = useXiaomuIat()
 
 /** 语音输入入口是否出现：麦克风可用 && 用户已在「声音」面板开启（D9 同规则：不可用则隐藏） */
-const iatReady = computed(() => iat.supported && !!prefs.iatOn)
+const iatReady = computed(() => IAT_UI_ENABLED && iat.supported && !!prefs.iatOn)
 
 /** 渲染形态（批次 J）：选中 custom 但本机还没有图片时回落木灵，避免出现空白形象 */
 const effVariant = computed(() =>
@@ -391,7 +395,24 @@ const EMOTION_SHOWS = {
   calm:     null,                                                           // 平静即日常
 }
 
+/* W3：故事书页（/companion/story）只保留小木本体，**不弹气泡**。
+ *
+ * 判定逻辑抽在 `core/bubble-scope.js` 的纯函数里（零 DOM / 零 router 依赖），
+ * 这样 Node 能直接 import 断言，而不是靠「看着像是对的」。
+ * 用路由名判定：页面切走自动恢复，没有「忘了清标记」的残留路径。
+ *
+ * 只抑制气泡，不影响：桌宠本体渲染、拖拽、三轨状态机、主动搭话的节流判断。
+ * （主动搭话仍会照常「想说话」，只是说不出来 —— 这是想要的：故事书页要安静。）
+ */
+function bubbleSuppressed() {
+  return shouldSuppressBubble(router.currentRoute.value?.name)
+}
+
 function openBubble(text, { mode = 'xomu', withChips = false, chips = null } = {}) {
+  if (bubbleSuppressed()) {
+    bubble.visible = false
+    return
+  }
   bubble.visible = true
   bubble.mode = mode
   bubble.text = text
@@ -803,21 +824,29 @@ onMounted(() => {
 watch(() => ident.auth.lastUpgrade, (u) => { if (u) announceUpgrade(u) })
 onMounted(() => { if (ident.auth.lastUpgrade) announceUpgrade(ident.auth.lastUpgrade) })
 
-/* 批次 P：告别态 —— 用户在 Profile 页彻底删除了数据，桌宠也要说这句话。
+/* 批次 P：告别态 —— 用户在 Profile 页彻底删除了数据，桌宠也要「做出告别反应」。
  *
  * ⚠️ 这是**加法**，不是改造：没有触碰三轨状态机（只是调它的公开接口 setState/playAction）、
  *    没有新增防打扰规则（不参与 proactive 的节流判断）、没有改任何既有分支。
  *    告别是一个一次性事件，`isFarewell()` 只在账户删除成功后为真。
  *
  * 之所以要抢在 proactive 之前说话：删除后如果桌宠还在自顾自搭话，那句告别就毁了。
- * 所以这里**直接置显**并停掉主动搭话（chatOpen 之外唯一的静默理由）。 */
+ * 所以这里**直接置显**并停掉主动搭话（chatOpen 之外唯一的静默理由）。
+ *
+ * W1（2026-11-06）：**这里不再弹文字气泡**。
+ *   原来遮罩（AccountPurge）与气泡各渲染一遍「朋友，再见，祝你天天开心。」，
+ *   屏幕上同一句话出现两处，仪式感反而被削弱。现在文字由**遮罩独占**，
+ *   桌宠只留情绪动作（开心态 + 摇叶子），既还在场，又不重复。
+ *   W2（气泡贴住「回到首页」按钮）也因此在告别页一并消失 —— 那个页面不再有气泡。 */
 watch(farewellActive, (on) => {
   if (!on) return
-  collapsed.value = false          // 收起态下说不了话，先长回来
+  collapsed.value = false          // 收起态下做不了动作，先长回来
   sm.setState('happy')
   sm.playAction(ACTION.SWAY_LEAF)
-  openBubble(FAREWELL_LINE, { mode: 'xomu' })
-  bubbleFallback = setTimeout(() => { bubble.visible = false }, 20000)   // 告别语多留一会儿
+  /* 若此前还有气泡残留（比如删除前刚触发过主动搭话），一并收掉，
+     避免它盖在告别遮罩之上。 */
+  bubble.visible = false
+  clearTimeout(bubbleFallback)
 })
 
 /* 离开告别页时复位（刷新天然复位；这条是给「回到首页」那条路用的） */

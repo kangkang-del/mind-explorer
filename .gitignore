@@ -34,3 +34,6 @@ tmp-*.txt
 
 # Supabase CLI 本地临时目录（含 cli-latest 版本戳，不该入库）
 supabase/.temp/
+
+# 本会话临时文件（commit message 等）
+.workbuddy/

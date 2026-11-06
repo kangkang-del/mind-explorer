@@ -171,37 +171,28 @@
       </p>
     </template>
 
-    <!-- ===== M6-2c：语音输入（按住说话） =====
+    <!-- ===== 语音输入（按住说话）—— 2026-11-06 起「即将开放」 =====
      与上面的「说出声」是**两件独立的事**：播报是「小木说」，这里是「你说的让小木听」。
-     所以开关也独立（iatOn，默认关），且**不共用**朗读的可用性判据。 -->
+
+     ⚠️ 这里只**遮住入口**，没有删功能。底层全部保留：
+        `prefs.iatOn` / `core/iat.js`（纯 reducer）/ `useXiaomuIat.js`（编排）/
+        `Companion.vue` 的 PTT 条 / 后端 `voice.iatTicket`。
+        等 `XFYUN_APP_ID` / `XFYUN_API_KEY` / `XFYUN_API_SECRET` 三个 Secret 配齐、
+        `voice.iatTicket` 从 503 变 200 之后，把这段换回开关即可
+        （原实现见提交 `6b83c69` 的这一段）。
+
+     为什么要遮：开关能打开、一按却报「功能尚未启用」，比不给入口更糟；
+        而「这个浏览器用不了」的提示对所有人都会显示，同样是噪音。 -->
     <div class="xm-vc-sep"></div>
 
-    <div v-if="!iat.supported" class="xm-vc-unsupported">
-      <p>这个浏览器（或当前页面）暂时用不了语音输入，换一个浏览器试试，或者在对话页打字。</p>
+    <div class="xm-vc-key" data-xm="iatSoon" role="note" aria-label="语音输入即将开放">
+      <span class="xm-vc-key-t">按住说话</span>
+      <span class="xm-vc-key-d">即将开放</span>
     </div>
 
-    <template v-else>
-      <label class="xm-vc-switch">
-        <input type="checkbox" data-xm="iatOn" :checked="prefs.iatOn" @change="prefs.iatOn = $event.target.checked" />
-        <span>按住说话（说完松手，转成文字填进输入框）</span>
-      </label>
-
-      <p class="xm-vc-lead">
-        在对话页输入框旁，或小木头顶的 🎤 里按住说话。识别出的文字会填进输入框，
-        <b>不会自动发送</b>，你可以改完再发。
-      </p>
-
-      <!-- D16：站点每日次数用完后，引导用户用自己的密钥（真入口属 M6-1b） -->
-      <div class="xm-vc-key" data-xm="iatKeySlot">
-        <span class="xm-vc-key-t">用自己的密钥</span>
-        <span class="xm-vc-key-d">即将开放</span>
-      </div>
-
-      <p class="xm-vc-note">
-        音频只在你和设备之间处理，<b>不会存到服务器</b>。识别用的密钥由站点服务端签发，
-        你的浏览器拿不到它。
-      </p>
-    </template>
+    <p class="xm-vc-lead">
+      开了以后，按住麦克风说话、说完松手，转成文字填进输入框 —— <b>不会自动发送</b>，改完再发。
+    </p>
   </div>
 </template>
 
@@ -215,22 +206,21 @@
  *
  * 面板只读写本地 prefs + 调用 useXiaomuVoice，**不发任何网络请求**。
  *
- * M6-2c 追加：本面板同时承载「语音输入」（按住说话）的开关与说明。
- * ⚠️ 与播报**完全独立**：播报用 `voiceOn`、这里用 `iatOn`；可用性判据也不共用
- *    （`voice.supported` 是 speechSynthesis，`iat.supported` 是麦克风 + WS）。
- *    面板本身仍然**不发网络请求**（签票发生在用户真的按下说话时）。
+ * M6-2c 追加：本面板曾承载「语音输入」（按住说话）的开关与说明。
+ * 2026-11-06：语音输入改为「即将开放」占位（见模板内注释），因此面板**不再引用**
+ *    `useXiaomuIat` —— 它是模块级单例，真正的初始化在 `Companion.vue`，这里不调不影响任何逻辑。
+ *    与播报**完全独立**：播报用 `voiceOn`、语音输入用 `iatOn`（默认 false，UI 暂时不给开）。
+ *    面板本身仍然**不发网络请求**。
  */
 import { computed, ref, watch } from 'vue'
 import { useXiaomuPrefs, DEFAULT_TTS_BASE } from '../composables/useXiaomuPrefs'
 import { useXiaomuVoice, clampRate } from '../composables/useXiaomuVoice'
-import { useXiaomuIat } from '../composables/useXiaomuIat'
 import { ZHIPU_VOICES, getKey, setKey, clearKey, synthesize, synthesizeViaServer } from '../../utils/cloudTts'
 import { voiceKeySet, voiceKeyGet, voiceKeyClear } from '../../api/xiaomuVoice'
 import { useIdentity } from '../../composables/useIdentity'
 
 const prefs = useXiaomuPrefs()
 const voice = useXiaomuVoice()
-const iat = useXiaomuIat()
 
 const playing = ref(false)
 
