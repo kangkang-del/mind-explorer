@@ -23,10 +23,16 @@
 
 # 0012：每日推送已迁移到 Supabase Edge Function content（action: sunny.push，LLM 生成 +
 # 小木名义 3 条善意 + 语录 + 每日一卡 + 3 图 + 小木卡片 3 条，双幂等）。
-# 定时触发改由 .github/workflows/sunny-push.yml 直连 content 函数完成（北京时间 08:00），
+# 定时触发改由 .github/workflows/sunny-push.yml 直连 content 函数完成。
+# ⚠️ 时间说明（2026-11-09 实测更正）：cron 写的虽是 `0 0 * * *`（= 北京时间 08:00），
+#    但 GitHub 免费版 schedule 排队稳定延迟约 5 小时 —— 近 10 天实际触发都在
+#    05:0x–05:4x UTC（= 北京时间 13:0x–13:4x）。所以「早上 8 点已有新内容」并不成立，
+#    无人访问时当天内容通常要到下午才出现。
 # 前端打开首页/心灵晴天时也会兜底懒触发。此处不再配置 Netlify 版 sunny-push 的 schedule，
 # 避免旧逻辑（Netlify cron）与新逻辑（content）同写一个库造成「每天推两套内容」。
-# 旧 netlify/functions/sunny-push.js 仍随包部署但不再被调度/调用，后续可整体下线。
+# 2026-11-09 Phase 3：netlify/functions/sunny-push.js 已下线为 410 桩（原 359 行实现删除）。
+# 同一批下线的还有 reports.js / user-points.js（均为 410 桩），
+# admin-review.js / upload-content.js / card-interactions.js 已直接删除。
 
 # SPA fallback: 所有前端路由都返回 index.html
 [[redirects]]
