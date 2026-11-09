@@ -21,7 +21,7 @@
 //   card.hugBatch / card.hugMine / card.hugToggle
 //   report.submit / report.list [admin] / report.resolve [admin]
 //   feedback.submit / feedback.list [admin] / feedback.resolve [admin]
-//   sunny.push（每日 1 次，幂等；{force:true} 可强制重推）
+//   sunny.push（每日 1 次，双幂等；公开可调，但 force 通道已于 2026-11-09 关闭）
 //   auth.issueToken / auth.verify / auth.migrate                        ← 批次 M 新增
 //   state.get / state.put / state.putSkin / state.clearSkin             ← 批次 N 新增
 //   account.purge                                                       ← 批次 P 新增
@@ -2059,7 +2059,13 @@ Deno.serve(async (req) => {
       case 'sunny.push':
         if (!memoryEnabled) return json({ ok: false, error: '未启用存储' })
         if (!LLM_API_KEY) return json({ ok: false, error: '未配置大模型 key' })
-        return json(await runDailyPush(!!body.force))
+        // [A3 2026-11-09] 关闭 force 通道。
+        //   全仓没有任何调用方传 force:true（Home.vue:316 / Sunny.vue:154 用默认 false；
+        //   .github/workflows/sunny-push.yml 的 body 也只有 {"action":"sunny.push"}）。
+        //   去掉后攻击者仍可调本 action，但 runDailyPush(false) 会**先查双幂等**，
+        //   当天已推过就立刻返回 skipped —— 0 写入、0 次 LLM 调用。
+        //   需要强制补推时，改用 SQL / 或另加一条带 INTERNAL_TOKEN 的内部通道，不要恢复这里。
+        return json(await runDailyPush(false))
 
       // ---------- 身份与会话（批次 M） ----------
       case 'auth.issueToken':

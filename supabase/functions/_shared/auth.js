@@ -130,6 +130,17 @@ export async function verifyToken(token) {
 }
 
 /**
+ * A5（2026-11-09）：把「无令牌」从 fail-open 切成 fail-closed 的开关。
+ *
+ * 🔴 必须**在函数内就地读取**，不能提到模块顶层。
+ *    模块顶层只在 isolate 冷启动时求值一次；isolate 会长期存活，
+ *    于是「改了 secret 但旧 isolate 仍读旧值」→「删 secret 秒级回滚」就是假的。
+ *
+ * 未配置 / 不等于 '1' → off，行为与切之前**完全一致**（可先在线上跑一段时间再切）。
+ */
+const requireOwnerToken = () => Deno.env.get('REQUIRE_OWNER_TOKEN') === '1'
+
+/**
  * 身份所有权守卫 —— 各 action 的统一入口。
  * @param {{ userId?: string, token?: string|null }} input
  * @returns {Promise<{ok:boolean, mode:'off'|'warn'|'strict'|'reject', reason?:string, uid?:string}>}
@@ -142,7 +153,11 @@ export async function guardOwner({ userId, token } = {}) {
   // 未配置密钥（鉴权未启用）或无身份可校验（游客未登录，仅走本地）→ 保持旧行为
   if (!SECRET) return { ok: true, mode: 'off', reason: 'auth_disabled' }
   if (!uid) return { ok: true, mode: 'off', reason: 'no_identity' }
-  if (!tk) return { ok: true, mode: 'warn', reason: 'token_absent' }
+  // 有 uid 但没带令牌：默认仍放行（兼容旧客户端），flag 打开后一律拒绝。
+  if (!tk) {
+    if (requireOwnerToken()) return { ok: false, mode: 'reject', reason: 'token_required' }
+    return { ok: true, mode: 'warn', reason: 'token_absent' }
+  }
   const payload = await verifyToken(tk)
   if (!payload) return { ok: false, mode: 'reject', reason: 'token_invalid' }
   if (payload.uid !== uid) return { ok: false, mode: 'reject', reason: 'token_uid_mismatch' }

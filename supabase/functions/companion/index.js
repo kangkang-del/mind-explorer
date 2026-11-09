@@ -314,6 +314,28 @@ async function ownerCheck(userId, token) {
   return null
 }
 
+// ---------- [A4 2026-11-09] 内部端点门（diag / import_seed） ----------
+// 起因：这两个 action 是运维/部署用的，**没有任何前端调用方**，却和对话接口一样暴露在公网。
+//   平台 verify_jwt 只能挡住"完全不带 header"的请求 —— anon key 是公开的（就在前端 bundle 里），
+//   带上它就能调通，所以平台开关**不是安全边界**（线上实测：anon key → diag 返回 200 并泄露掩码 key）。
+//
+// 处置：改用项目级 Secret INTERNAL_TOKEN 比对，请求头 x-internal-token。
+//   - 未配置 INTERNAL_TOKEN → 两个 action 一律 404（默认关闭，符合 fail-closed）
+//   - 比对用常量时间，避免按前缀逐字节试探
+//   - 不返回 403：403 等于告诉扫描器"这个能力存在"，用 404 让它看起来根本不存在
+function internalOk(req) {
+  const expected = (Deno.env.get('INTERNAL_TOKEN') || '').trim()
+  if (!expected) return false
+  const got = (req.headers.get('x-internal-token') || '').trim()
+  if (!got || got.length !== expected.length) return false
+  let diff = 0
+  for (let i = 0; i < got.length; i++) diff |= got.charCodeAt(i) ^ expected.charCodeAt(i)
+  return diff === 0
+}
+
+/** 内部端点不可用时的统一响应：装作这个 action 不存在 */
+const internalNotFound = () => json({ error: 'not found' }, 404)
+
 // 小木核心人格（常驻底色）来自 xiaomu_seed.js 的 CORE_PERSONA。
 // 实际发给模型的 system prompt 由 buildSystemPrompt 动态组装：
 // 叠加「记忆底色」（长上下文内化）+「内心回响」（关键词锚点动态召回）+「关于这位用户」（画像）。
@@ -1306,8 +1328,11 @@ Deno.serve(async (req) => {
     // [PATCH-M-auth] 会话令牌：优先 header x-xm-token，回退 body.authToken
     const authToken = readToken(req, body)
 
-    // 人格记忆库导入（幂等 upsert；verify_jwt 已开启，仅持 anon JWT 可调；供迁移/运维用）
+    // 人格记忆库导入（幂等 upsert；供迁移/运维用）。
+    // ⚠️ 不要再写「verify_jwt 已开启所以安全」——anon key 是公开的，平台关卡挡不住任何人。
+    //    真正的门是下面的 internalOk（INTERNAL_TOKEN）。
     if (body.action === 'import_seed') {
+      if (!internalOk(req)) return internalNotFound()
       const rows = Array.isArray(body.memories) ? body.memories : []
       const valid = rows.filter(
         (r) => Number.isInteger(r.n) && r.n >= 1 && r.n <= 100000 &&
@@ -1325,8 +1350,11 @@ Deno.serve(async (req) => {
     }
 
     // 运维诊断：一次性探测当前 key 下各候选模型的连通性（不写库、不影响正常对话）。
-    // 用于定位「配置是否生效 / 是限流还是超时 / 换哪个模型可用」，排查完可保留（无害）。
+    // 用于定位「配置是否生效 / 是限流还是超时 / 换哪个模型可用」。
+    // ⚠️ 它会返回 baseUrl、掩码 key，并**串行真发 N 次上游请求**（每个候选模型一次）——
+    //    匿名可调时等于把站长的 LLM 额度开放给所有人，且是 N 倍放大。必须走 internalOk。
     if (body.action === 'diag') {
+      if (!internalOk(req)) return internalNotFound()
       const masked = DEEPSEEK_API_KEY
         ? `${DEEPSEEK_API_KEY.slice(0, 6)}...${DEEPSEEK_API_KEY.slice(-4)} (len=${DEEPSEEK_API_KEY.length})`
         : '(未配置)'
