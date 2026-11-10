@@ -40,6 +40,21 @@
   to = "/index.html"
   status = 200
 
+# [S1 2026-11-10] 基础安全响应头。
+# ⚠️ Permissions-Policy 的 microphone 必须是 (self)，不能写 ()：
+#    小木的语音输入走 getUserMedia（src/companion/composables/useMicCapture.js），
+#    写成 microphone=() 会在功能启用时直接把它打死。
+# ⚠️ 这里没有 CSP：Vite 产物有 23 处内联 :style 绑定，style-src 必须带 'unsafe-inline'
+#    才不白屏，而带上之后 CSP 的防护价值已经很小。真要上，先 Report-Only 单独跑一段。
+#    真正的 XSS 面是 4 处 v-html（CardDetail 渲染用户提交的卡片内容），应在彼处消毒。
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "SAMEORIGIN"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "camera=(), geolocation=(), microphone=(self)"
+
 # HTML 文件不缓存，确保用户总是看到最新版本
 [[headers]]
   for = "/*.html"

@@ -154,6 +154,71 @@ function rateAllow(map, key, max, windowMs) {
   return true
 }
 
+// ---------- [S1 2026-11-10] 主对话 / CBT 限流 + clear 令牌门 ----------
+//
+// 背景：rateAllow 原先只用在 4 条旁路上（自带 Key 的模型调用 / 语音票据 / TTS / 模型测试），
+//       **主对话与 cbt 完全不设限** —— 匿名即可无限刷站方的 llm 额度。
+//
+// 为什么是两层：
+//   ① 按 uid：能精确约束单台设备，且**对共享出口（公司/校园/NAT）零影响**。
+//   ② 按 IP：uid 可以免费换（auth.issueToken 对 g:g_* 零凭证签发），只按 uid 限等于没限；
+//      IP 桶用来兜住「换 uid 绕过」。
+//
+// 🔴 但 IP 层**默认关闭**（CHAT_MAX_PER_HOUR_IP 缺省 0）：
+//    如果平台没有把真实客户端 IP 传进来（全部落成同一个出口 IP），一开就会打死全站。
+//    所以先在 diag 里回显 clientIp 实测比对，确认是真实出口后再用 env 打开。
+//    这样「不误伤可信 IP」是构造上保证的，而不是靠调阈值去赌。
+
+/** 客户端出口 IP：优先 Cloudflare 注入的 cf-connecting-ip，回退 x-forwarded-for 首段 */
+function clientIp(req) {
+  const h = req.headers
+  const cf = (h.get('cf-connecting-ip') || '').trim()
+  if (cf) return cf
+  return ((h.get('x-forwarded-for') || '').split(',')[0] || '').trim()
+}
+
+const CHAT_WINDOW_MS = 60 * 60 * 1000
+
+/** 每次调用即时读取 env（禁止提到模块顶层：isolate 长期存活会读到旧值） */
+function chatLimit() {
+  const num = (k, d) => {
+    const raw = Deno.env.get(k)
+    if (raw === undefined || raw === null || String(raw).trim() === '') return d
+    const v = Number(raw)
+    return Number.isFinite(v) && v >= 0 ? v : d
+  }
+  return {
+    uid: num('CHAT_MAX_PER_HOUR_UID', 60), // 设 0 = 关闭该层
+    ip: num('CHAT_MAX_PER_HOUR_IP', 0),   // 🔴 默认 0（关闭），实测 IP 可信后再开
+  }
+}
+
+const chatHitsUid = new Map()
+const chatHitsIp = new Map()
+
+/**
+ * 主对话 / CBT 的限流闸。放行返回 null；拦截返回一个 429 响应。
+ * 必须在**开始流式输出之前**调用，否则无法再改状态码。
+ */
+function chatRateDeny(req, userId, tag) {
+  const { uid, ip } = chatLimit()
+  if (uid > 0 && !rateAllow(chatHitsUid, `${tag}|${userId || '(空)'}`, uid, CHAT_WINDOW_MS)) {
+    console.warn(`[S1:rate] uid 超频 tag=${tag} uid=${userId || '(空)'} max=${uid}/h`)
+    return json(
+      { error: '今天聊得有点多啦，先休息一下吧，我在这儿等你～', reason: 'rate_limited', bucket: 'uid' },
+      429,
+    )
+  }
+  if (ip > 0) {
+    const addr = clientIp(req)
+    if (addr && !rateAllow(chatHitsIp, `${tag}|${addr}`, ip, CHAT_WINDOW_MS)) {
+      console.warn(`[S1:rate] ip 超频 tag=${tag} ip=${addr} max=${ip}/h`)
+      return json({ error: '访问太频繁了，请稍后再试～', reason: 'rate_limited', bucket: 'ip' }, 429)
+    }
+  }
+  return null
+}
+
 /** 记录一次自定义模型调用结果，用于 L5 熔断 */
 function noteModelResult(uid, ok) {
   if (ok) {
@@ -1416,6 +1481,15 @@ Deno.serve(async (req) => {
         backup: backupReady ? { baseUrl: BACKUP_BASE_URL, model: BACKUP_MODEL, enabled: true } : { enabled: false },
         key: masked,
         results,
+        // [S1] IP 层的开闸依据：拿这里回显的 clientIp 与站长自己的公网出口比对。
+        //   · 与出口 IP 一致（或至少是公网地址、不同网络下会变）→ 可开 IP 桶
+        //   · 是内网/保留地址，或不同网络下始终同一个值 → **绝不能开**，否则全站被一个桶打死
+        clientIp: clientIp(req),
+        ipHeader: {
+          cfConnectingIp: (req.headers.get('cf-connecting-ip') || '') !== '',
+          xForwardedFor: (req.headers.get('x-forwarded-for') || '') !== '',
+        },
+        chatLimit: chatLimit(),
       })
     }
 
@@ -1430,6 +1504,14 @@ Deno.serve(async (req) => {
 
     // 清空该用户的服务端记忆（尊重用户「清空」操作）
     if (body.action === 'clear') {
+      // [S1] 删除能力单独加门，不等全局 REQUIRE_OWNER_TOKEN（那条走 fail-open，等于没有门）。
+      //   依据：生产前端自 M2 起调 clear 一直带 authToken
+      //   （线上 bundle 实测 `action:"clear",userId:e,authToken:t`），默认开启不误伤在线用户。
+      //   秒级回滚：把 REQUIRE_TOKEN_FOR_CLEAR 设为 '0'（函数内读取，改 env 立即生效）。
+      if (!authToken && Deno.env.get('REQUIRE_TOKEN_FOR_CLEAR') !== '0') {
+        console.warn(`[S1:clear] 无令牌拒绝 uid=${userId || '(空)'}`)
+        return json({ error: '身份校验失败', reason: 'token_required' }, 403)
+      }
       const deny = await ownerCheck(userId, authToken)
       if (deny) return deny
       if (!memoryEnabled || !userId) return json({ ok: true })
@@ -1516,6 +1598,9 @@ Deno.serve(async (req) => {
     if (body.action === 'cbt') {
       const deny = await ownerCheck(userId, authToken)
       if (deny) return deny
+      // [S1] 这条路径也会打站方大模型，必须和主对话一起受限
+      const cbtDeny = chatRateDeny(req, userId, 'cbt')
+      if (cbtDeny) return cbtDeny
       const { situation, thought, emotion, evidenceFor, evidenceAgainst, alternative } = body
       let suggestion = ''
       try {
@@ -1559,6 +1644,10 @@ Deno.serve(async (req) => {
     {
       const deny = await ownerCheck(userId, authToken)
       if (deny) return deny
+      // [S1] 站方大模型此前完全不设限，匿名可无限刷额度。
+      //   必须在装配 prompt / 起 SSE 之前拦，否则状态码已经发出去了改不了。
+      const chatDeny = chatRateDeny(req, userId, 'chat')
+      if (chatDeny) return chatDeny
     }
 
     const rawMessage = (body.message || '').toString().trim()
