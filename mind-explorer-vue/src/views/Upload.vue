@@ -120,8 +120,10 @@ import { useAuthStore } from '../stores/auth'
 import { useCrisisStore } from '../stores/crisisStore'
 import { detectCrisis } from '../lib/crisis'
 import { userCardsApi } from '../api/userCards'
+import { useIdentity } from '../composables/useIdentity'
 
 const auth = useAuthStore()
+const ident = useIdentity()   // [S2] 只为 card.submit / card.mine 带令牌
 const crisisStore = useCrisisStore()
 const categories = ['暖心', '成长', '小确幸', '树洞', '其他']
 
@@ -149,7 +151,7 @@ async function submit() {
   }
   submitting.value = true
   try {
-    const res = await userCardsApi.submit({ ...authorInfo(), title: form.title.trim(), content: form.content.trim(), category: form.category, image: form.image.trim(), source: form.source.trim() })
+    const res = await userCardsApi.submit({ ...authorInfo(), title: form.title.trim(), content: form.content.trim(), category: form.category, image: form.image.trim(), source: form.source.trim() }, ident.token())
     success.value = true
     // 非阻断：命中高危词则弹援助资源，不阻止内容正常提交
     if (res && (res.crisis || detectCrisis(form.content))) crisisStore.open()
@@ -170,7 +172,7 @@ async function loadMyCards() {
   const u = auth.currentUser
   if (!u) return
   try {
-    myCards.value = await userCardsApi.getMine(u.id || u.username)
+    myCards.value = await userCardsApi.getMine(u.id || u.username, ident.token())
   } catch {
     myCards.value = []
   }

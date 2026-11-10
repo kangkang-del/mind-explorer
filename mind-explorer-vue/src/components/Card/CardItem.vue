@@ -34,12 +34,14 @@ import FavoriteButton from '../FavoriteButton.vue'
 import { userCardsApi } from '../../api/userCards'
 import { useAuthStore } from '../../stores/auth'
 import { identifierOf } from '../../lib/identity'
+import { useIdentity } from '../../composables/useIdentity'
 
 const props = defineProps({
   card: { type: Object, required: true }
 })
 
 const auth = useAuthStore()
+const ident = useIdentity()   // [S2] 只为 card.hugToggle 带令牌
 const hugs = ref(props.card.hugs || 0)
 const hugged = ref(!!props.card.hugged)
 const hugging = ref(false)
@@ -63,7 +65,7 @@ async function onHug() {
   hugged.value = !before
   hugs.value += before ? -1 : 1
   try {
-    const r = await userCardsApi.toggleHug(props.card.id, uid, auth.currentUser.type)
+    const r = await userCardsApi.toggleHug(props.card.id, uid, auth.currentUser.type, ident.token())
     hugs.value = r.count
     hugged.value = r.hugged
   } catch (e) {

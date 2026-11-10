@@ -65,11 +65,13 @@ import { userCardsApi } from '../../api/userCards'
 import { reportsApi } from '../../api/reports'
 import { useAuthStore } from '../../stores/auth'
 import { identifierOf } from '../../lib/identity'
+import { useIdentity } from '../../composables/useIdentity'
 import FavoriteButton from '../../components/FavoriteButton.vue'
 import ReportDialog from '../../components/ReportDialog.vue'
 
 const props = defineProps({ id: String })
 const auth = useAuthStore()
+const ident = useIdentity()   // [S2] 只为 card.hugToggle / card.hugMine 带令牌
 const card = ref(null)
 const loading = ref(true)
 const hugs = ref(0)
@@ -98,7 +100,7 @@ async function onHug() {
   hugged.value = !before
   hugs.value += before ? -1 : 1
   try {
-    const r = await userCardsApi.toggleHug(props.id, uid, auth.currentUser.type)
+    const r = await userCardsApi.toggleHug(props.id, uid, auth.currentUser.type, ident.token())
     hugs.value = r.count
     hugged.value = r.hugged
   } catch (e) {
@@ -122,7 +124,7 @@ onMounted(async () => {
     const u = auth.currentUser
     if (u && card.value) {
       const uid = uidOf()
-      const liked = await userCardsApi.myHugs([card.value.id], uid).catch(() => [])
+      const liked = await userCardsApi.myHugs([card.value.id], uid, ident.token()).catch(() => [])
       hugged.value = Array.isArray(liked) && liked.includes(card.value.id)
     }
   } catch (e) {

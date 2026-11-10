@@ -116,8 +116,10 @@ import cards from '../../data/cards.json'
 import { userCardsApi } from '../../api/userCards'
 import { useAuthStore } from '../../stores/auth'
 import { identifierOf } from '../../lib/identity'
+import { useIdentity } from '../../composables/useIdentity'
 
 const auth = useAuthStore()
+const ident = useIdentity()   // [S2] 只为 card.hugMine 带令牌
 
 /* ====== 状态 ====== */
 const activeTab = ref('official')
@@ -205,7 +207,7 @@ async function loadUserCards() {
     const u = auth.currentUser
     if (u) {
       const uid = identifierOf(u)
-      const liked = await userCardsApi.myHugs(list.map(c => c.id), uid).catch(() => [])
+      const liked = await userCardsApi.myHugs(list.map(c => c.id), uid, ident.token()).catch(() => [])
       const set = new Set(liked)
       userCards.value.forEach(c => { c.hugged = set.has(c.id) })
     }

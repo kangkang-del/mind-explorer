@@ -1,6 +1,11 @@
 // 用户「治愈瞬间」投稿 API —— 经 Supabase Edge Function content 中转
 // 0012：从 /.netlify/functions/user-cards 迁移；action 命名空间化（card.*）；
 // service_role 读写，前端不直连 Supabase，user_cards 表 RLS 仅放行 service_role。
+//
+// [S2 2026-11-10] 四个「以某个身份写入 / 按某个身份读取」的动作新增 authToken 参数。
+// 只多加一个字段，服务端当前不校验，行为不变；目的是让 S3 能校验 author_id 与
+// user_identifier 确实属于调用者。公开读（card.approved / card.get / card.hugBatch）
+// 与管理动作（走 adminPwd）不加。
 import { FUNCTIONS_BASE, edgeHeaders } from '../config.js'
 
 const ENDPOINT = `${FUNCTIONS_BASE}/content`
@@ -23,7 +28,7 @@ async function call(action, body = {}) {
 
 export const userCardsApi = {
   // 提交一条治愈瞬间（author_* 来自登录态）
-  async submit(card) {
+  async submit(card, authToken) {
     const data = await call('card.submit', {
       title: card.title,
       content: card.content,
@@ -34,6 +39,7 @@ export const userCardsApi = {
       author_name: card.author_name,
       author_type: card.author_type || 'guest',
       image: card.image || '',
+      authToken,
     })
     if (!data.ok) throw new Error(data.error || '提交失败')
     return data
@@ -46,9 +52,9 @@ export const userCardsApi = {
   },
 
   // 我的投稿（含待审 / 通过 / 拒绝）
-  async getMine(authorId) {
+  async getMine(authorId, authToken) {
     if (!authorId) return []
-    const data = await call('card.mine', { author_id: authorId })
+    const data = await call('card.mine', { author_id: authorId, authToken })
     return Array.isArray(data?.cards) ? data.cards : []
   },
 
@@ -98,14 +104,14 @@ export const userCardsApi = {
   },
 
   // 当前用户在给定卡片里的已抱抱集合：返回 [card_id,...]
-  async myHugs(ids, userIdentifier) {
-    const data = await call('card.hugMine', { ids: ids || [], user_identifier: userIdentifier })
+  async myHugs(ids, userIdentifier, authToken) {
+    const data = await call('card.hugMine', { ids: ids || [], user_identifier: userIdentifier, authToken })
     return data?.liked || []
   },
 
   // 切换抱抱状态，返回 { hugged, count }
-  async toggleHug(cardId, uid, type) {
-    const data = await call('card.hugToggle', { cardId, user_identifier: uid, user_type: type })
+  async toggleHug(cardId, uid, type, authToken) {
+    const data = await call('card.hugToggle', { cardId, user_identifier: uid, user_type: type, authToken })
     if (!data || typeof data.count === 'undefined') throw new Error(data?.error || '操作失败')
     return data
   },

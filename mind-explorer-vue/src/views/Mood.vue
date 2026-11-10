@@ -73,11 +73,13 @@ import { moodApi } from '../api/mood'
 import { checkinsApi } from '../api/checkins'
 import { useAuthStore } from '../stores/auth'
 import { identifierOf } from '../lib/identity'
+import { useIdentity } from '../composables/useIdentity'
 import { useBadgeStore } from '../stores/badges'
 import { useCrisisStore } from '../stores/crisisStore'
 import { detectCrisis } from '../lib/crisis'
 
 const auth = useAuthStore()
+const ident = useIdentity()   // [S2] 只为 mood.* 带令牌，不改变任何读取逻辑
 const badgesStore = useBadgeStore()
 const crisisStore = useCrisisStore()
 const selected = ref('')
@@ -143,7 +145,7 @@ const chartSvg = computed(() => {
 
 async function load() {
   if (!userId.value) return
-  entries.value = await moodApi.list(userId.value, 30)
+  entries.value = await moodApi.list(userId.value, 30, ident.token())
 }
 async function save() {
   if (!selected.value) {
@@ -156,7 +158,7 @@ async function save() {
   }
   saving.value = true
   savedTip.value = ''
-  const res = await moodApi.add(userId.value, selected.value, note.value.trim())
+  const res = await moodApi.add(userId.value, selected.value, note.value.trim(), ident.token())
   saving.value = false
   if (res.ok) {
     // 心情备注命中高危词 → 弹援助资源（服务端标记 or 前端即时检测，二者取一即可）

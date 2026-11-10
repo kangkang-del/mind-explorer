@@ -503,7 +503,7 @@ async function logMood() {
   if (!pickedEmotion.value) return
   moodLogging.value = true
   moodTip.value = ''
-  const res = await moodApi.add(userId.value, pickedEmotion.value, moodNote.value.trim())
+  const res = await moodApi.add(userId.value, pickedEmotion.value, moodNote.value.trim(), ident.token())
   moodLogging.value = false
   if (res.ok) {
     moodTip.value = '已记入今天的心情 + 打卡 ✓'
