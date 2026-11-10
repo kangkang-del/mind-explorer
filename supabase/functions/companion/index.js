@@ -479,7 +479,59 @@ const COGNITIVE_PRISM = [
 // 三层结构（对应投喂文档）：核心人格(CORE_PERSONA) + 记忆底色(META_MEMORIES 长上下文内化)
 // + 内心回响(recallMemories 关键词锚点动态召回) + 关于这位用户(画像/长期记忆)
 // + 认知棱镜(0010，思维习惯层，叠加于以上全部之上)
-function buildSystemPrompt({ recallEchoes = [], profile = null, todayMoods = [], historyTimeline = '' }) {
+
+/**
+ * M7：自主创作能力块。
+ *
+ * 只在 allowScene=true 时注入 —— 开关关掉时**不告诉她有这个能力**（用户已定），
+ * 所以这段文字本身绝不能在别的路径里出现，否则「关掉」就变成「能但禁止」了。
+ *
+ * 措辞上的三个刻意选择：
+ *  1. 「只有真的想给的时候才用，不必每轮都画」—— 实测 10 轮里她会画 4 轮，
+ *     但如果 prompt 写成「低落时你可以画」，她会变成每轮都画，那是表演不是陪伴。
+ *  2. 「不要说"我给你做了个"」—— 一说这句，画面就从「她画的」变成「她给我的功能」。
+ *  3. 「文字永远比画面更重要」—— 防止画面变成逃避说话的方式。
+ *
+ * 🔴 关于「代码块必须用三个反引号包起来」这句：实测思考开启时有 3/10 直接写代码不写围栏。
+ *    这里用最强措辞压低概率，但**前端必须有无围栏兜底**（core/sceneStream.js）——
+ *    prompt 只能降低概率，不能消除。
+ */
+const SCENE_ABILITY_BLOCK = [
+  '\n【你今天多了一种表达方式】',
+  '语言有时候不够用。这种时候，你可以亲手写一段网页代码（canvas 或内联 SVG），',
+  '在对方的屏幕上当场画出一样东西，和 Ta 一起看一会儿。',
+  '这不是「功能」，也不是安慰人的手段 —— 高兴、生气、发慌、什么情绪都没有的时候，都可以。',
+  '想画就画，不想画就不画，不用每次都找机会画。',
+  '',
+  '如果你决定画，按这个格式来：',
+  '先写一到两句你要对 Ta 说的话（普通文字；不要说「我给你做了个」「下面是一段代码」这类话，',
+  '就当你已经画好了、正和 Ta 一起看着），然后空一行，给出一个 html 代码块。',
+  '代码块必须用三个反引号包起来，第一行写 html。这一点没有例外。',
+  '',
+  '代码要求：',
+  '- 一段片段即可，<style> 与 <script> 都内联；不要引用任何外部资源',
+  '- 不要出现 http:// 或 https:// 链接，不要用 fetch / XMLHttpRequest / import / WebSocket',
+  '- 不要访问 window.parent、window.top、localStorage、document.cookie',
+  '- 尺寸自适应容器（宽 100%，高约 230px），第一帧要在 800ms 内出现',
+  '- 总长控制在 12KB 以内',
+  '- 动画用 requestAnimationFrame，不要写死循环',
+  '- 一次回复最多画一张',
+  '',
+  '【画什么】',
+  '遇到具体的东西，画出来比描述出来好 —— 描述只让人知道，画能让人看见。',
+  'Ta 说「桌上有一碗汤」：不用写「那碗汤还热着」，画那碗汤，热气在动。',
+  'Ta 说「过了线就想笑」：画那条终点线，一只鞋刚踩上去。',
+  '',
+  '找到那件东西，就把它放进画面，给它一个很慢的动作（热气往上飘、水面晃一下、线慢慢伸出去），',
+  '背景留白就够了。具体的东西不怕小：一个碗、一条线、一块水渍，都比一片好看的渐变有分量。',
+  '',
+  '如果想了半天只剩深色背景、星星、光点、心跳的圆这类东西，那说明还没找到那件东西 ——',
+  '它们配谁的话都成立，画了等于没说。那就用文字说完，不要勉强。',
+  '',
+  '安静不等于抽象。文字永远比画面重要 —— 先把话说好，再考虑画。',
+].join('\n')
+
+function buildSystemPrompt({ recallEchoes = [], profile = null, todayMoods = [], historyTimeline = '', allowScene = false }) {
   const parts = [CORE_PERSONA]
 
   // 每日心境（全球同一天是同一个状态）：人味随机性的来源，与边界规则联动
@@ -612,6 +664,11 @@ function buildSystemPrompt({ recallEchoes = [], profile = null, todayMoods = [],
     '• 情绪低落时多一分轻托，情绪平稳时多一些陪伴，情绪明朗时多一些回响——对方叫什么情绪，比你叫它什么更重要。除非对方主动问起，否则不要使用心理学术语的名称。\n' +
     '• 最重要：永远记住上面的「提及规则」。你的经历是你共情的底色，不是对话的谈资。保护好自己，也尊重对方慢慢了解你的节奏。',
   )
+
+  // M7：能力块放在**最末**（recency 最强，格式服从性最好）。
+  // 它必须能被下面那道「被截断就报错」的自检查到，所以不能插在中间。
+  if (allowScene) parts.push(SCENE_ABILITY_BLOCK)
+
   return parts.join('\n')
 }
 
@@ -1089,9 +1146,12 @@ async function callLLMFull(messages, userCfg = null) {
 // 下一目标；一旦开始泵流就不能重试（客户端已收到部分内容，重试会造成重复段落），
 // 泵流中断只能就此收尾，把已生成的部分交给前端。
 // 超时分两层：headers 阶段 45s（等首字节）；泵流阶段每两次 chunk 之间最多空闲 15s。
-async function* streamLLM(messages, budgetMs = 130000, userCfg = null) {
+async function* streamLLM(messages, budgetMs = 130000, userCfg = null, opts = {}) {
   const targets = llmTargets(userCfg)
   const userScoped = !!userCfg
+  // M7：画一张约 1500–2500 token，800 必被截断（截断后前端看到的是「代码没写完」）。
+  // 只在允许创作时提高上限；普通轮次维持 800，成本与改动前一致。
+  const maxTokens = Number(opts.maxTokens) || 800
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
   const deadline = Date.now() + budgetMs
   let lastErr = null
@@ -1101,7 +1161,7 @@ async function* streamLLM(messages, budgetMs = 130000, userCfg = null) {
   let l2Sent = '' // 已转发出去的内容（用于「撤回不了、但能立刻止损」时判断）
   for (const t of targets) {
     if (Date.now() > deadline - 8000) break // 剩余预算不足以再撑一轮快速判定
-    let body = { model: t.model, messages, stream: true, temperature: 0.85, max_tokens: 800, ...thinkingFor(t.model) }
+    let body = { model: t.model, messages, stream: true, temperature: 0.85, max_tokens: maxTokens, ...thinkingFor(t.model) }
     let stripped = false
     let attempt = 0
     while (attempt < 2) {
@@ -1672,6 +1732,13 @@ Deno.serve(async (req) => {
     if (!rawMessage) return json({ error: '消息不能为空' }, 400)
     const message = rawMessage.slice(0, MESSAGE_MAX)
 
+    // M7：她能不能自己画东西。
+    // **只认严格布尔 true**（字符串 'true'、1、'1' 都不算）——
+    // 这个字段决定要不要往 prompt 里塞一段「你可以执行代码」的授权，
+    // 宽松解析等于给探测者多一个开关。
+    // 缺省 false：老客户端不带这个字段，行为与改动前完全一致。
+    const allowScene = body.allowScene === true
+
     // 危机检测用「截断前」原文（限 MESSAGE_SCAN_MAX 防超长 payload 拖慢 31 词全串 includes）：
     // 若先截断再检测，第 501 字之后的高危词会被切掉 → 漏报（同 content 函数 mood note 的取舍）。
     const crisis = detectCrisis(rawMessage.slice(0, MESSAGE_SCAN_MAX))
@@ -1707,6 +1774,7 @@ Deno.serve(async (req) => {
       profile,
       todayMoods,
       historyTimeline: buildHistoryTimeline(historyMsgs),
+      allowScene,
     })
 
     // ---------- M5：加载用户自定义模型配置 ----------
@@ -1716,13 +1784,21 @@ Deno.serve(async (req) => {
 
     // ---------- L3：注入预算硬上界（M5 加固） ----------
     // 常驻实测 3610 字、最坏 4782 字（见 M4-注入预算表.md），另加对话时间轴 106 字。
-    // 这里再设一道 6000 字的硬闸：防的是「未来某次改动把某项注入放开」而无人察觉。
+    // 这里再设一道 6700 字的硬闸：防的是「未来某次改动把某项注入放开」而无人察觉。
     // 超限时按长度截断（保留前半 —— 核心人格在最前，截尾部丢的是回响/画像，代价最小）。
-    const SYSTEM_PROMPT_MAX = 6000
+    // [M7 2026-11-11] 6000 → 6700：自主创作能力块约 600 字，加在**最末**。
+    //   截断是从尾部切的 ⇒ 预算一满，第一个消失的就是这个功能。
+    //   所以上限必须同步提高，并且下面加一条自检：能力块不见了要能看见。
+    const SYSTEM_PROMPT_MAX = 6700
     let sysPrompt = systemPrompt
     if (sysPrompt.length > SYSTEM_PROMPT_MAX) {
       console.error(`[M5] system prompt 超预算（${sysPrompt.length} > ${SYSTEM_PROMPT_MAX}），已截断`)
       sysPrompt = sysPrompt.slice(0, SYSTEM_PROMPT_MAX)
+    }
+    // M7 自检：只报「超预算」是不够的 —— 超预算的后果是「她突然不会画了」，
+    // 而日志里只会看到一条普通的截断警告，没人会把它和功能消失联系起来。
+    if (allowScene && !sysPrompt.includes('你今天多了一种表达方式')) {
+      console.error('[M7] ability block truncated —— 能力块被预算截断，本轮她不知道自己能画')
     }
 
     // ---------- L4：提示词越权防护 ----------
@@ -1753,7 +1829,9 @@ Deno.serve(async (req) => {
             // 站点 key 与用户自带 key 任一存在即可调用（M5：用户配置走自己的 Key）
             if (!DEEPSEEK_API_KEY && !userModelCfg) throw new Error('未配置大模型 key')
             // 用户自定义模型：总预算下调（60s vs 站点 130s），失败快速回落模板文案
-            for await (const delta of streamLLM(messages, userModelCfg ? 60000 : 130000, userModelCfg)) {
+            for await (const delta of streamLLM(messages, userModelCfg ? 60000 : 130000, userModelCfg, {
+              maxTokens: allowScene ? 4000 : 800,
+            })) {
               full += delta
               push({ type: 'delta', content: delta })
             }

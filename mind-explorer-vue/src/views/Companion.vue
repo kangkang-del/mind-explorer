@@ -114,6 +114,10 @@
         class="flex"
         :class="m.role === 'user' ? 'justify-end' : 'justify-start'"
       >
+        <!-- 内层容器：小木的消息要能「气泡 + 画面」纵向叠放。
+             用户消息用 display:contents —— 子元素直接成为外层 flex 的项，
+             布局与改动前逐像素一致（justify-end 仍然生效）。 -->
+        <div :class="m.role === 'user' ? 'contents' : 'flex flex-col items-start gap-2 w-full min-w-0'">
         <!-- 复盘周报卡片（陪伴深度） -->
         <div v-if="m.type === 'recap'" class="max-w-[90%] bg-white border border-[#e6efe9] rounded-2xl rounded-bl-sm p-4">
           <div class="flex items-center gap-2 mb-2.5">
@@ -127,9 +131,11 @@
           </div>
           <p class="text-[13.5px] text-[#5a6b7c] leading-7 m-0">{{ m.recap?.text }}</p>
         </div>
-        <!-- 文字气泡 -->
+        <!-- 文字气泡。若她「只画不说」（content 为空），整个气泡不占位 ——
+             否则会留下一个空的圆角白块。 -->
         <div
           v-else
+          v-show="m.content || m.thinking || !m.scene"
           class="max-w-[78%] px-4 py-2.5 rounded-2xl text-[14px] leading-relaxed whitespace-pre-wrap break-words"
           :class="m.role === 'user'
             ? 'bg-gradient-to-r from-[#7c9cb8] to-[#a8c3d6] text-white rounded-br-sm'
@@ -138,6 +144,16 @@
           <span v-if="m.role === 'assistant' && !m.content && m.thinking" class="text-[#9aa6b2]">小木正在听…</span>
           <span>{{ m.content }}</span>
           <span v-if="m.role === 'assistant' && m.thinking && m.content" class="inline-block w-1.5 h-4 ml-0.5 bg-[#9aa6b2] align-middle animate-blink"></span>
+        </div>
+
+        <!-- M7：她自己画的画面。只在她真的画出完整代码后才有值；
+             `code` 里不含任何配文，配文仍在上面那个气泡里。 -->
+        <XiaomuScene
+          v-if="m.scene && m.scene.code"
+          :code="m.scene.code"
+          class="max-w-[78%] w-full"
+          @fail="onSceneFail"
+        />
         </div>
       </div>
     </section>
@@ -302,6 +318,10 @@ import { useXiaomuVoice, voiceSupported } from '../companion/composables/useXiao
 import { useXiaomuIat } from '../companion/composables/useXiaomuIat'
 // 2026-11-06：功能可见性总开关（讯飞三要素未配 ⇒ 暂时不露出语音输入入口）
 import { IAT_UI_ENABLED } from '../companion/core/features'
+// M7：她自己画东西 —— 流式切分器（纯 reducer）+ 卡片 + 全局开关
+import { createSceneStream } from '../companion/core/sceneStream'
+import { useScenePref } from '../composables/useScenePref'
+import XiaomuScene from '../companion/components/XiaomuScene.vue'
 
 const auth = useAuthStore()
 const badgesStore = useBadgeStore()
@@ -317,6 +337,8 @@ const prefs = useXiaomuPrefs()
 const voice = useXiaomuVoice()
 // M6-2c：语音输入
 const iat = useXiaomuIat()
+// M7：小木能不能自己画东西（默认开）。关掉时不告诉她 —— 后端不注入能力块。
+const { sceneEnabled } = useScenePref()
 
 /**
  * PTT 入口是否出现：**功能对外开启 && 麦克风能力 && 用户已开启**。
@@ -396,6 +418,13 @@ watch(() => prefs.dnd, (on) => { if (on) voice.stop() })
 
 const STORAGE_KEY = 'xiaomu_history_v1'
 const MAX_HISTORY = 12
+/**
+ * M7：历史里最多保留几张「画面」。
+ * 一张画面 2–3KB，比一条文字贵 10 倍以上。不设上限的话，12 条 ×3KB 虽然还塞得下，
+ * 但 localStorage setItem 抛 QuotaExceeded 时是**整条历史一起存不下** ——
+ * 为了一张旧画面丢掉整段对话，不值得。超出的只留文字。
+ */
+const MAX_SCENE_HISTORY = 6
 
 const input = ref('')
 const sending = ref(false)
@@ -636,9 +665,20 @@ function saveHistory() {
         const o = { role: m.role, content: m.content || '' }
         if (m.type) o.type = m.type
         if (m.type === 'recap' && m.recap) o.recap = m.recap
+        // M7：画面存进历史（下次打开还在），但 content 里永远没有代码，
+        // 所以 getHistory() 回传给模型的上下文天然干净。
+        if (m.scene && m.scene.code) o.scene = { code: m.scene.code }
         return o
       })
       .slice(-MAX_HISTORY * 2)
+
+    // 从新往旧数，超过上限的只留文字
+    let kept = 0
+    for (let i = toSave.length - 1; i >= 0; i--) {
+      if (!toSave[i].scene) continue
+      if (++kept > MAX_SCENE_HISTORY) delete toSave[i].scene
+    }
+
     localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave))
   } catch {
     /* 忽略存储异常 */
@@ -668,6 +708,16 @@ function getHistory() {
     .slice(-MAX_HISTORY)
 }
 
+/**
+ * M7：画面被挡下时的观测点。
+ * 三种原因：审计不过（可能是 prompt 约束失效）、10s 没有首帧（多半是死循环/画错了）、
+ * 以及以后可能加的其他闸。上线后要盯的就是这个计数 —— 它持续变高说明
+ * 模型在写「我们不敢给他跑」的代码，此时该改 prompt，而不是放宽闸门。
+ */
+function onSceneFail(reason) {
+  console.warn('[M7] scene dropped:', reason)
+}
+
 async function send() {
   const text = input.value.trim()
   if (!text || sending.value) return
@@ -685,8 +735,12 @@ async function sendText(text) {
   await scrollToBottom()
 
   // 助手占位（流式填充）
-  activeAssistant = reactive({ role: 'assistant', content: '', thinking: true })
+  activeAssistant = reactive({ role: 'assistant', content: '', thinking: true, scene: null })
   messages.push(activeAssistant)
+
+  // M7：每个回复一个切分器。它对全量 raw 重算，所以 content 里永远只有「人话」；
+  // 代码单独走 reducer 内部，等流结束再决定要不要成卡片。
+  const sceneSt = createSceneStream()
   await scrollToBottom()
 
   const history = getHistory().slice(0, -1) // 不含刚加的用户消息已在后端拼
@@ -697,6 +751,8 @@ async function sendText(text) {
     userId: userId.value,
     nickname: userNickname.value,
     authToken: ident.token(),
+    // M7：只认严格 true。开关关着 ⇒ 后端**不注入能力块**，她根本不知道自己能画。
+    allowScene: sceneEnabled.value === true,
     onMeta: (meta) => {
       if (meta.emotion) {
         emotionLabel.value = meta.emotion.label || ''
@@ -706,7 +762,8 @@ async function sendText(text) {
     },
     onDelta: (chunk) => {
       activeAssistant.thinking = false
-      activeAssistant.content += chunk
+      // 只有 text 进气泡。代码部分被 reducer 扣住，一个字都不会出现在气泡里。
+      activeAssistant.content = sceneSt.push(chunk).text
       scrollToBottom()
     },
     onError: async (msg) => {
@@ -721,9 +778,22 @@ async function sendText(text) {
     },
     onDone: () => {
       activeAssistant.thinking = false
+
+      // 🔴 finish() 必须在取最终值之前。reducer 会「按住」不确定的尾巴
+      //    （被拆帧的反引号、还没看够的 "<"），不 finish 直接读会丢字。
+      const s = sceneSt.finish()
+      activeAssistant.content = s.text
+
+      // 成卡片的条件：开关开着、代码完整（围栏闭合 **或** 无围栏兜底命中）、没超体积。
+      // 半截代码渲染出来就是「画错了」，宁可不出。
+      // 审计由组件自己做（闸在渲染层，因为它是可复用组件）。
+      if (sceneEnabled.value && s.code && (s.closed || s.noFence) && !s.overflow) {
+        activeAssistant.scene = { code: s.code }
+      }
+
       sending.value = false
       saveHistory()
-      speakReply(activeAssistant.content)   // M6-1：回完就念出来
+      speakReply(activeAssistant.content)   // M6-1：回完就念出来。content 已经是纯文字
     },
   })
 }

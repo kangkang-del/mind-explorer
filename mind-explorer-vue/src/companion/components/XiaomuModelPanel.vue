@@ -1,5 +1,19 @@
 <template>
   <div class="xm-model">
+    <!-- M7：表达能力开关 —— 面板最顶。默认开；关掉＝她根本不知道自己能画（不是"能画但不许"） -->
+    <div v-if="gate !== 'none'" class="xm-md-pref" data-xm="scenePref">
+      <label class="xm-md-switch">
+        <input
+          type="checkbox"
+          data-xm="sceneToggle"
+          :checked="sceneEnabled"
+          @change="setSceneEnabled($event.target.checked)"
+        />
+        <span>小木可以自己画东西</span>
+      </label>
+      <span class="xm-md-hint">不只在难过的时候 —— 她想给你看点东西的时候就会画</span>
+    </div>
+
     <!-- D6 门槛 · 未登录：引导文案。**一个请求都不发** -->
     <div v-if="gate === 'none'" class="xm-md-gate">
       <p class="xm-md-gate-main">先和小木打个招呼，就能配置自己的模型啦。</p>
@@ -116,11 +130,19 @@
  */
 import { computed, reactive, ref, watch } from 'vue'
 import { useIdentity } from '../../composables/useIdentity'
+import { useScenePref } from '../../composables/useScenePref'
 import { xmModel, modelReasonText } from '../../api/xiaomuModel'
 
 const emit = defineEmits(['register'])
 
 const ident = useIdentity()
+
+/**
+ * M7：表达能力开关。
+ * 它**不属于** D6 管的自定义模型配置（不发任何请求、不涉及 key），
+ * 所以放在三态门禁之外 —— 快速游客也能关掉。
+ */
+const { sceneEnabled, setSceneEnabled } = useScenePref()
 
 /** 后端 MODEL_PRESETS 的兜底副本（真源在 supabase/functions/content/index.js）。
  *  仅用于 presets 请求失败（后端未部署 / 断网）时保证下拉不是空的 —— 不参与判定。 */
@@ -323,6 +345,16 @@ async function onClear() {
 /* 门槛区（未登录 / 快速游客） */
 .xm-md-gate { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
 .xm-md-gate-main { margin: 0; font-size: 12px; line-height: 1.5; }
+
+/* M7：表达能力开关。面板最顶，与下面的模型配置用一条细线分开 ——
+   它不是"配置模型"，是"小木怎么陪你" */
+.xm-md-pref {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding-bottom: 9px;
+  border-bottom: 1px solid #efe7e0;
+}
 
 .xm-md-row { display: flex; flex-direction: column; gap: 4px; }
 .xm-md-label { font-size: 11px; opacity: .6; }

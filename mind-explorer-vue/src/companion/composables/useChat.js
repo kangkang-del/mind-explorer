@@ -15,6 +15,11 @@ import { ref } from 'vue'
 import { companionApi } from '../../api/companion'
 import { useCrisisStore } from '../../stores/crisisStore'
 import { useIdentity } from '../../composables/useIdentity'
+import { useScenePref } from '../../composables/useScenePref'
+// M7：桌宠不显示画面卡片，但**必须**把代码从文字里切掉。
+// 切在这一层而不是在 XiaomuPet 里，是因为下面的 acc 会回写进下一次请求的上下文 ——
+// 不切的话她下一轮会读到自己的代码，token 会失控地涨。
+import { createSceneStream } from '../core/sceneStream'
 
 /** 桌宠轻量上下文：最近 8 条（主站面板用 12 条，气泡场景更短更聚焦） */
 const MAX_HISTORY = 8
@@ -22,6 +27,7 @@ const MAX_HISTORY = 8
 export function useXiaomuChat() {
   const ident = useIdentity()
   const crisisStore = useCrisisStore()
+  const { sceneEnabled } = useScenePref()
 
   const sending = ref(false)
   let controller = null
@@ -42,6 +48,8 @@ export function useXiaomuChat() {
     if (sending.value) return null
     sending.value = true
     let acc = ''
+    // M7：代码不进 acc（acc 既是气泡文字、也是下一轮的上下文）
+    const sceneSt = createSceneStream()
 
     controller = companionApi.streamChat({
       message: text,
@@ -49,16 +57,24 @@ export function useXiaomuChat() {
       userId: ident.userId.value,
       nickname: ident.nickname.value,
       authToken: ident.token(),   // M2：会话令牌（无则服务端过渡期按旧行为放行）
+      allowScene: sceneEnabled.value === true,
       onMeta: (meta) => {
         if (meta && meta.crisis) crisisStore.open()
         if (onMeta) onMeta(meta)
       },
       onDelta: (chunk) => {
-        acc += chunk
-        if (onDelta) onDelta(chunk)
+        const t = sceneSt.push(chunk).text
+        // reducer 吐「全量正文」，气泡打字机只吃「增量」。
+        // 正常情况 t 一定以 acc 开头；极少数情况会变短（游离标签 <br> 被剔掉），
+        // 那时不发增量、只把 acc 校正回来 —— 桌宠是次要界面，宁可少几个字也不要错位。
+        const delta = t.startsWith(acc) ? t.slice(acc.length) : ''
+        acc = t
+        if (onDelta && delta) onDelta(delta)
       },
       onDone: () => {
         sending.value = false
+        // 🔴 finish() 之前 acc 可能少一截被按住的尾巴
+        acc = sceneSt.finish().text
         // 本轮完整对话进上下文（协议不含当前消息，此处补齐，保持 user/assistant 交替）
         history = [
           ...history,
