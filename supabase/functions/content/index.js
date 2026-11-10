@@ -633,6 +633,102 @@ async function ownerDeny(userId, token, tag = 'content') {
   throw e
 }
 
+// ---------- [S3 观测 2026-11-10] 身份校验的「只记不拒」层 ----------
+//
+// 目的：在把 mood.* / card.* 切成硬拒之前，先量清楚线上到底有多少请求
+//       「带不出对得上的身份」。没有这批数据就切，等于拿线上用户做实验。
+//
+// 🔴 为什么不直接用 logGuard：
+//   ① 它**同因 60s 只记一次**，条数会被抹平，统计直接失真；
+//   ② 它把「无令牌」和「令牌过期」都归为 ok=true，与「身份不符」混在同一栏。
+// 所以这里单开一套：进程内计数 + 每 (action,结论) 每 60s 打一条**带 count 的汇总**。
+// 日志量恒定（每分钟每结论至多一条，刷不爆），而计数不受节流影响。
+//
+// 本层**永不拦截**，不返回任何拒绝。硬拒必须等统计结果出来后再单独做。
+
+const S3_WINDOW_MS = 60 * 1000
+const S3_STARTED_AT = Date.now() // isolate 启动时刻：计数清零的参照点
+const s3Stats = new Map() // "action|verdict" → { n, lastLog }
+
+/**
+ * body 声称的身份 与 令牌里的 uid 是什么关系。
+ *
+ * 'shorthand'（历史写法，**不是冒充**）：`user_cards.author_id` 存的是裸 id
+ *   （`u.id`，如 UUID 或 `g_xxx`），而令牌 uid 带前缀（`g:<id>` / `gh:<name>`）。
+ *   两者语义同一个人，只是写法不同 —— 统计时必须单列，否则会被误判成攻击。
+ */
+function ownerRelation(tokenUid, bodyUid) {
+  const a = String(tokenUid || '').trim()
+  const b = String(bodyUid || '').trim()
+  if (!a || !b) return 'empty'
+  if (a === b) return 'exact'
+  if (b === a.replace(/^(gh|g):/, '')) return 'shorthand'
+  return 'mismatch'
+}
+
+function noteOwnerVerdict(action, verdict, bodyUid) {
+  const key = `${action}|${verdict}`
+  const now = Date.now()
+  let e = s3Stats.get(key)
+  if (!e) {
+    e = { n: 0, lastLog: 0 }
+    s3Stats.set(key, e)
+  }
+  e.n++
+  // 首次必记（lastLog=0），之后每 60s 最多一条，count 是 isolate 内的累计值
+  if (now - e.lastLog >= S3_WINDOW_MS) {
+    e.lastLog = now
+    // 只打前 12 位，足够定位问题又不把完整身份塞进日志
+    console.warn(
+      `[S3:observe] action=${action} verdict=${verdict} count=${e.n} sample=${String(bodyUid || '').slice(0, 12) || '(空)'}`,
+    )
+  }
+}
+
+/**
+ * 只观测不拦截。**任何异常都被吞掉** —— 观测层绝不能让正常请求失败。
+ * @returns {Promise<void>}
+ */
+async function observeOwner(action, bodyUid, token) {
+  let verdict
+  try {
+    const g = await guardOwner({ userId: bodyUid, token })
+    if (g.mode === 'off') {
+      // auth_disabled（未配 HMAC_SECRET）/ no_identity（没登录）
+      verdict = `off:${g.reason}`
+    } else if (g.mode === 'warn') {
+      // token_absent / token_expired —— 过渡期常态
+      verdict = g.reason
+    } else if (g.mode === 'reject') {
+      if (g.reason === 'token_uid_mismatch') {
+        // 再验一次只为拿到令牌里的 uid，用来区分「历史裸 id 写法」和「真冒充」
+        const p = await verifyToken(String(token || '').trim())
+        verdict = `uid_${ownerRelation(p && p.uid, bodyUid)}`
+      } else {
+        verdict = g.reason // token_invalid
+      }
+    } else {
+      verdict = 'ok'
+    }
+  } catch (e) {
+    verdict = `err:${String((e && e.message) || e).slice(0, 40)}`
+  }
+  try {
+    noteOwnerVerdict(action, verdict, bodyUid)
+  } catch { /* 计数失败也不影响请求 */ }
+}
+
+/** 内部端点门禁（与 companion 的 internalOk 同口径，常量时间比较） */
+function internalOk(req) {
+  const expected = (Deno.env.get('INTERNAL_TOKEN') || '').trim()
+  if (!expected) return false
+  const got = (req.headers.get('x-internal-token') || '').trim()
+  if (!got || got.length !== expected.length) return false
+  let diff = 0
+  for (let i = 0; i < got.length; i++) diff |= got.charCodeAt(i) ^ expected.charCodeAt(i)
+  return diff === 0
+}
+
 // ---------- M5：自定义模型的统一前置（D6 门槛 + D11 兜底开关） ----------
 
 const modelErr = (msg, reason, status = 403) => {
@@ -1943,6 +2039,21 @@ Deno.serve(async (req) => {
 
   try {
     switch (action) {
+      // ---------- [S3 观测] 内部统计拉取 ----------
+      // 只供运维用 x-internal-token 调用；没有令牌时**装作这个 action 不存在**（404），
+      // 与 companion 的 diag 同口径，避免暴露「这里有个统计口」。
+      // ⚠️ 计数是**每 isolate 一份**：isolate 重启即清零，多 isolate 也各算各的。
+      //    所以它的用途是「看趋势和比例」，不是精确总量。
+      case 's3.stats': {
+        if (!internalOk(req)) return json({ error: 'not found' }, 404)
+        const rows = [...s3Stats.entries()]
+          .map(([k, v]) => {
+            const i = k.indexOf('|')
+            return { action: k.slice(0, i), verdict: k.slice(i + 1), count: v.n }
+          })
+          .sort((a, b) => b.count - a.count)
+        return json({ isolateSince: S3_STARTED_AT, nowMs: Date.now(), rows })
+      }
       // ---------- 帖子 ----------
       case 'post.list':
         return json({ posts: memoryEnabled ? await sbSelect('community_posts', { select: '*', order: 'created_at.desc', limit: '200' }) : [] })
@@ -1974,19 +2085,24 @@ Deno.serve(async (req) => {
 
       // ---------- 心情日记 ----------
       case 'mood.add':
+        await observeOwner('mood.add', body.userId, body.authToken) // [S3] 只记不拒
         if (!memoryEnabled) return json({ ok: false, reason: '未启用记忆存储' })
         return json(await addMood(body))
       case 'mood.list':
+        await observeOwner('mood.list', body.userId, body.authToken) // [S3] 只记不拒
         return json(memoryEnabled ? await listMood(body) : { entries: [] })
 
       // ---------- 治愈瞬间投稿 ----------
       case 'card.submit':
+        await observeOwner('card.submit', body.author_id, body.authToken) // [S3] 只记不拒
         if (!memoryEnabled) return json({ ok: false, error: '未启用存储' })
         return json(await submitCard(body))
       case 'card.approved':
         return json({ cards: memoryEnabled ? await listCards({ status: 'eq.approved', order: 'featured.desc,created_at.desc', limit: String(body.limit || 100) }) : [] })
-      case 'card.mine':
+      case 'card.mine': {
+        await observeOwner('card.mine', body.author_id, body.authToken) // [S3] 只记不拒
         return json({ cards: memoryEnabled && body.author_id ? await listCards({ author_id: `eq.${body.author_id}` }) : [] })
+      }
       case 'card.get': {
         need(body, ['id'])
         if (!memoryEnabled) return json({ card: null })
@@ -2019,11 +2135,13 @@ Deno.serve(async (req) => {
         return json({ map })
       }
       case 'card.hugMine': {
+        await observeOwner('card.hugMine', body.user_identifier, body.authToken) // [S3] 只记不拒
         if (!memoryEnabled || !body.ids?.length || !body.user_identifier) return json({ liked: [] })
         const rows = await sbSelect('card_hugs', { select: 'card_id', card_id: `in.(${body.ids.join(',')})`, user_identifier: `eq.${body.user_identifier}` })
         return json({ liked: rows.map((r) => r.card_id) })
       }
       case 'card.hugToggle':
+        await observeOwner('card.hugToggle', body.user_identifier, body.authToken) // [S3] 只记不拒
         if (!memoryEnabled) return json({ error: '未启用存储' })
         return json(await toggleHug(body))
 
