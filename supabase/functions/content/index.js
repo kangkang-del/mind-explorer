@@ -641,14 +641,18 @@ async function ownerDeny(userId, token, tag = 'content') {
 // 🔴 为什么不直接用 logGuard：
 //   ① 它**同因 60s 只记一次**，条数会被抹平，统计直接失真；
 //   ② 它把「无令牌」和「令牌过期」都归为 ok=true，与「身份不符」混在同一栏。
-// 所以这里单开一套：进程内计数 + 每 (action,结论) 每 60s 打一条**带 count 的汇总**。
-// 日志量恒定（每分钟每结论至多一条，刷不爆），而计数不受节流影响。
+// 所以这里单开一套：**落库计数**（owner_guard_stats）+ 每 (action,结论) 每 60s 一条汇总日志。
+// 日志只作兜底可观测，统计以库为准。
+//
+// 🔴 为什么不用进程内计数（2026-11-10 改）：实测低流量下 isolate 几乎每次冷启动，
+//   计数永远归零，两次采样 isolateSince 都是"刚刚创建"、rows 恒为空。
+//   「跑一天看趋势」在原设计下不成立。
 //
 // 本层**永不拦截**，不返回任何拒绝。硬拒必须等统计结果出来后再单独做。
 
 const S3_WINDOW_MS = 60 * 1000
-const S3_STARTED_AT = Date.now() // isolate 启动时刻：计数清零的参照点
-const s3Stats = new Map() // "action|verdict" → { n, lastLog }
+const S3_STARTED_AT = Date.now() // 仅供 s3.stats 参考：本 isolate 何时启动
+const s3Stats = new Map() // "action|verdict" → { n, lastLog }（只用于打日志的节流）
 
 /**
  * body 声称的身份 与 令牌里的 uid 是什么关系。
@@ -666,6 +670,71 @@ function ownerRelation(tokenUid, bodyUid) {
   return 'mismatch'
 }
 
+// ---------- [S3 落库 2026-11-10] 把裁决结果写进 owner_guard_stats ----------
+//
+// 为什么必须落库：内存计数在这条线上根本留不住。实测低流量下 isolate 几乎每次冷启动
+//   （两次采样 isolateSince 都是"刚刚创建"，rows 恒为空），「跑一天看趋势」不成立。
+//
+// 为什么走 RPC 而不是 upsert：PostgREST 的 PATCH body 只接受字面值，表达不了
+//   `count = count + 1`；`Prefer: resolution=merge-duplicates` 只能整值覆盖，
+//   读-改-写必有竞态。原子加法只能在数据库里做。
+//
+// 为什么按 UTC+8 分桶：表里存 day/hour 两列，若按 UTC 存，你在北京时间看
+//   「切完这一小时有没有异常」会整体差 8 小时。中国无夏令时，固定 +8 安全。
+const S3_TZ_OFFSET_MS = 8 * 3600 * 1000
+const bjNow = () => new Date(Date.now() + S3_TZ_OFFSET_MS)
+const bjDay = () => bjNow().toISOString().slice(0, 10)
+const bjHour = () => bjNow().getUTCHours()
+
+/** 本 isolate 内统计写入失败次数 —— s3.stats 必须暴露它，否则"沉默地少记"无法被发现 */
+let statsWriteFailed = 0
+
+/** 后台执行：不压用户可见延迟。运行时不支持 waitUntil 时降级为不等待。 */
+function bg(p) {
+  try {
+    if (typeof EdgeRuntime !== 'undefined' && EdgeRuntime.waitUntil) {
+      EdgeRuntime.waitUntil(p)
+      return
+    }
+  } catch { /* 落到下面 */ }
+  p.catch(() => {})
+}
+
+async function rpcIncrement(action, verdict, timeoutMs = 3000) {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/increment_owner_guard_stats`, {
+    method: 'POST',
+    headers: sbHeaders(),
+    body: JSON.stringify({
+      p_day: bjDay(),
+      p_hour: bjHour(),
+      p_action: action,
+      p_verdict: verdict,
+    }),
+    signal: AbortSignal.timeout(timeoutMs),
+  })
+  if (!res.ok) {
+    const txt = await res.text().catch(() => '')
+    throw new Error(`rpc ${res.status}: ${txt.slice(0, 120)}`)
+  }
+}
+
+/**
+ * 写一次观测。失败时**自证**：再试写一条 verdict='write_failed'。
+ * 连这条都写不进去 → 只剩日志，s3.stats 的 statsWriteFailed 会提示数据不可信。
+ * 本函数**永不 reject**：观测层不允许把业务拖下水。
+ */
+async function writeStat(action, verdict) {
+  try {
+    await rpcIncrement(action, verdict)
+  } catch (e) {
+    statsWriteFailed++
+    console.error(`[S3:stats] 写入失败 action=${action} verdict=${verdict}: ${String((e && e.message) || e).slice(0, 120)}`)
+    try {
+      await rpcIncrement(action, 'write_failed', 2000)
+    } catch { /* 失败计数也写不进去 */ }
+  }
+}
+
 function noteOwnerVerdict(action, verdict, bodyUid) {
   const key = `${action}|${verdict}`
   const now = Date.now()
@@ -675,7 +744,8 @@ function noteOwnerVerdict(action, verdict, bodyUid) {
     s3Stats.set(key, e)
   }
   e.n++
-  // 首次必记（lastLog=0），之后每 60s 最多一条，count 是 isolate 内的累计值
+  // 首次必记（lastLog=0），之后每 60s 最多一条。日志保留为兜底可观测，
+  // 但**不再承担统计职责** —— 统计以库里为准。
   if (now - e.lastLog >= S3_WINDOW_MS) {
     e.lastLog = now
     // 只打前 12 位，足够定位问题又不把完整身份塞进日志
@@ -683,6 +753,7 @@ function noteOwnerVerdict(action, verdict, bodyUid) {
       `[S3:observe] action=${action} verdict=${verdict} count=${e.n} sample=${String(bodyUid || '').slice(0, 12) || '(空)'}`,
     )
   }
+  bg(writeStat(action, verdict))
 }
 
 /**
@@ -2042,17 +2113,31 @@ Deno.serve(async (req) => {
       // ---------- [S3 观测] 内部统计拉取 ----------
       // 只供运维用 x-internal-token 调用；没有令牌时**装作这个 action 不存在**（404），
       // 与 companion 的 diag 同口径，避免暴露「这里有个统计口」。
-      // ⚠️ 计数是**每 isolate 一份**：isolate 重启即清零，多 isolate 也各算各的。
-      //    所以它的用途是「看趋势和比例」，不是精确总量。
+      // 数据源是 owner_guard_stats 表（跨 isolate 持久），不再是进程内存。
       case 's3.stats': {
         if (!internalOk(req)) return json({ error: 'not found' }, 404)
-        const rows = [...s3Stats.entries()]
-          .map(([k, v]) => {
-            const i = k.indexOf('|')
-            return { action: k.slice(0, i), verdict: k.slice(i + 1), count: v.n }
+        try {
+          const rows = await sbSelect('owner_guard_stats', {
+            select: 'day,hour,action,verdict,count',
+            order: 'day.desc,hour.desc,count.desc',
+            limit: String(Number(body.limit) || 500),
           })
-          .sort((a, b) => b.count - a.count)
-        return json({ isolateSince: S3_STARTED_AT, nowMs: Date.now(), rows })
+          // count 是 bigint，PostgREST 可能返回字符串 → 统一成数字，免得调用方踩坑
+          return json({
+            tz: 'UTC+8',
+            statsWriteFailed,
+            isolateSince: S3_STARTED_AT,
+            rows: rows.map((r) => ({ ...r, count: Number(r.count) || 0 })),
+          })
+        } catch (e) {
+          // 表读不到不能把观测端点打挂：降级返回空 + 原因，业务侧完全不受影响
+          return json({
+            tz: 'UTC+8',
+            statsWriteFailed,
+            rows: [],
+            degraded: String((e && e.message) || e).slice(0, 120),
+          })
+        }
       }
       // ---------- 帖子 ----------
       case 'post.list':
