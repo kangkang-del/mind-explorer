@@ -159,15 +159,20 @@ function rateAllow(map, key, max, windowMs) {
 // 背景：rateAllow 原先只用在 4 条旁路上（自带 Key 的模型调用 / 语音票据 / TTS / 模型测试），
 //       **主对话与 cbt 完全不设限** —— 匿名即可无限刷站方的 llm 额度。
 //
-// 为什么是两层：
+// 为什么是三层：
 //   ① 按 uid：能精确约束单台设备，且**对共享出口（公司/校园/NAT）零影响**。
 //   ② 按 IP：uid 可以免费换（auth.issueToken 对 g:g_* 零凭证签发），只按 uid 限等于没限；
 //      IP 桶用来兜住「换 uid 绕过」。
+//   ③ 按全站总量：只封顶总花销，不认人 ⇒ **构造上不可能误伤任何个人或共享出口**。
 //
-// 🔴 但 IP 层**默认关闭**（CHAT_MAX_PER_HOUR_IP 缺省 0）：
-//    如果平台没有把真实客户端 IP 传进来（全部落成同一个出口 IP），一开就会打死全站。
-//    所以先在 diag 里回显 clientIp 实测比对，确认是真实出口后再用 env 打开。
-//    这样「不误伤可信 IP」是构造上保证的，而不是靠调阈值去赌。
+// 🔴 ②③ 默认都是 0（关闭）：
+//    ② 的前提是平台真的把客户端 IP 传进来。若全部落成同一个出口 IP，一开就会打死全站。
+//       2026-11-10 实测 diag.clientIp = 219.135.121.78（与公网出口一致）⇒ IP 可信，
+//       但**仍不建议开**：该桶计的是「该 IP 的全部请求」，含已确权账号；
+//       公司/校园 NAT 下 10 个活跃用户就能把 600/h 打满，误伤的正是要保护的那类 IP。
+//       要开必须先把它改成「只计快速游客(g:g_*)」——否则宁可不开。
+//    ③ 是把「防刷」从「认人」改成「认总量」的替代方案：正常流量远低于阈值，
+//       异常时封顶烧钱，且失败模式是全站一起慢，不会冤枉某个具体用户。
 
 /** 客户端出口 IP：优先 Cloudflare 注入的 cf-connecting-ip，回退 x-forwarded-for 首段 */
 function clientIp(req) {
@@ -190,18 +195,20 @@ function chatLimit() {
   return {
     uid: num('CHAT_MAX_PER_HOUR_UID', 60), // 设 0 = 关闭该层
     ip: num('CHAT_MAX_PER_HOUR_IP', 0),   // 🔴 默认 0（关闭），实测 IP 可信后再开
+    global: num('CHAT_MAX_PER_HOUR_GLOBAL', 0), // 全站总量阀门，默认 0（关闭）
   }
 }
 
 const chatHitsUid = new Map()
 const chatHitsIp = new Map()
+const chatHitsGlobal = new Map()
 
 /**
  * 主对话 / CBT 的限流闸。放行返回 null；拦截返回一个 429 响应。
  * 必须在**开始流式输出之前**调用，否则无法再改状态码。
  */
 function chatRateDeny(req, userId, tag) {
-  const { uid, ip } = chatLimit()
+  const { uid, ip, global: gmax } = chatLimit()
   if (uid > 0 && !rateAllow(chatHitsUid, `${tag}|${userId || '(空)'}`, uid, CHAT_WINDOW_MS)) {
     console.warn(`[S1:rate] uid 超频 tag=${tag} uid=${userId || '(空)'} max=${uid}/h`)
     return json(
@@ -215,6 +222,17 @@ function chatRateDeny(req, userId, tag) {
       console.warn(`[S1:rate] ip 超频 tag=${tag} ip=${addr} max=${ip}/h`)
       return json({ error: '访问太频繁了，请稍后再试～', reason: 'rate_limited', bucket: 'ip' }, 429)
     }
+  }
+  // ③ 全站总量阀门（默认关）。只封顶「总花销」，不认人、不认 IP，
+  //    所以共享出口（公司/校园 NAT）的用户不会因为别人而被连坐 —— 这是 IP 桶做不到的。
+  //    按 tag 各算一桶：chat 流量再大也不会挤掉 cbt（情绪危机场景优先）。
+  //    放在最后：已被 uid/ip 拒掉的请求不消耗全站预算。
+  if (gmax > 0 && !rateAllow(chatHitsGlobal, tag, gmax, CHAT_WINDOW_MS)) {
+    console.error(`[S1:rate] 全站预算触顶 tag=${tag} max=${gmax}/h`)
+    return json(
+      { error: '这会儿来的人有点多，晚一点再回来找我好吗～', reason: 'rate_limited', bucket: 'site' },
+      429,
+    )
   }
   return null
 }
