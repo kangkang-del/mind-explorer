@@ -118,7 +118,11 @@ export const companionApi = {
   // 注意：fetch 不直接挂 AbortSignal，中止改为监听 signal 事件后手动 reader.cancel()
   // （保留「取消」语义，同时规避 Chromium 下带 signal 读 SSE 的行为差异，
   //  并使「流停滞超时」可用同一 cancel 路径打断挂起的 read()）
-  streamChat({ message, history = [], userId, nickname, authToken, onMeta, onDelta, onDone, onError, signal }) {
+  // 🔴 `allowScene` 必须在这里显式解构并透传（M7 修复，2026-11-11）：
+  //    之前调用方传了它，但这个函数不认识这个字段 ⇒ 请求体里根本没有，
+  //    后端 `body.allowScene === true` 恒为 false ⇒ 能力块永不注入 ⇒「她一次都不画」。
+  //    这类「调用方传了、中间层静默丢掉」的字段，只能靠抓真实请求体发现。
+  streamChat({ message, history = [], userId, nickname, authToken, allowScene = false, onMeta, onDelta, onDone, onError, signal }) {
     const controller = new AbortController()
     const abort = signal || controller.signal
 
@@ -137,7 +141,12 @@ export const companionApi = {
         const res = await fetch(ENDPOINT, {
           method: 'POST',
           headers: edgeHeaders(),
-          body: JSON.stringify({ message, history, userId, nickname, authToken, stream: true }),
+          body: JSON.stringify({
+            message, history, userId, nickname, authToken,
+            // 只发严格布尔：后端也只认 `=== true`，两边口径必须一致
+            allowScene: allowScene === true,
+            stream: true,
+          }),
         })
         resetStall()
 
