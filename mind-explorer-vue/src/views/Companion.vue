@@ -84,7 +84,7 @@
         <button
           @click="logMood"
           :disabled="moodLogging"
-          class="px-4 py-2 rounded-lg bg-gradient-to-r from-[#7c9cb8] to-[#a8c3d6] text-white text-[13px] font-semibold disabled:opacity-50 transition hover:opacity-90"
+          class="px-4 py-2 rounded-lg bg-[#7c9cb8] bg-gradient-to-r from-[#7c9cb8] to-[#a8c3d6] text-white text-[13px] font-semibold disabled:opacity-50 transition hover:opacity-90"
         >
           {{ moodLogging ? '记入中…' : '记入心情 + 打卡' }}
         </button>
@@ -138,7 +138,7 @@
           v-show="m.content || m.thinking || !m.scene"
           class="max-w-[78%] px-4 py-2.5 rounded-2xl text-[14px] leading-relaxed whitespace-pre-wrap break-words"
           :class="m.role === 'user'
-            ? 'bg-gradient-to-r from-[#7c9cb8] to-[#a8c3d6] text-white rounded-br-sm'
+            ? 'bg-[#7c9cb8] bg-gradient-to-r from-[#7c9cb8] to-[#a8c3d6] text-white rounded-br-sm'
             : 'bg-white border border-[#e6efe9] text-[#3a4a5c] rounded-bl-sm'"
         >
           <span v-if="m.role === 'assistant' && !m.content && m.thinking" class="text-[#9aa6b2]">小木正在听…</span>
@@ -182,7 +182,7 @@
         </div>
         <div class="flex items-center gap-2 mt-3">
           <button @click="submitCbtForm" :disabled="cbtLoading"
-            class="flex-1 py-2.5 bg-gradient-to-r from-[#7c9cb8] to-[#a8c3d6] text-white rounded-lg text-[14px] font-semibold disabled:opacity-50 transition hover:opacity-90">
+            class="flex-1 py-2.5 bg-[#7c9cb8] bg-gradient-to-r from-[#7c9cb8] to-[#a8c3d6] text-white rounded-lg text-[14px] font-semibold disabled:opacity-50 transition hover:opacity-90">
             {{ cbtLoading ? '小木在读…' : '请小木陪我看看' }}
           </button>
           <button @click="guide = ''" class="px-4 py-2.5 rounded-lg text-[14px] text-[#5a6b7c] border border-[#e0e6ec] hover:bg-[#f0f4f9] transition">稍后</button>
@@ -204,7 +204,7 @@
         <div class="space-y-2 mb-4">
           <input v-for="i in 3" :key="i" v-model="bedtime.gratitude[i - 1]" :placeholder="'第 ' + i + ' 件小确幸…'" class="w-full px-3 py-2 border border-[#e0e6ec] rounded-xl text-[13.5px] focus:outline-none focus:border-[#7c9cb8]" />
         </div>
-        <button @click="finishBedtime" class="w-full py-2.5 bg-gradient-to-r from-[#7c9cb8] to-[#a8c3d6] text-white rounded-lg text-[14px] font-semibold hover:opacity-90 transition">
+        <button @click="finishBedtime" class="w-full py-2.5 bg-[#7c9cb8] bg-gradient-to-r from-[#7c9cb8] to-[#a8c3d6] text-white rounded-lg text-[14px] font-semibold hover:opacity-90 transition">
           完成 · 和小木说晚安
         </button>
       </div>
@@ -292,7 +292,7 @@
         <button
           @click="send"
           :disabled="!input.trim() || sending"
-          class="px-5 py-3 bg-gradient-to-r from-[#7c9cb8] to-[#a8c3d6] text-white rounded-2xl text-[14px] font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition hover:opacity-90 shrink-0"
+          class="px-5 py-3 bg-[#7c9cb8] bg-gradient-to-r from-[#7c9cb8] to-[#a8c3d6] text-white rounded-2xl text-[14px] font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition hover:opacity-90 shrink-0"
         >
           {{ sending ? '…' : '发送' }}
         </button>
