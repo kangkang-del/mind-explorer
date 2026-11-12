@@ -31,6 +31,21 @@ img {
   display: none;
 }
 
+/* ---------- 减少动态效果 ----------
+   系统开启「减少动态效果」时，全站动画与过渡停用。
+   之前只有小木桌宠组件处理了 prefers-reduced-motion，
+   聊天的闪烁光标、首页轮播、抽屉滑动等都没降级。 */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 /* ---------- 原生控件复位 ----------
    关闭 preflight 的代价：<button> 会带浏览器默认的灰底和 2px 边框，
    在浅色卡片里看起来像禁用态。这里在 base 层统一清掉；

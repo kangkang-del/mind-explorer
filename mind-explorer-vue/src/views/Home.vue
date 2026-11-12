@@ -246,8 +246,15 @@ function goTo(i) {
   current.value = i
 }
 
+function prefersReducedMotion() {
+  return typeof window !== 'undefined'
+    && !!window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches
+}
+
 function startAuto() {
   stopAuto()
+  // 用户要求减少动态效果时不再自动轮播，改为手动切换
+  if (prefersReducedMotion()) return
   timer = setInterval(nextSlide, 5000)
 }
 function stopAuto() {
