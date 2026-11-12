@@ -1,6 +1,6 @@
 <template>
   <footer class="bg-[#f7f9fc] border-t border-[#eef2f7] text-[#7a8694] text-[14px]">
-    <div class="mx-auto max-w-app px-4 md:px-6 py-8 flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
+    <div class="page-wide page-x py-8 flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
       <div class="min-w-[200px]">
         <span class="font-bold text-[#3a4a5c] text-[16px]">🧠 心灵探索</span>
         <p class="mt-1.5 text-[#9aa6b2]">用科学理解心灵，以知识温暖生活</p>
@@ -21,7 +21,7 @@
       </div>
     </div>
 
-    <div class="mx-auto max-w-app px-4 md:px-6 py-3 border-t border-[#eef2f7] flex flex-col gap-2 md:flex-row md:justify-between text-[12px] text-[#a8b2bc]">
+    <div class="page-wide page-x py-3 border-t border-[#eef2f7] flex flex-col gap-2 md:flex-row md:justify-between text-[12px] text-[#a8b2bc]">
       <span>© {{ year }} 心灵探索 Mind Explorer</span>
       <span>基于 Vue 3 · 仅用于学习交流</span>
     </div>
