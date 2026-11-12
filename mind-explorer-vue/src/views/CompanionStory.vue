@@ -1,5 +1,5 @@
 <template>
-  <main class="mx-auto max-w-3xl px-4 py-5">
+  <main class="page-read py-5">
     <!-- ── 顶栏：返回 / 区间切换 / 重播 / 导出 ── -->
     <header class="flex items-center gap-3 mb-4 shrink-0">
       <RouterLink

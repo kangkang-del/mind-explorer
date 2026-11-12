@@ -21,3 +21,31 @@ img {
     font-size: 16px;
   }
 }
+
+/* ---------- 三端页面容器（《三端手册》分册一 §3） ----------
+   wide 1200 / read 760 / narrow 680，均为 border-box 最大宽度。
+   规则：水平留白只由「页面级容器」提供一次，子组件不得重复添加 px。
+   注意：本段的 page-* 在 components 层，任何 px- 或 max-w- 工具类都会覆盖它。 */
+@layer components {
+  /* 唯一的页面级水平留白来源。
+     用 clamp 而不是 px-4/md:px-6 台阶：断点台阶会让 768 的 padding 从 16 跳到 24，
+     视口宽 1px 而内容反而窄 15px（实测 735→720）。clamp 保证内容宽度单调不减。 */
+  .page-x {
+    padding-inline: clamp(16px, 2.5vw, 32px);
+  }
+  .page-wide {
+    width: 100%;
+    max-width: 1200px;
+    margin-inline: auto;
+  }
+  .page-read {
+    width: 100%;
+    max-width: 760px;
+    margin-inline: auto;
+  }
+  .page-narrow {
+    width: 100%;
+    max-width: 680px;
+    margin-inline: auto;
+  }
+}

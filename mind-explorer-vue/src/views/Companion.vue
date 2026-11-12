@@ -1,5 +1,5 @@
 <template>
-  <main class="max-w-3xl mx-auto flex flex-col h-[calc(100vh-220px)] supports-[height:100dvh]:h-[calc(100dvh-200px)] min-h-[420px]">
+  <main class="page-read flex flex-col h-[calc(100vh-220px)] supports-[height:100dvh]:h-[calc(100dvh-200px)] min-h-[420px]">
     <!-- 小木角色卡 -->
     <header class="flex items-center gap-3 mb-3 shrink-0">
       <div class="w-[52px] h-[52px] rounded-full bg-gradient-to-br from-[#a8d5ba] to-[#7c9cb8] flex items-center justify-center text-[26px] shrink-0">🌿</div>

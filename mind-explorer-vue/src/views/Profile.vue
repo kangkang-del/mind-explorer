@@ -1,5 +1,5 @@
 <template>
-  <main class="max-w-3xl mx-auto px-4 py-6">
+  <main class="page-read py-6">
     <header class="mb-5">
       <h1 class="text-2xl font-bold text-[#3a4a5c] m-0">👤 个人中心</h1>
     </header>

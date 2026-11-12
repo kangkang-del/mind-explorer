@@ -1,5 +1,5 @@
 <template>
-  <main class="max-w-3xl mx-auto px-4 py-6">
+  <main class="page-wide py-6">
     <header class="mb-5">
       <h1 class="text-2xl font-bold text-[#3a4a5c] m-0">🧰 自助工具箱</h1>
       <p class="text-[#9aa6b2] text-[14px] mt-1 m-0">当情绪翻涌时，这里有几件可以马上做的小事。挑一个，慢慢来。</p>
@@ -38,7 +38,7 @@
           <p class="text-[12px] text-[#9aa6b2] leading-6 m-0 mb-3">{{ ex.desc }}</p>
           <button
             @click="startBreathing(key)"
-            class="w-full py-2 rounded-lg text-[13px] font-semibold transition"
+            class="px-5 py-2 rounded-lg text-[13px] font-semibold transition"
             :class="breathing.active === key && breathing.running
               ? 'bg-[#eef2f7] text-[#5a6b7c]'
               : 'bg-[#f0f4f9] text-[#5a6b7c] hover:bg-[#e3ebf2]'"

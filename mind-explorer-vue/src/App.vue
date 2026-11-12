@@ -1,7 +1,10 @@
 <template>
   <div class="flex min-h-screen flex-col bg-[#fafbfc]">
     <AppNavbar />
-    <main class="flex-1 w-full max-w-app mx-auto px-4 py-6 md:px-6 md:py-8 lg:px-8">
+    <!-- 页面级容器的唯一来源：宽 1200 + 水平留白。
+         各 view 只按手册选 page-wide / page-read / page-narrow，
+         不得再自带 px-*，否则手机端会双重留白（390 下内容只剩 326）。 -->
+    <main class="flex-1 w-full page-wide page-x py-6 md:py-8">
       <RouterView />
     </main>
     <AppFooter />
