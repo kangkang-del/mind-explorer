@@ -1,5 +1,9 @@
 <template>
-  <section class="page-read flex flex-col h-[calc(100vh-220px)] supports-[height:100dvh]:h-[calc(100dvh-200px)] min-h-[420px]">
+  <section
+    ref="rootEl"
+    class="page-read flex flex-col h-[calc(100dvh-180px)]"
+    :style="chatH ? { height: chatH + 'px' } : undefined"
+  >
     <!-- 小木角色卡 -->
     <header class="flex items-center gap-3 mb-3 shrink-0">
       <div class="w-[52px] h-[52px] rounded-full bg-gradient-to-br from-[#a8d5ba] to-[#7c9cb8] flex items-center justify-center text-[26px] shrink-0">🌿</div>
@@ -41,8 +45,10 @@
       <button v-if="messages.length" @click="clearChat" class="text-[12px] text-[#9aa6b2] hover:text-[#e07a3f] transition px-2 py-1 shrink-0">清空</button>
     </header>
 
-    <!-- 引导入口（陪伴深度） -->
-    <div class="mb-2 shrink-0">
+    <!-- 引导入口（陪伴深度）——
+         键盘弹出时整块收起：这些是「开始聊之前」的入口，
+         打字时不需要，但它们会占掉 100+px，把输入框顶出可视区。 -->
+    <div v-if="!compact" class="mb-2 shrink-0">
       <div v-if="showGuidesHint" class="flex items-center gap-2 bg-[#f0f4f9] rounded-xl px-3 py-1.5 mb-2">
         <span class="text-[12px] text-[#5a7d9a] leading-5 flex-1">小木准备了几件可以一起做的事，点下面试试 👇</span>
         <button @click="dismissGuidesHint" class="text-[#9aa6b2] hover:text-[#5a7d9a] text-[14px] leading-none">×</button>
@@ -93,7 +99,7 @@
     </div>
 
     <!-- 对话区 -->
-    <section ref="scrollEl" class="flex-1 overflow-y-auto rounded-2xl bg-[#fafbfc] border border-[#eef2f7] p-4 space-y-3">
+    <section ref="scrollEl" class="flex-1 min-h-0 overflow-y-auto rounded-2xl bg-[#fafbfc] border border-[#eef2f7] p-4 space-y-3">
       <!-- 每日主动陪伴语（P5-2）：当天首次访问显示，可关闭 -->
       <div v-if="greeting" class="flex items-start gap-2 bg-gradient-to-r from-[#fff7ec] to-[#fef2f5] border border-[#f6dcc4] rounded-2xl px-4 py-3">
         <span class="text-[20px] shrink-0">🌅</span>
@@ -256,7 +262,7 @@
         </div>
       </Transition>
 
-      <footer class="flex items-end gap-2">
+      <footer class="flex items-end gap-2 shrink-0">
         <!-- M6-2c：真 PTT（按住说话 / 松开发送）。⚠️ 只在用户于「声音」面板开启后出现 -->
         <button
           v-if="pttSupported"
@@ -318,6 +324,8 @@ import { useXiaomuVoice, voiceSupported } from '../companion/composables/useXiao
 import { useXiaomuIat } from '../companion/composables/useXiaomuIat'
 // 2026-11-06：功能可见性总开关（讯飞三要素未配 ⇒ 暂时不露出语音输入入口）
 import { IAT_UI_ENABLED } from '../companion/core/features'
+// 视口高度与键盘状态：聊天页高度按真实可见高度算，而不是 100vh
+import { viewportHeight, keyboardOpen, bindViewport } from '../composables/useViewport'
 // M7：她自己画东西 —— 流式切分器（纯 reducer）+ 卡片 + 全局开关
 import { createSceneStream } from '../companion/core/sceneStream'
 import { useScenePref } from '../composables/useScenePref'
@@ -430,6 +438,13 @@ const input = ref('')
 const sending = ref(false)
 const messages = reactive(loadHistory())
 const scrollEl = ref(null)
+const rootEl = ref(null)
+// 聊天页高度（px）。0 表示还没量到，此时用 CSS 的 100dvh 兜底。
+const chatH = ref(0)
+// 空间吃紧（键盘弹出、横屏矮视口）——收起引导区，把地方让给消息和输入框。
+// 用「量出来的高度」判断，而不是只看键盘信号：
+// Android 键盘会让布局视口一起缩小，keyboardOpen 判不出来，但高度一定会变小。
+const compact = computed(() => chatH.value > 0 && chatH.value < 420)
 const inputEl = ref(null)
 const pttBtnEl = ref(null)   // M6-2c：PTT 按钮（留给验收用 data-xm 定位；ref 便于聚焦）
 const emotionLabel = ref('')
@@ -685,6 +700,35 @@ function saveHistory() {
   }
 }
 
+/**
+ * 按「真实可见高度」算聊天页高度。
+ *
+ * 不用 calc(100vh - 220px) 这类魔数：220 是照着当时的顶栏和间距手填的，
+ * 之后加了移动底栏、改了留白，这个数就再也不对了。
+ * 这里改成实测：可见高度 - 顶栏 - main 上下内边距 - 底栏高度。
+ */
+function measureChatHeight() {
+  const el = rootEl.value
+  if (!el || typeof window === 'undefined') return
+  const nav = document.querySelector('header.sticky')
+  const navH = nav ? nav.getBoundingClientRect().height : 60
+  const main = el.closest('main')
+  let padT = 0
+  let padB = 0
+  if (main) {
+    const cs = getComputedStyle(main)
+    padT = parseFloat(cs.paddingTop) || 0
+    padB = parseFloat(cs.paddingBottom) || 0
+  }
+  // 底栏是 fixed，会盖住视口底部；键盘弹出时它会被隐藏（高度归 0）
+  const tab = document.querySelector('nav[aria-label="底部导航"]')
+  const tabH = tab ? tab.getBoundingClientRect().height : 0
+  const vh = viewportHeight.value || window.innerHeight
+  // 下限 240：给输入区和两条消息的余地。不能再高 ——
+  // 键盘弹出时可见高度可能只剩 300 出头，下限过高会把输入框顶到视口外。
+  chatH.value = Math.max(240, Math.round(vh - navH - padT - padB - tabH))
+}
+
 async function scrollToBottom() {
   await nextTick()
   if (scrollEl.value) scrollEl.value.scrollTop = scrollEl.value.scrollHeight
@@ -852,6 +896,9 @@ async function localFallback(text) {
 
 // 挂载时：若已登录，从服务端恢复对话（跨设备连续性）；失败则保留本地 localStorage
 onMounted(async () => {
+  bindViewport()
+  await nextTick()
+  measureChatHeight()
   try {
     if (!localStorage.getItem('companion_guides_hint')) showGuidesHint.value = true
   } catch {}
@@ -865,6 +912,13 @@ onMounted(async () => {
   // 并行拉取当天的主动陪伴语（独立于对话恢复）
   loadGreeting()
 })
+
+// 视口变化（滚动导致地址栏收放）、键盘开合、旋转屏幕 ⇒ 重算高度。
+// flush: 'post' 让回调在 DOM 更新后跑；再 nextTick 一次，确保底栏已被 v-if 移除。
+watch([viewportHeight, keyboardOpen], async () => {
+  await nextTick()
+  measureChatHeight()
+}, { flush: 'post' })
 
 onBeforeUnmount(() => {
   controller?.abort()

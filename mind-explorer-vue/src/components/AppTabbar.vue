@@ -5,7 +5,7 @@
     层级 90：在顶栏(100)与聊天弹窗(110)之下，高于桌宠(80)，不遮挡任何操作控件。
   -->
   <nav
-    v-if="!hidden"
+    v-if="!hidden && !keyboardOpen"
     class="md:hidden fixed inset-x-0 bottom-0 z-[90] bg-white/95 backdrop-blur-md border-t border-[#eef2f7]"
     aria-label="底部导航"
   >
@@ -35,6 +35,7 @@
 <script setup>
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
+import { keyboardOpen } from '../composables/useViewport'
 
 const route = useRoute()
 

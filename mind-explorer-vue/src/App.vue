@@ -26,6 +26,7 @@ import BadgeCelebration from './components/BadgeCelebration.vue'
 import CrisisSupport from './components/CrisisSupport.vue'
 import XiaomuPet from './companion/components/XiaomuPet.vue'
 import { useAuthStore } from './stores/auth'
+import { bindViewport } from './composables/useViewport'
 
 // 批次 M：身份必须在**应用壳层**恢复，而不是散落在各页面。
 // 原来只有 Profile / Community / CardDetail / PostDetail / Upload 和已弃用的
@@ -36,4 +37,7 @@ import { useAuthStore } from './stores/auth'
 // 各页面原有的 restoreUser() 调用保持幂等，无需清理。
 const auth = useAuthStore()
 auth.restoreUser()
+
+// 视口/键盘监听全局只绑一次：底部导航与聊天页共用同一份状态
+bindViewport()
 </script>
