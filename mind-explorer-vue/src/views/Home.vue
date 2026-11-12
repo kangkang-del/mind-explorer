@@ -550,11 +550,16 @@ onUnmounted(() => {
 .carousel-slide {
   min-width: 100%;
   position: relative;
+  /* 图片没加载出来（网络慢、404、被拦截）时不能整块塌掉：
+     给一层深色底，保证叠在上面的白字始终可读。
+     这条是兜底，不是装饰 —— 之前图片一失败就变成「白字压浅灰」，完全看不见。 */
+  background: linear-gradient(135deg, #2d4258 0%, #3a5068 100%);
 }
 .carousel-image {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  min-height: 220px;
 }
 .carousel-overlay {
   position: absolute;
