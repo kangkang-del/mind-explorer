@@ -16,7 +16,7 @@
   <Transition name="purge-fade">
     <div
       v-if="step === 'confirm'"
-      class="fixed inset-0 z-[80] flex items-center justify-center bg-black/30 px-4"
+      class="fixed inset-0 z-[950] flex items-center justify-center bg-black/30 px-4"
       @click.self="closeConfirm"
     >
       <div class="w-full max-w-md bg-white rounded-2xl shadow-xl p-6 max-h-[88vh] overflow-y-auto">
@@ -69,7 +69,7 @@
   <Transition name="purge-fade">
     <div
       v-if="step === 'final'"
-      class="fixed inset-0 z-[80] flex items-center justify-center bg-black/30 px-4"
+      class="fixed inset-0 z-[950] flex items-center justify-center bg-black/30 px-4"
       @click.self="step = 'confirm'"
     >
       <div class="w-full max-w-md bg-white rounded-2xl shadow-xl p-6">
@@ -108,7 +108,7 @@
   <Transition name="purge-farewell">
     <div
       v-if="step === 'bye'"
-      class="fixed inset-0 z-[90] flex flex-col items-center justify-center bg-gradient-to-b from-[#fbfdfb] to-[#f2f7f3] px-6"
+      class="fixed inset-0 z-[950] flex flex-col items-center justify-center bg-gradient-to-b from-[#fbfdfb] to-[#f2f7f3] px-6"
     >
       <div class="w-[112px] mb-5 xm-bye-pet">
         <XiaomuSvg state="happy" action="swayLeaf" variant="wood" :wear="wear" />

@@ -2,7 +2,7 @@
   <Teleport to="body">
     <div
       v-if="crisis.visible"
-      class="fixed inset-0 z-[200] flex items-center justify-center bg-black/40 px-4"
+      class="fixed inset-0 z-[1000] flex items-center justify-center bg-black/40 px-4"
       @click.self="crisis.close()"
     >
       <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl border border-[#f0a868]">
