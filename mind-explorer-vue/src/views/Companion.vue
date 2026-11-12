@@ -99,7 +99,8 @@
     </div>
 
     <!-- 对话区 -->
-    <section ref="scrollEl" class="flex-1 min-h-0 overflow-y-auto rounded-2xl bg-[#fafbfc] border border-[#eef2f7] p-4 space-y-3">
+    <div class="relative flex-1 min-h-0 flex flex-col">
+    <section ref="scrollEl" class="flex-1 min-h-0 overflow-y-auto rounded-2xl bg-[#fafbfc] border border-[#eef2f7] p-4 space-y-3" @scroll.passive="onMsgScroll">
       <!-- 每日主动陪伴语（P5-2）：当天首次访问显示，可关闭 -->
       <div v-if="greeting" class="flex items-start gap-2 bg-gradient-to-r from-[#fff7ec] to-[#fef2f5] border border-[#f6dcc4] rounded-2xl px-4 py-3">
         <span class="text-[20px] shrink-0">🌅</span>
@@ -162,7 +163,20 @@
         />
         </div>
       </div>
+
     </section>
+
+    <!-- 回到最新：用户翻看历史时不强行拉回，只给一个明确的归位入口。
+         放在滚动容器外（绝对定位），避免按钮出现时把内容撑高、造成跳动。 -->
+    <button
+      v-if="!stickToBottom && messages.length"
+      type="button"
+      @click="jumpToLatest"
+      class="absolute left-1/2 -translate-x-1/2 bottom-3 inline-flex items-center gap-1 px-3 min-h-[36px] rounded-full bg-white/95 border border-[#dfe7ef] text-[#5a6b7c] text-[12.5px] shadow-md backdrop-blur-sm hover:border-[#c5d8ea] transition"
+    >
+      回到最新 <span aria-hidden="true">↓</span>
+    </button>
+    </div>
 
     <!-- CBT 思维记录（陪伴深度） -->
     <div v-if="guide === 'cbt'" class="fixed inset-0 z-[110] flex items-center justify-center bg-black/40 px-4" @click.self="guide = ''">
@@ -292,7 +306,7 @@
           v-model="input"
           rows="1"
           @keydown.enter.exact.prevent="send"
-          placeholder="和小木说点什么…（Enter 发送）"
+          placeholder="和小木说点什么…"
           class="flex-1 max-h-32 px-4 py-3 border border-[#e0e6ec] rounded-2xl resize-none text-[16px] focus:outline-none focus:border-[#7c9cb8] min-h-[44px]"
         ></textarea>
         <button
@@ -564,7 +578,7 @@ async function pushAssistant(text) {
   sending.value = true
   activeAssistant = reactive({ role: 'assistant', content: '', thinking: true })
   messages.push(activeAssistant)
-  await scrollToBottom()
+  await scrollToBottom(true)
   activeAssistant.thinking = false
   for (const ch of text) {
     activeAssistant.content += ch
@@ -592,7 +606,7 @@ async function loadRecap() {
     return
   }
   messages.push({ role: 'assistant', type: 'recap', recap: data.recap })
-  await scrollToBottom()
+  await scrollToBottom(true)
   saveHistory()
 }
 
@@ -729,9 +743,32 @@ function measureChatHeight() {
   chatH.value = Math.max(240, Math.round(vh - navH - padT - padB - tabH))
 }
 
-async function scrollToBottom() {
+// 是否跟随新消息。用户往上翻看历史时置 false，不再把他拽回底部。
+const stickToBottom = ref(true)
+const NEAR_BOTTOM_PX = 80
+
+function onMsgScroll() {
+  const el = scrollEl.value
+  if (!el) return
+  const distance = el.scrollHeight - el.scrollTop - el.clientHeight
+  stickToBottom.value = distance <= NEAR_BOTTOM_PX
+}
+
+/**
+ * force = true：无条件滚到底（自己刚发的消息、刚打开页面）
+ * force = false：只有用户本来就在底部附近才跟随（流式增量、打字机）
+ */
+async function scrollToBottom(force = false) {
   await nextTick()
-  if (scrollEl.value) scrollEl.value.scrollTop = scrollEl.value.scrollHeight
+  const el = scrollEl.value
+  if (!el) return
+  if (!force && !stickToBottom.value) return
+  el.scrollTop = el.scrollHeight
+  stickToBottom.value = true
+}
+
+function jumpToLatest() {
+  scrollToBottom(true)
 }
 
 function clearChat() {
@@ -776,7 +813,7 @@ async function sendText(text) {
 
   messages.push({ role: 'user', content: text })
   sending.value = true
-  await scrollToBottom()
+  await scrollToBottom(true)
 
   // 助手占位（流式填充）
   activeAssistant = reactive({ role: 'assistant', content: '', thinking: true, scene: null })
@@ -785,7 +822,7 @@ async function sendText(text) {
   // M7：每个回复一个切分器。它对全量 raw 重算，所以 content 里永远只有「人话」；
   // 代码单独走 reducer 内部，等流结束再决定要不要成卡片。
   const sceneSt = createSceneStream()
-  await scrollToBottom()
+  await scrollToBottom(true)
 
   const history = getHistory().slice(0, -1) // 不含刚加的用户消息已在后端拼
 
@@ -897,17 +934,23 @@ async function localFallback(text) {
 // 挂载时：若已登录，从服务端恢复对话（跨设备连续性）；失败则保留本地 localStorage
 onMounted(async () => {
   bindViewport()
-  await nextTick()
-  measureChatHeight()
+  // 先把会改变高度的东西都定下来，再测量、再归位。
+  // 顺序反了的话：测量时还没有引导提示，等它插进来就凭空多出 ~48px，
+  // 滚动位置会差一截，看起来像「没滚到底」。
   try {
     if (!localStorage.getItem('companion_guides_hint')) showGuidesHint.value = true
   } catch {}
+  await nextTick()
+  measureChatHeight()
+  // 本地历史是同步读出来的，没有服务端那条恢复路径 —— 这里补一次归位，
+  // 否则带着几十条历史进来会停在最老的那条。
+  if (messages.length) await scrollToBottom(true)
   if (!userId.value) return
   const serverMsgs = await companionApi.getHistory(userId.value, ident.token())
   if (serverMsgs && serverMsgs.length) {
     messages.splice(0, messages.length, ...serverMsgs.map((m) => ({ role: m.role, content: m.content })))
     saveHistory()
-    await scrollToBottom()
+    await scrollToBottom(true)
   }
   // 并行拉取当天的主动陪伴语（独立于对话恢复）
   loadGreeting()
@@ -918,6 +961,8 @@ onMounted(async () => {
 watch([viewportHeight, keyboardOpen], async () => {
   await nextTick()
   measureChatHeight()
+  // 高度变了会改变滚动位置的相对关系：本来就贴底的，重排后继续贴底
+  if (stickToBottom.value) await scrollToBottom(true)
 }, { flush: 'post' })
 
 onBeforeUnmount(() => {
