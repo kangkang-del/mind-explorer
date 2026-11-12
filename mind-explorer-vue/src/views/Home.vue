@@ -2,19 +2,38 @@
   <section class="home-main">
     <!-- 核心转化路径：同行者·小木 CTA 入口（深色重色锚点 + 对角线布局，按钮在右下符合 F 形阅读与拇指自然落点） -->
     <section class="xiaomu-hero">
+      <!-- 桌面 12 栅格 7:5；1024–1279 收成 6:6；平板同样 6:6；手机单列 -->
       <div class="hero-content">
         <div class="hero-text">
           <span class="hero-eyebrow">24h 在这听你说</span>
           <h1 class="hero-title">不想一个人扛着吗？</h1>
           <p class="hero-subtitle">小木，研究心理学与哲学的同行者。<br />陪你理一理、缓一缓、慢下来。</p>
+          <div class="hero-action">
+            <RouterLink to="/companion" class="hero-cta-btn">
+              <span>陪小木聊聊</span>
+              <span class="hero-arrow">→</span>
+            </RouterLink>
+            <p class="hero-hint">免费 · 无需注册 · 随时可走</p>
+          </div>
         </div>
-        <div class="hero-action">
-          <RouterLink to="/companion" class="hero-cta-btn">
-            <span>陪小木聊聊</span>
-            <span class="hero-arrow">→</span>
+
+        <!-- 路线图：四个入口路标（同行者 / 知识 / 日记 / 工具）。
+             这是「首屏就知道产品能做什么」的关键，不是装饰。 -->
+        <nav class="hero-markers" aria-label="快速开始">
+          <RouterLink
+            v-for="m in heroMarkers"
+            :key="m.to"
+            :to="m.to"
+            class="hero-marker"
+          >
+            <span class="hero-marker-icon" aria-hidden="true">{{ m.icon }}</span>
+            <span class="hero-marker-body">
+              <span class="hero-marker-title">{{ m.title }}</span>
+              <span class="hero-marker-desc">{{ m.desc }}</span>
+            </span>
+            <span class="hero-marker-arrow" aria-hidden="true">→</span>
           </RouterLink>
-          <p class="hero-hint">免费 · 无需注册 · 随时可走</p>
-        </div>
+        </nav>
       </div>
       <div class="hero-orb" aria-hidden="true"></div>
       <div class="hero-orb hero-orb-2" aria-hidden="true"></div>
@@ -193,6 +212,14 @@ function catLabel(k) {
 }
 
 // 轮播（0012：从「治愈瞬间 + 每日推送图」按日种子选取；无候选时回退静态图）
+// 路线图路标：桌面首屏的四个入口（同行者 / 知识 / 日记 / 工具）
+const heroMarkers = [
+  { to: '/companion', icon: '💬', title: '同行者', desc: '和小木说说心里话' },
+  { to: '/knowledge', icon: '📚', title: '心理知识', desc: '读懂那些行为与偏差' },
+  { to: '/mood', icon: '☁️', title: '心情日记', desc: '记下此刻的感受' },
+  { to: '/tools', icon: '🧰', title: '自助工具', desc: '呼吸练习与紧急求助' },
+]
+
 const slides = computed(() => {
   if (carouselPool.value.length) {
     return dailyPick(carouselPool.value, 5)
@@ -426,15 +453,27 @@ onUnmounted(() => {
 .hero-content {
   position: relative;
   z-index: 2;
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 28px;
   align-items: center;
-  justify-content: space-between;
-  gap: 32px;
-  flex-wrap: wrap;
+}
+/* 平板与 1024–1279 小桌面：6:6（手册允许，避免 7:5 在窄宽度下过窄） */
+@media (min-width: 768px) {
+  .hero-content {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 36px;
+  }
+}
+/* ≥1280 完整桌面：12 栅格 7:5 */
+@media (min-width: 1280px) {
+  .hero-content {
+    grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+    gap: 48px;
+  }
 }
 .hero-text {
-  flex: 1;
-  min-width: 280px;
+  min-width: 0;
 }
 .hero-eyebrow {
   display: inline-block;
@@ -471,8 +510,80 @@ onUnmounted(() => {
 .hero-action {
   display: flex;
   flex-direction: column;
-  align-items: flex-end;
+  align-items: flex-start;
   gap: 10px;
+  margin-top: 22px;
+}
+
+/* 路线图路标：桌面首屏的四个入口 */
+.hero-markers {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  min-width: 0;
+}
+.hero-marker {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 64px;
+  padding: 12px 14px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 14px;
+  color: #fff;
+  text-decoration: none;
+  transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+}
+.hero-marker:hover {
+  background: rgba(255, 255, 255, 0.14);
+  border-color: rgba(255, 255, 255, 0.32);
+  transform: translateY(-2px);
+}
+.hero-marker-icon {
+  font-size: 20px;
+  line-height: 1;
+  flex: none;
+}
+.hero-marker-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.hero-marker-title {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+.hero-marker-desc {
+  font-size: 11.5px;
+  line-height: 1.4;
+  opacity: 0.72;
+}
+/* 手机上路标只留标题：说明文字在窄屏会折成两行，把卡片挤得很难看 */
+@media (max-width: 767px) {
+  .hero-marker-desc {
+    display: none;
+  }
+  .hero-marker {
+    min-height: 56px;
+  }
+}
+/* 手机上路标只留标题：说明文字在窄屏会折成两行，把卡片挤得很难看 */
+@media (max-width: 767px) {
+  .hero-marker-desc {
+    display: none;
+  }
+  .hero-marker {
+    min-height: 56px;
+  }
+}
+.hero-marker-arrow {
+  margin-left: auto;
+  opacity: 0.6;
+  font-size: 14px;
+  flex: none;
 }
 .hero-cta-btn {
   display: inline-flex;
@@ -566,14 +677,23 @@ onUnmounted(() => {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  min-height: 220px;
+}
+/* 轮播高度固定：精选内容不该在首屏里无限长，也不能随图片尺寸跳动 */
+.carousel-slide {
+  height: 250px;
+}
+@media (min-width: 768px) {
+  .carousel-slide {
+    height: 320px;
+  }
 }
 .carousel-overlay {
   position: absolute;
   left: 0;
   right: 0;
   bottom: 0;
-  padding: 48px 40px 48px;
+  /* 通栏轮播的左右箭头贴在视口边缘，文字必须让开，否则会被压住 */
+  padding: 48px 76px 48px;
   background: linear-gradient(to top, rgba(0, 0, 0, 0.55), rgba(0, 0, 0, 0.1), transparent);
   color: #fff;
 }
@@ -1000,6 +1120,19 @@ onUnmounted(() => {
   }
   .carousel-overlay {
     padding: 20px 16px 24px;
+  }
+  .carousel-slide {
+    height: 220px;
+  }
+  /* 手机上箭头竖直居中会压住底部标题，移到顶部 */
+  .carousel-arrow {
+    top: 12px;
+    transform: none;
+  }
+  /* 手机上箭头竖直居中会压住底部标题，移到顶部 */
+  .carousel-arrow {
+    top: 12px;
+    transform: none;
   }
   .carousel-arrow {
     /* 触控目标不能小于 44：原来这里缩到 34，手机上很难点中 */

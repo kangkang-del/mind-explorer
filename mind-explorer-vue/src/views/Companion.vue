@@ -53,21 +53,52 @@
         <span class="text-[12px] text-[#5a7d9a] leading-5 flex-1">小木准备了几件可以一起做的事，点下面试试 👇</span>
         <button @click="dismissGuidesHint" class="border-0 inline-flex items-center justify-center w-11 h-11 shrink-0 text-[#5A6B7C] hover:text-[#5a7d9a] text-[16px] leading-none">×</button>
       </div>
-      <!-- 快捷功能：手册要求单行横向滚动，不折行、不挤压输入区 -->
+      <!-- 快捷功能：手机 5 项横向滚动；桌面/平板只显示常用 3 项 + 「更多」
+           （手册 §4：桌面和平板使用常用 3 项 + 更多） -->
       <div class="flex flex-nowrap gap-2 overflow-x-auto no-scrollbar pb-1">
         <button
-          v-for="g in guides"
+          v-for="(g, i) in guides"
           :key="g.key"
           @click="openGuide(g.key)"
           :title="g.desc"
           class="bg-transparent shrink-0 whitespace-nowrap min-h-[44px] px-3 py-1.5 rounded-full text-[12.5px] border transition flex items-center gap-1.5"
-          :class="guide === g.key ? 'font-semibold shadow-sm' : 'bg-white border-[#E6EAF0] text-[#7a8a9a] hover:border-[#c5d8ea]'"
+          :class="[i >= 3 ? 'md:hidden' : '', guide === g.key ? 'font-semibold shadow-sm' : 'bg-white border-[#E6EAF0] text-[#7a8a9a] hover:border-[#c5d8ea]']"
           :style="guide === g.key ? { backgroundColor: g.bg, borderColor: g.color, color: g.color } : {}"
         >
           <span class="text-[15px] leading-none">{{ g.emoji }}</span>
           <span>{{ g.label }}</span>
           <span v-if="guide === g.key" class="inline-block w-[6px] h-[6px] rounded-full" :style="{ backgroundColor: g.color }"></span>
         </button>
+
+        <!-- 桌面/平板的「更多」 -->
+        <div class="relative hidden md:block shrink-0">
+          <button
+            type="button"
+            @click="moreGuides = !moreGuides"
+            :aria-expanded="moreGuides ? 'true' : 'false'"
+            class="bg-transparent inline-flex items-center gap-1 min-h-[44px] px-3 py-1.5 rounded-full text-[12.5px] border border-[#E6EAF0] text-[#5A6B7C] hover:border-[#c5d8ea] transition"
+          >
+            更多 <span class="text-[10px]" aria-hidden="true">▾</span>
+          </button>
+          <div
+            v-if="moreGuides"
+            class="absolute right-0 top-[calc(100%+8px)] z-20 min-w-[280px] bg-white border border-[#E6EAF0] rounded-xl shadow-lg p-1.5"
+          >
+            <button
+              v-for="g in guides"
+              :key="g.key"
+              type="button"
+              @click="openGuide(g.key)"
+              class="w-full flex items-start gap-2.5 min-h-[44px] px-3 py-2 rounded-lg text-left transition hover:bg-[#f0f4f9]"
+            >
+              <span class="text-[17px] leading-none pt-0.5" aria-hidden="true">{{ g.emoji }}</span>
+              <span class="flex-1 min-w-0">
+                <span class="block text-[13px] font-semibold text-[#263746] leading-tight">{{ g.label }}</span>
+                <span class="block text-[11.5px] text-[#5A6B7C] leading-snug mt-0.5">{{ g.desc }}</span>
+              </span>
+            </button>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -485,6 +516,8 @@ const guides = [
   { key: 'cbt-history', emoji: '📖', label: '我的思录', desc: '回看过去的思维记录', color: '#9a7a4a', bg: '#faf3e6' },
 ]
 const guide = ref('')
+// 桌面/平板快捷项的「更多」面板
+const moreGuides = ref(false)
 const pickedEmotion = ref('')
 const moodTip = ref('')
 const moodLogging = ref(false)
@@ -533,6 +566,7 @@ function dismissGuidesHint() {
 }
 
 function openGuide(key) {
+  moreGuides.value = false
   if (key === 'recap') {
     guide.value = ''
     loadRecap()

@@ -8,7 +8,7 @@
     <div class="flex flex-col md:flex-row gap-5">
       <!-- 左侧分类（桌面） -->
       <aside class="hidden md:block w-48 shrink-0">
-        <div class="flex flex-col gap-1 sticky top-[76px]">
+        <div class="flex flex-col gap-1 sticky top-[76px] lg:top-[80px]">
           <button
             v-for="cat in categories"
             :key="cat.key"
@@ -53,7 +53,7 @@
         </div>
 
         <!-- 卡片网格：手机1列 / 平板2列 / 桌面3列 -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           <article
             v-for="item in filtered"
             :key="item.type + '-' + item.key"

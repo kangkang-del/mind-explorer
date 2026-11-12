@@ -1,6 +1,6 @@
 <template>
   <header class="sticky top-0 z-[100] bg-white/90 backdrop-blur-md border-b border-[#E6EAF0]">
-    <div class="mx-auto max-w-app flex items-center h-[60px] page-x gap-2">
+    <div class="mx-auto max-w-app flex items-center h-[60px] lg:h-[64px] page-x gap-2">
       <RouterLink
         to="/"
         class="inline-flex items-center gap-1.5 min-h-[44px] font-bold text-[18px] text-[#263746] no-underline whitespace-nowrap"
