@@ -59,7 +59,6 @@ body {
     -moz-osx-font-smoothing: grayscale;
 }
 
-
 /* ==================== 导航栏 ==================== */
 .navbar {
     position: sticky;
@@ -111,20 +110,9 @@ body {
     background: rgba(123, 174, 154, 0.12);
 }
 
-
 /* ==================== 主内容区域 ==================== */
-.main-content {
-    max-width: 1120px;
-    margin: 0 auto;
-    padding: 0 24px 60px;
-}
-
 
 /* ==================== Hero 区域 ==================== */
-.hero {
-    text-align: center;
-    padding: 88px 20px 64px;
-}
 
 .hero-title {
     font-family: var(--home-font-title);
@@ -171,11 +159,7 @@ body {
     transform: translateY(0);
 }
 
-
 /* ==================== 三大入口卡片 — PC 端 Grid ==================== */
-.entry-section {
-    margin-bottom: 48px;
-}
 
 .entry-carousel {
     display: grid;
@@ -220,50 +204,9 @@ body {
     opacity: 1;
 }
 
-.entry-card-icon {
-    flex-shrink: 0;
-    width: 52px;
-    height: 52px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: rgba(123, 174, 154, 0.1);
-    border-radius: 14px;
-}
-
-.entry-card-icon svg {
-    width: 36px;
-    height: 36px;
-}
-
-.entry-card-title {
-    font-family: var(--home-font-title);
-    font-weight: 400;
-    font-size: 1.35rem;
-    color: var(--home-text);
-    letter-spacing: 0.05em;
-}
-
-.entry-card-desc {
-    font-size: 0.92rem;
-    color: var(--home-text-sub);
-    line-height: 1.75;
-    flex: 1;
-}
-
-.entry-card-action {
-    font-size: 0.9rem;
-    font-weight: 500;
-    color: var(--home-accent);
-    letter-spacing: 0.03em;
-    transition: color 0.25s;
-    margin-top: 4px;
-}
-
 .entry-card:hover .entry-card-action {
     color: var(--home-accent-hover);
 }
-
 
 /* ==================== 页脚 ==================== */
 .footer {
@@ -274,7 +217,6 @@ body {
     letter-spacing: 0.03em;
     border-top: 1px solid rgba(123, 174, 154, 0.18);
 }
-
 
 /* ===================================================
    响应式断点
@@ -292,7 +234,6 @@ body {
         justify-self: center;
     }
 }
-
 
 /* ---------- 移动端 (<768px) ---------- */
 
@@ -314,14 +255,6 @@ body {
     animation: mistPopIn 0.3s ease;
 }
 .mist-popover.show { display: block; }
-.mist-quote {
-    margin: 0;
-    font-size: 0.92rem;
-    line-height: 1.6;
-    color: var(--home-text);
-    text-align: center;
-    font-style: italic;
-}
 @keyframes mistPopIn {
     from { opacity: 0; transform: translateY(8px) scale(0.95); }
     to   { opacity: 1; transform: translateY(0) scale(1); }
@@ -435,7 +368,6 @@ body {
 
     /* ==================== 水母迷思弹窗 ==================== */
 
-
 /* 拖拽光标 */
 .mist-widget { cursor: grab; }
 .mist-widget.dragging { cursor: grabbing; transition: none; }
@@ -445,7 +377,6 @@ eyframes mistPopIn {
     from { opacity: 0; transform: translateY(8px) scale(0.95); }
     to   { opacity: 1; transform: translateY(0) scale(1); }
 }
-
 
 /* ===================================================
    🪼 情绪水母挂件 v3 — 圆形玻璃球 + 灵动水母
@@ -598,7 +529,6 @@ eyframes mistPopIn {
 /* ---- 提示文字 ---- */
 .mist-hint { position:absolute; top:-36px; left:50%; transform:translateX(-50%) translateY(8px); white-space:nowrap; font-size:.75rem; color:var(--home-text-sub); background:var(--home-card); padding:5px 12px; border-radius:16px; box-shadow:0 2px 12px rgba(166,165,160,0.15); opacity:0; visibility:hidden; transition:opacity .3s ease,visibility .3s ease,transform .3s ease; pointer-events:none; letter-spacing:.03em; z-index:810; }
 .mist-hint.visible { opacity:1; visibility:visible; transform:translateX(-50%) translateY(0); }
-
 
 /* ===================================================
    @keyframes — 水母动画 v3
