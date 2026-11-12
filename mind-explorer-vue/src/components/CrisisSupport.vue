@@ -48,7 +48,7 @@
           </RouterLink>
           <button
             @click="crisis.close()"
-            class="bg-transparent px-4 py-2.5 rounded-lg text-[14px] text-[#5a6b7c] border border-[#E6EAF0] hover:bg-[#f0f4f9] transition"
+            class="bg-transparent px-4 py-2.5 rounded-lg text-[14px] text-[#5a6b7c] border border-[#E6EAF0] hover:bg-surface-brand-subtle transition"
           >
             我记住了
           </button>

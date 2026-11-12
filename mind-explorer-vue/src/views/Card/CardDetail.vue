@@ -65,7 +65,7 @@
             <p>参与评论：</p>
             <button @click="auth.openLogin('register')" class="border-0 px-4 py-2 rounded-lg bg-[#345B8E] text-white text-sm font-medium transition hover:bg-[#6b8aa6]">游客注册 / 登录</button>
             <span class="divider">或</span>
-            <button @click="auth.login()" class="px-4 py-2 rounded-lg border border-[#E6EAF0] bg-white text-[#5a6b7c] text-sm transition hover:bg-[#f0f4f9]">GitHub 登录</button>
+            <button @click="auth.login()" class="px-4 py-2 rounded-lg border border-[#E6EAF0] bg-white text-[#5a6b7c] text-sm transition hover:bg-surface-brand-subtle">GitHub 登录</button>
           </div>
 
           <div v-if="comments.length" class="comment-list" style="margin-top: 20px">

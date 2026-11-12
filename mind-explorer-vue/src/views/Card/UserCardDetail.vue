@@ -11,7 +11,7 @@
       <RouterLink to="/upload" class="inline-block text-[13px] text-[#345B8E] no-underline mb-4">← 返回分享页</RouterLink>
 
       <div class="flex items-center gap-2 mb-3">
-        <span v-if="card.category" class="inline-block bg-[#f0f4f9] text-[#5a6b7c] text-[12px] px-3 py-1 rounded-full">{{ card.category }}</span>
+        <span v-if="card.category" class="inline-block bg-surface-brand-subtle text-[#5a6b7c] text-[12px] px-3 py-1 rounded-full">{{ card.category }}</span>
         <span v-if="card.featured" class="inline-block bg-gradient-to-r from-[#ffe2a8] to-[#fff3d6] text-[#b4791f] text-[12px] px-3 py-1 rounded-full font-semibold border border-[#f3d28a]">✨ 精选</span>
       </div>
       <h1 class="text-2xl font-bold text-[#263746] m-0 mb-2">{{ card.title }}</h1>
@@ -31,7 +31,7 @@
       </p>
 
       <!-- 互动：抱抱 + 举报 -->
-      <div class="flex items-center gap-3 mt-5 pt-4 border-t border-[#f0f4f9]">
+      <div class="flex items-center gap-3 mt-5 pt-4 border-t border-line-subtle">
         <button
           @click="onHug"
           :disabled="hugging"

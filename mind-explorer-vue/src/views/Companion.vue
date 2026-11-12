@@ -49,7 +49,7 @@
          键盘弹出时整块收起：这些是「开始聊之前」的入口，
          打字时不需要，但它们会占掉 100+px，把输入框顶出可视区。 -->
     <div v-if="!compact" class="mb-2 shrink-0">
-      <div v-if="showGuidesHint" class="flex items-center gap-2 bg-[#f0f4f9] rounded-xl px-3 py-1.5 mb-2">
+      <div v-if="showGuidesHint" class="flex items-center gap-2 bg-surface-brand-subtle rounded-xl px-3 py-1.5 mb-2">
         <span class="text-[12px] text-[#5a7d9a] leading-5 flex-1">小木准备了几件可以一起做的事，点下面试试 👇</span>
         <button @click="dismissGuidesHint" class="border-0 inline-flex items-center justify-center w-11 h-11 shrink-0 text-[#5A6B7C] hover:text-[#5a7d9a] text-[16px] leading-none">×</button>
       </div>
@@ -80,7 +80,7 @@
           :key="m.key"
           @click="pickEmotion(m)"
           class="bg-transparent flex flex-col items-center gap-0.5 py-2 rounded-xl border transition"
-          :class="pickedEmotion === m.key ? 'border-[#345B8E] bg-[#f0f4f9] scale-[1.03]' : 'border-[#E6EAF0] hover:border-[#c5d8ea]'"
+          :class="pickedEmotion === m.key ? 'border-[#345B8E] bg-surface-brand-subtle scale-[1.03]' : 'border-[#E6EAF0] hover:border-[#c5d8ea]'"
         >
           <span class="text-[22px] leading-none">{{ m.emoji }}</span>
           <span class="text-[11px] text-[#5a6b7c]">{{ m.label }}</span>
@@ -193,7 +193,7 @@
           <div class="flex flex-wrap gap-1.5">
             <button v-for="m in MOODS" :key="m.key" @click="cbt.emotion = m.key"
               class="bg-transparent px-2.5 py-1 rounded-full text-[12px] border transition"
-              :class="cbt.emotion === m.key ? 'border-[#345B8E] bg-[#f0f4f9] text-[#5a7d9a]' : 'border-[#E6EAF0] text-[#7a8a9a]'">
+              :class="cbt.emotion === m.key ? 'border-[#345B8E] bg-surface-brand-subtle text-[#5a7d9a]' : 'border-[#E6EAF0] text-[#7a8a9a]'">
               {{ m.emoji }} {{ m.label }}
             </button>
           </div>
@@ -206,7 +206,7 @@
             class="border-0 flex-1 py-2.5 bg-[#345B8E] text-white rounded-lg text-[14px] font-semibold disabled:opacity-50 transition hover:opacity-90">
             {{ cbtLoading ? '小木在读…' : '请小木陪我看看' }}
           </button>
-          <button @click="guide = ''" class="bg-transparent px-4 py-2.5 rounded-lg text-[14px] text-[#5a6b7c] border border-[#E6EAF0] hover:bg-[#f0f4f9] transition">稍后</button>
+          <button @click="guide = ''" class="bg-transparent px-4 py-2.5 rounded-lg text-[14px] text-[#5a6b7c] border border-[#E6EAF0] hover:bg-surface-brand-subtle transition">稍后</button>
         </div>
       </div>
     </div>
@@ -248,7 +248,7 @@
             </div>
             <p v-if="r.thought" class="text-[13px] text-[#263746] m-0 mb-1"><b>想法：</b>{{ r.thought }}</p>
             <p v-if="r.alternative" class="text-[13px] text-[#4a8a5e] m-0 mb-1"><b>更平衡：</b>{{ r.alternative }}</p>
-            <p v-if="r.suggestion" class="text-[12.5px] text-[#5a6b7c] leading-6 m-0 mt-1.5 pt-1.5 border-t border-[#f0f4f9]">小木：{{ r.suggestion }}</p>
+            <p v-if="r.suggestion" class="text-[12.5px] text-[#5a6b7c] leading-6 m-0 mt-1.5 pt-1.5 border-t border-line-subtle">小木：{{ r.suggestion }}</p>
           </div>
         </div>
       </div>

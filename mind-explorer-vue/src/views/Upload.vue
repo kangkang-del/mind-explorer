@@ -41,7 +41,7 @@
               type="button"
               @click="form.category = c"
               class="bg-transparent inline-flex items-center min-h-[44px] px-3.5 py-1.5 rounded-full text-[13px] border transition"
-              :class="form.category === c ? 'border-[#345B8E] bg-[#f0f4f9] text-[#263746]' : 'border-[#E6EAF0] text-[#5A6B7C] hover:border-[#c5d8ea]'"
+              :class="form.category === c ? 'border-[#345B8E] bg-surface-brand-subtle text-[#263746]' : 'border-[#E6EAF0] text-[#5A6B7C] hover:border-[#c5d8ea]'"
             >
               {{ c }}
             </button>

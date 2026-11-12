@@ -16,7 +16,7 @@
           :key="m.key"
           @click="pick(m.key)"
           class="bg-transparent flex flex-col items-center gap-1 py-3 rounded-xl border transition"
-          :class="selected === m.key ? 'border-[#345B8E] bg-[#f0f4f9] scale-[1.03]' : 'border-[#E6EAF0] hover:border-[#c5d8ea]'"
+          :class="selected === m.key ? 'border-[#345B8E] bg-surface-brand-subtle scale-[1.03]' : 'border-[#E6EAF0] hover:border-[#c5d8ea]'"
         >
           <span class="text-[26px] leading-none">{{ m.emoji }}</span>
           <span class="text-[12px] text-[#5a6b7c]">{{ m.label }}</span>

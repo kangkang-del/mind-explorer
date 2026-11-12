@@ -16,7 +16,7 @@
           :key="item.to"
           :to="item.to"
           class="relative inline-flex items-center px-3 min-h-[44px] rounded-lg text-[15px] no-underline whitespace-nowrap transition"
-          :class="isActive(item.to) ? 'bg-[#f0f4f9] text-[#263746] font-semibold' : 'text-[#5a6b7c] hover:bg-[#f0f4f9] hover:text-[#263746]'"
+          :class="isActive(item.to) ? 'bg-surface-brand-subtle text-[#263746] font-semibold' : 'text-[#5a6b7c] hover:bg-surface-brand-subtle hover:text-[#263746]'"
         >
           {{ item.label }}
           <span
@@ -34,7 +34,7 @@
           :key="item.to"
           :to="item.to"
           class="relative inline-flex items-center px-2.5 min-h-[44px] rounded-lg text-[15px] no-underline whitespace-nowrap transition"
-          :class="isActive(item.to) ? 'bg-[#f0f4f9] text-[#263746] font-semibold' : 'text-[#5a6b7c] hover:bg-[#f0f4f9] hover:text-[#263746]'"
+          :class="isActive(item.to) ? 'bg-surface-brand-subtle text-[#263746] font-semibold' : 'text-[#5a6b7c] hover:bg-surface-brand-subtle hover:text-[#263746]'"
         >
           {{ item.label }}
           <span
@@ -59,7 +59,7 @@
 
       <!-- ===== 平板：更多（打开同一抽屉） ===== -->
       <button
-        class="hidden md:inline-flex xl:hidden items-center min-h-[44px] px-2.5 rounded-lg text-[15px] text-[#5a6b7c] bg-transparent border-0 cursor-pointer transition hover:bg-[#f0f4f9] hover:text-[#263746]"
+        class="hidden md:inline-flex xl:hidden items-center min-h-[44px] px-2.5 rounded-lg text-[15px] text-[#5a6b7c] bg-transparent border-0 cursor-pointer transition hover:bg-surface-brand-subtle hover:text-[#263746]"
         @click="menuOpen = !menuOpen"
         :aria-expanded="menuOpen ? 'true' : 'false'"
         aria-label="更多入口"
@@ -85,13 +85,13 @@
           <div v-if="auth.isLoggedIn" class="px-3 py-2 text-[13px] text-[#5A6B7C] border-b border-[#E6EAF0] mb-1">
             你好，{{ auth.displayName || '朋友' }}{{ auth.isGuest ? '（游客）' : '' }}
           </div>
-          <RouterLink to="/profile" class="inline-flex items-center min-h-[44px] px-3 rounded-md text-[14px] text-[#5a6b7c] no-underline hover:bg-[#f0f4f9]" @click="userMenuOpen=false">个人中心</RouterLink>
-          <RouterLink to="/mood" class="inline-flex items-center min-h-[44px] px-3 rounded-md text-[14px] text-[#5a6b7c] no-underline hover:bg-[#f0f4f9]" @click="userMenuOpen=false">心情日记</RouterLink>
-          <RouterLink to="/upload" class="inline-flex items-center min-h-[44px] px-3 rounded-md text-[14px] text-[#5a6b7c] no-underline hover:bg-[#f0f4f9]" @click="userMenuOpen=false">治愈瞬间</RouterLink>
-          <RouterLink to="/tools" class="inline-flex items-center min-h-[44px] px-3 rounded-md text-[14px] text-[#5a6b7c] no-underline hover:bg-[#f0f4f9]" @click="userMenuOpen=false">自助工具</RouterLink>
-          <RouterLink to="/admin" class="inline-flex items-center min-h-[44px] px-3 rounded-md text-[14px] text-[#5a6b7c] no-underline hover:bg-[#f0f4f9]" @click="userMenuOpen=false">审核后台</RouterLink>
-          <RouterLink to="/feedback" class="inline-flex items-center min-h-[44px] px-3 rounded-md text-[14px] text-[#5a6b7c] no-underline hover:bg-[#f0f4f9]" @click="userMenuOpen=false">反馈与建议</RouterLink>
-          <button v-if="!auth.isLoggedIn" class="inline-flex items-center min-h-[44px] px-3 rounded-md text-left text-[14px] text-[#345B8E] font-semibold bg-transparent border-0 cursor-pointer hover:bg-[#f0f4f9]" @click="openLogin()">登录 / 注册</button>
+          <RouterLink to="/profile" class="inline-flex items-center min-h-[44px] px-3 rounded-md text-[14px] text-[#5a6b7c] no-underline hover:bg-surface-brand-subtle" @click="userMenuOpen=false">个人中心</RouterLink>
+          <RouterLink to="/mood" class="inline-flex items-center min-h-[44px] px-3 rounded-md text-[14px] text-[#5a6b7c] no-underline hover:bg-surface-brand-subtle" @click="userMenuOpen=false">心情日记</RouterLink>
+          <RouterLink to="/upload" class="inline-flex items-center min-h-[44px] px-3 rounded-md text-[14px] text-[#5a6b7c] no-underline hover:bg-surface-brand-subtle" @click="userMenuOpen=false">治愈瞬间</RouterLink>
+          <RouterLink to="/tools" class="inline-flex items-center min-h-[44px] px-3 rounded-md text-[14px] text-[#5a6b7c] no-underline hover:bg-surface-brand-subtle" @click="userMenuOpen=false">自助工具</RouterLink>
+          <RouterLink to="/admin" class="inline-flex items-center min-h-[44px] px-3 rounded-md text-[14px] text-[#5a6b7c] no-underline hover:bg-surface-brand-subtle" @click="userMenuOpen=false">审核后台</RouterLink>
+          <RouterLink to="/feedback" class="inline-flex items-center min-h-[44px] px-3 rounded-md text-[14px] text-[#5a6b7c] no-underline hover:bg-surface-brand-subtle" @click="userMenuOpen=false">反馈与建议</RouterLink>
+          <button v-if="!auth.isLoggedIn" class="inline-flex items-center min-h-[44px] px-3 rounded-md text-left text-[14px] text-[#345B8E] font-semibold bg-transparent border-0 cursor-pointer hover:bg-surface-brand-subtle" @click="openLogin()">登录 / 注册</button>
           <button v-else class="inline-flex items-center min-h-[44px] px-3 rounded-md text-left text-[14px] text-[#c97b7b] bg-transparent border-0 cursor-pointer hover:bg-[#fdf2f2]" @click="auth.logout()">退出登录</button>
         </div>
       </div>
@@ -124,7 +124,7 @@
               心灵探索
             </span>
             <button
-              class="border-0 bg-transparent text-[26px] text-[#5A6B7C] cursor-pointer w-11 h-11 -mr-2 flex items-center justify-center active:bg-[#f0f4f9] rounded-full"
+              class="border-0 bg-transparent text-[26px] text-[#5A6B7C] cursor-pointer w-11 h-11 -mr-2 flex items-center justify-center active:bg-surface-brand-subtle rounded-full"
               @click="menuOpen = false"
               aria-label="关闭菜单"
             >×</button>
@@ -136,8 +136,8 @@
               :key="item.to"
               :to="item.to"
               @click="menuOpen = false"
-              class="flex items-center min-h-[48px] px-3 py-3 rounded-xl text-[16px] text-[#5a6b7c] no-underline transition active:bg-[#e6eef5] hover:bg-[#f0f4f9]"
-              active-class="bg-[#f0f4f9] text-[#263746] font-semibold"
+              class="flex items-center min-h-[48px] px-3 py-3 rounded-xl text-[16px] text-[#5a6b7c] no-underline transition active:bg-[#e6eef5] hover:bg-surface-brand-subtle"
+              active-class="bg-surface-brand-subtle text-[#263746] font-semibold"
             >
               <span class="text-[19px] mr-3 w-6 text-center shrink-0">{{ item.icon }}</span>
               <span class="flex-1">{{ item.label }}</span>
@@ -157,16 +157,16 @@
               <RouterLink
                 to="/profile"
                 @click="menuOpen = false"
-                class="flex items-center min-h-[48px] px-3 py-3 rounded-xl text-[16px] text-[#5a6b7c] no-underline hover:bg-[#f0f4f9]"
-                active-class="bg-[#f0f4f9] text-[#263746] font-semibold"
+                class="flex items-center min-h-[48px] px-3 py-3 rounded-xl text-[16px] text-[#5a6b7c] no-underline hover:bg-surface-brand-subtle"
+                active-class="bg-surface-brand-subtle text-[#263746] font-semibold"
               >
                 <span class="text-[19px] mr-3 w-6 text-center">👤</span>个人中心
               </RouterLink>
               <RouterLink
                 to="/admin"
                 @click="menuOpen = false"
-                class="flex items-center min-h-[48px] px-3 py-3 rounded-xl text-[16px] text-[#5a6b7c] no-underline hover:bg-[#f0f4f9]"
-                active-class="bg-[#f0f4f9] text-[#263746] font-semibold"
+                class="flex items-center min-h-[48px] px-3 py-3 rounded-xl text-[16px] text-[#5a6b7c] no-underline hover:bg-surface-brand-subtle"
+                active-class="bg-surface-brand-subtle text-[#263746] font-semibold"
               >
                 <span class="text-[19px] mr-3 w-6 text-center">🛠️</span>审核后台
               </RouterLink>
@@ -179,7 +179,7 @@
             </template>
             <template v-else>
               <button
-                class="w-full flex items-center min-h-[48px] px-3 py-3 rounded-xl text-left text-[16px] text-[#345B8E] font-semibold bg-transparent border-0 cursor-pointer transition hover:bg-[#f0f4f9] active:bg-[#e6eef5]"
+                class="w-full flex items-center min-h-[48px] px-3 py-3 rounded-xl text-left text-[16px] text-[#345B8E] font-semibold bg-transparent border-0 cursor-pointer transition hover:bg-surface-brand-subtle active:bg-[#e6eef5]"
                 @click="openLogin()"
               >
                 <span class="text-[19px] mr-3 w-6 text-center">🔑</span>登录 / 注册

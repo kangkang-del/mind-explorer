@@ -33,7 +33,7 @@
           :key="t.key"
           @click="load(t.key)"
           class="bg-transparent px-4 py-2 rounded-xl text-[14px] border transition whitespace-nowrap"
-          :class="tab === t.key ? 'border-[#345B8E] bg-[#f0f4f9] text-[#263746] font-semibold' : 'border-[#E6EAF0] text-[#5A6B7C] hover:border-[#c5d8ea]'"
+          :class="tab === t.key ? 'border-[#345B8E] bg-surface-brand-subtle text-[#263746] font-semibold' : 'border-[#E6EAF0] text-[#5A6B7C] hover:border-[#c5d8ea]'"
         >
           {{ t.label }} ({{ counts[t.key] }})
         </button>

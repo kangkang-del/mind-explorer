@@ -14,7 +14,7 @@
             :key="cat.key"
             @click="activeType = cat.key"
             class="border-0 flex items-center text-left min-h-[44px] px-3 py-2 rounded-lg text-[14px] transition"
-            :class="activeType === cat.key ? 'bg-[#eef4f9] text-[#345B8E] font-semibold' : 'text-[#5a6b7c] hover:bg-[#f0f4f9]'"
+            :class="activeType === cat.key ? 'bg-[#eef4f9] text-[#345B8E] font-semibold' : 'text-[#5a6b7c] hover:bg-surface-brand-subtle'"
           >
             {{ cat.label }} <span class="text-[#b8b8b8]">{{ cat.count }}</span>
           </button>
@@ -343,7 +343,7 @@ function formatTime(time) {
 }
 .divider { color: #5A6B7C; font-size: 12px; }
 .comment-list { margin-top: 8px; }
-.comment-item { padding: 10px 0; border-bottom: 1px solid #f0f4f9; }
+.comment-item { padding: 10px 0; border-bottom: 1px solid #E6EAF0; }
 .comment-header { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
 .comment-header small { color: #aaa; margin-left: auto; font-size: 12px; }
 .comment-body p { margin: 0; color: #5a6b7c; font-size: 13px; line-height: 1.7; }

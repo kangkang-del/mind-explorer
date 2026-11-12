@@ -26,7 +26,7 @@
         <button
           v-else
           @click="auth.logout()"
-          class="bg-transparent px-4 py-1.5 min-h-[44px] text-[13px] text-[#5A6B7C] border border-[#E6EAF0] rounded-md hover:bg-[#f0f4f9] transition"
+          class="bg-transparent px-4 py-1.5 min-h-[44px] text-[13px] text-[#5A6B7C] border border-[#E6EAF0] rounded-md hover:bg-surface-brand-subtle transition"
         >
           退出登录
         </button>
@@ -159,7 +159,7 @@
           :key="i"
           class="flex items-center gap-2 py-2 border-b border-[#f3f6f9] last:border-0"
         >
-          <span class="text-[12px] px-2 py-0.5 rounded-full bg-[#f0f4f9] text-[#5a6b7c] shrink-0">{{ typeLabel(f.type) }}</span>
+          <span class="text-[12px] px-2 py-0.5 rounded-full bg-surface-brand-subtle text-[#5a6b7c] shrink-0">{{ typeLabel(f.type) }}</span>
           <a v-if="f.link" :href="f.link" class="flex-1 text-[14px] text-[#263746] no-underline truncate hover:text-[#345B8E] transition">{{ f.title || '未命名' }}</a>
           <span v-else class="flex-1 text-[14px] text-[#263746] truncate">{{ f.title || '未命名' }}</span>
         </li>

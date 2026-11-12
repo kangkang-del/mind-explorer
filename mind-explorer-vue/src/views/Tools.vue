@@ -75,7 +75,7 @@
             class="border-0 px-5 py-2 min-h-[44px] rounded-lg text-[13px] font-semibold transition"
             :class="breathing.active === key && breathing.running
               ? 'bg-[#eef2f7] text-[#5a6b7c]'
-              : 'bg-[#f0f4f9] text-[#5a6b7c] hover:bg-[#e3ebf2]'"
+              : 'bg-surface-brand-subtle text-[#5a6b7c] hover:bg-[#e3ebf2]'"
           >
             {{ breathing.active === key && breathing.running ? '暂停' : (breathing.active === key ? '继续' : '开始练习') }}
           </button>
