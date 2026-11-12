@@ -1,12 +1,12 @@
 <template>
   <section class="page-narrow py-6">
     <header class="mb-5">
-      <h1 class="text-2xl font-bold text-[#3a4a5c] m-0">🌤️ 心情日记</h1>
+      <h1 class="text-2xl font-bold text-[#263746] m-0">🌤️ 心情日记</h1>
       <p class="text-[#9aa6b2] text-[14px] mt-1 m-0">每天留一笔，看看自己的情绪起伏。只有你自己和小木能看到。</p>
     </header>
 
     <!-- 记录区 -->
-    <section class="bg-white rounded-2xl border border-[#eef2f7] p-5 mb-5">
+    <section class="bg-white rounded-2xl border border-[#E6EAF0] p-5 mb-5">
       <p class="text-[14px] text-[#5a6b7c] mb-3 m-0">今天，你感觉……</p>
       <!-- 6 项一行只在桌面档出现：640–1023 保持 3×2（手册允许），
            640 处排 6 列会把单格拉到 76px，触摸和阅读都不达标 -->
@@ -15,8 +15,8 @@
           v-for="m in MOODS"
           :key="m.key"
           @click="pick(m.key)"
-          class="flex flex-col items-center gap-1 py-3 rounded-xl border transition"
-          :class="selected === m.key ? 'border-[#7c9cb8] bg-[#f0f4f9] scale-[1.03]' : 'border-[#eef2f7] hover:border-[#c5d8ea]'"
+          class="bg-transparent flex flex-col items-center gap-1 py-3 rounded-xl border transition"
+          :class="selected === m.key ? 'border-[#7c9cb8] bg-[#f0f4f9] scale-[1.03]' : 'border-[#E6EAF0] hover:border-[#c5d8ea]'"
         >
           <span class="text-[26px] leading-none">{{ m.emoji }}</span>
           <span class="text-[12px] text-[#5a6b7c]">{{ m.label }}</span>
@@ -27,7 +27,7 @@
         rows="2"
         maxlength="120"
         placeholder="想多说一点吗？（可选）"
-        class="w-full px-3 py-2 border border-[#e0e6ec] rounded-xl text-[16px] resize-none focus:outline-none focus:border-[#7c9cb8] mb-3 min-h-[44px]"
+        class="w-full px-3 py-2 border border-[#E6EAF0] rounded-xl text-[16px] resize-none focus:outline-none focus:border-[#7c9cb8] mb-3 min-h-[44px]"
       ></textarea>
       <div class="flex items-center justify-between">
         <span class="text-[12px] text-[#9aa6b2]">{{ savedTip }}</span>
@@ -45,20 +45,20 @@
     </section>
 
     <!-- 情绪曲线 -->
-    <section class="bg-white rounded-2xl border border-[#eef2f7] p-5 mb-5">
-      <h2 class="text-[16px] font-bold text-[#3a4a5c] mb-3 m-0">近 14 天情绪曲线</h2>
+    <section class="bg-white rounded-2xl border border-[#E6EAF0] p-5 mb-5">
+      <h2 class="text-[16px] font-bold text-[#263746] mb-3 m-0">近 14 天情绪曲线</h2>
       <div v-if="entries.length" v-html="chartSvg" class="w-full"></div>
       <p v-else class="text-[13px] text-[#9aa6b2] py-6 text-center m-0">还没有记录，保存第一条心情后这里会出现你的曲线～</p>
     </section>
 
     <!-- 近期记录 -->
-    <section class="bg-white rounded-2xl border border-[#eef2f7] p-5">
-      <h2 class="text-[16px] font-bold text-[#3a4a5c] mb-3 m-0">近期记录</h2>
+    <section class="bg-white rounded-2xl border border-[#E6EAF0] p-5">
+      <h2 class="text-[16px] font-bold text-[#263746] mb-3 m-0">近期记录</h2>
       <ul v-if="recent.length" class="space-y-2">
         <li v-for="(e, i) in recent" :key="i" class="flex items-start gap-2 text-[14px]">
           <span class="text-[18px] shrink-0">{{ moodEmoji(e.emotion) }}</span>
           <div>
-            <span class="text-[#3a4a5c]">{{ moodLabel(e.emotion) }}</span>
+            <span class="text-[#263746]">{{ moodLabel(e.emotion) }}</span>
             <span class="text-[#9aa6b2] text-[12px] ml-2">{{ fmt(e.created_at) }}</span>
             <p v-if="e.note" class="text-[#5a6b7c] text-[13px] mt-0.5 m-0">{{ e.note }}</p>
           </div>

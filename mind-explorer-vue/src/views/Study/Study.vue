@@ -312,7 +312,7 @@ onMounted(() => {
   border: 1.5px solid var(--border, #e0e6ec);
   border-radius: 12px;
   font-size: 0.9rem;
-  color: var(--text, #3a4a5c);
+  color: var(--text, #263746);
   background: var(--card-bg, #fff);
   outline: none;
   transition: border-color 0.2s, box-shadow 0.2s;

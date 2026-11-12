@@ -471,7 +471,7 @@ onUnmounted(() => {
   display: inline-flex;
   align-items: center;
   gap: 12px;
-  background: linear-gradient(135deg, #e07a3f 0%, #f0a868 100%);
+  background: linear-gradient(135deg, #D87945 0%, #f0a868 100%);
   color: #fff;
   padding: 16px 30px;
   border-radius: 14px;
@@ -609,7 +609,7 @@ onUnmounted(() => {
   border-radius: 50%;
   cursor: pointer;
   font-size: 22px;
-  color: #3a4a5c;
+  color: #263746;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -660,7 +660,7 @@ onUnmounted(() => {
 .feature-title {
   font-size: 22px;
   font-weight: 700;
-  color: #3a4a5c;
+  color: #263746;
   margin: 0;
   position: relative;
   padding-left: 12px;
@@ -738,7 +738,7 @@ onUnmounted(() => {
 .feature-card-tag {
   display: inline-block;
   font-size: 11px;
-  color: #e07a3f;
+  color: #D87945;
   background: #fff3e0;
   padding: 2px 8px;
   border-radius: 12px;
@@ -746,7 +746,7 @@ onUnmounted(() => {
 .feature-card-title {
   font-size: 17px;
   font-weight: 700;
-  color: #3a4a5c;
+  color: #263746;
   margin: 8px 0 6px;
 }
 .feature-card-desc {
@@ -807,13 +807,13 @@ onUnmounted(() => {
   cursor: pointer;
   font-size: 22px;
   line-height: 1;
-  color: #3a4a5c;
+  color: #263746;
   z-index: 2;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
   transition: color 0.2s;
 }
 .post-modal-close:hover {
-  color: #e07a3f;
+  color: #D87945;
 }
 .post-modal-img {
   width: 100%;
@@ -835,7 +835,7 @@ onUnmounted(() => {
 .post-modal-tag {
   display: inline-block;
   font-size: 11px;
-  color: #e07a3f;
+  color: #D87945;
   background: #fff3e0;
   padding: 3px 10px;
   border-radius: 12px;
@@ -847,7 +847,7 @@ onUnmounted(() => {
 .post-modal-title {
   font-size: 22px;
   font-weight: 700;
-  color: #3a4a5c;
+  color: #263746;
   margin: 0 0 12px;
   line-height: 1.4;
 }
@@ -882,7 +882,7 @@ onUnmounted(() => {
   border-color: #f0a868;
 }
 .post-like-btn.liked {
-  color: #e07a3f;
+  color: #D87945;
   border-color: #f0a868;
   background: #fff3e0;
 }
@@ -914,7 +914,7 @@ onUnmounted(() => {
 .notice-title {
   font-size: 16px;
   font-weight: 700;
-  color: #3a4a5c;
+  color: #263746;
   margin: 0 0 14px;
   text-align: center;
 }
@@ -934,7 +934,7 @@ onUnmounted(() => {
   border-bottom: none;
 }
 .notice-list strong {
-  color: #3a4a5c;
+  color: #263746;
 }
 
 /* 平板及以下（<=1024px）：两栏折叠为单栏，公告信息落到内容下方 */

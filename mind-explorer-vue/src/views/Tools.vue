@@ -1,7 +1,7 @@
 <template>
   <section class="page-wide py-6">
     <header class="mb-5">
-      <h1 class="text-2xl font-bold text-[#3a4a5c] m-0">🧰 自助工具箱</h1>
+      <h1 class="text-2xl font-bold text-[#263746] m-0">🧰 自助工具箱</h1>
       <p class="hidden sm:block text-[#9aa6b2] text-[14px] mt-1 m-0">当情绪翻涌时，这里有几件可以马上做的小事。挑一个，慢慢来。</p>
     </header>
 
@@ -59,16 +59,16 @@
 
     <!-- 呼吸练习 -->
     <section class="mb-6">
-      <h2 class="text-[16px] font-bold text-[#3a4a5c] mb-3 m-0">🌬️ 呼吸练习</h2>
+      <h2 class="text-[16px] font-bold text-[#263746] mb-3 m-0">🌬️ 呼吸练习</h2>
       <!-- 手机 1 列 / 平板 2 列 / 桌面 3 列（分册二：平板常规工具 2 列） -->
       <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-3 mb-4">
         <div
           v-for="(ex, key) in exercises"
           :key="key"
           class="bg-white rounded-2xl border p-4 transition"
-          :class="breathing.active === key ? 'border-[#7c9cb8] shadow-sm' : 'border-[#eef2f7]'"
+          :class="breathing.active === key ? 'border-[#7c9cb8] shadow-sm' : 'border-[#E6EAF0]'"
         >
-          <h3 class="text-[14px] font-semibold text-[#3a4a5c] m-0 mb-1">{{ ex.name }}</h3>
+          <h3 class="text-[14px] font-semibold text-[#263746] m-0 mb-1">{{ ex.name }}</h3>
           <p class="text-[12px] text-[#9aa6b2] leading-6 m-0 mb-3">{{ ex.desc }}</p>
           <button
             @click="startBreathing(key)"
@@ -83,8 +83,8 @@
       </div>
 
       <!-- 呼吸动画 -->
-      <div v-if="breathing.active" class="bg-white rounded-2xl border border-[#eef2f7] p-6 flex flex-col items-center">
-        <p class="text-[15px] font-semibold text-[#3a4a5c] m-0 mb-1">{{ exercises[breathing.active].name }}</p>
+      <div v-if="breathing.active" class="bg-white rounded-2xl border border-[#E6EAF0] p-6 flex flex-col items-center">
+        <p class="text-[15px] font-semibold text-[#263746] m-0 mb-1">{{ exercises[breathing.active].name }}</p>
         <p class="text-[13px] text-[#9aa6b2] m-0 mb-5">{{ currentPhase?.label }}</p>
         <div class="relative w-[180px] h-[180px] flex items-center justify-center mb-4">
           <div
@@ -93,17 +93,17 @@
           ></div>
           <span class="relative text-[34px] font-bold text-white tabular-nums">{{ breathing.remaining }}</span>
         </div>
-        <button @click="stopBreathing" class="text-[13px] text-[#9aa6b2] hover:text-[#e07a3f] transition">结束</button>
+        <button @click="stopBreathing" class="text-[13px] text-[#9aa6b2] hover:text-[#D87945] transition">结束</button>
       </div>
     </section>
 
     <!-- 5-4-3-2-1 接地练习 -->
     <section class="mb-6">
-      <h2 class="text-[16px] font-bold text-[#3a4a5c] mb-2 m-0">🌿 5-4-3-2-1 接地练习</h2>
+      <h2 class="text-[16px] font-bold text-[#263746] mb-2 m-0">🌿 5-4-3-2-1 接地练习</h2>
       <p class="text-[13px] text-[#9aa6b2] m-0 mb-3">当思绪飘远或陷入慌乱，用五感把注意力轻轻拉回此刻。一项项写下来，不用赶。</p>
       <div class="space-y-3">
-        <div v-for="(step, si) in groundSteps" :key="si" class="bg-white rounded-2xl border border-[#eef2f7] p-4">
-          <p class="text-[14px] font-semibold text-[#3a4a5c] m-0 mb-1">
+        <div v-for="(step, si) in groundSteps" :key="si" class="bg-white rounded-2xl border border-[#E6EAF0] p-4">
+          <p class="text-[14px] font-semibold text-[#263746] m-0 mb-1">
             {{ step.count }} 样你此刻能{{ step.sense }}的
           </p>
           <p class="text-[12px] text-[#9aa6b2] m-0 mb-2">{{ step.hint }}</p>
@@ -113,7 +113,7 @@
               :key="i"
               v-model="groundInputs[si][i - 1]"
               :placeholder="'第 ' + i + ' 项…'"
-              class="w-full px-3 py-2 border border-[#e0e6ec] rounded-xl text-[16px] focus:outline-none focus:border-[#7c9cb8] min-h-[44px]"
+              class="w-full px-3 py-2 border border-[#E6EAF0] rounded-xl text-[16px] focus:outline-none focus:border-[#7c9cb8] min-h-[44px]"
             />
           </div>
         </div>
@@ -121,10 +121,10 @@
     </section>
 
     <!-- 蝴蝶拥抱 -->
-    <section class="bg-white rounded-2xl border border-[#eef2f7] p-5">
-      <h2 class="text-[16px] font-bold text-[#3a4a5c] mb-2 m-0">🦋 蝴蝶拥抱</h2>
+    <section class="bg-white rounded-2xl border border-[#E6EAF0] p-5">
+      <h2 class="text-[16px] font-bold text-[#263746] mb-2 m-0">🦋 蝴蝶拥抱</h2>
       <p class="text-[14px] text-[#5a6b7c] leading-7 m-0">
-        双臂交叉抱住自己，左右手轻搭在对侧肩膀，像蝴蝶扇翅一样<strong class="text-[#3a4a5c]">左右交替轻拍</strong>。
+        双臂交叉抱住自己，左右手轻搭在对侧肩膀，像蝴蝶扇翅一样<strong class="text-[#263746]">左右交替轻拍</strong>。
         配合缓慢的呼吸，持续约 1–2 分钟。这是一种双侧刺激，常能在强烈的情绪里帮你一点点找回稳定感。
       </p>
     </section>

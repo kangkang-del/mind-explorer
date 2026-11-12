@@ -1,8 +1,8 @@
 <template>
-  <footer class="bg-[#f7f9fc] border-t border-[#eef2f7] text-[#7a8694] text-[14px]">
+  <footer class="bg-[#f7f9fc] border-t border-[#E6EAF0] text-[#7a8694] text-[14px]">
     <div class="page-wide page-x py-8 flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
       <div class="min-w-[200px]">
-        <span class="font-bold text-[#3a4a5c] text-[16px]">🧠 心灵探索</span>
+        <span class="font-bold text-[#263746] text-[16px]">🧠 心灵探索</span>
         <p class="mt-1.5 text-[#9aa6b2]">用科学理解心灵，以知识温暖生活</p>
       </div>
 
@@ -16,12 +16,12 @@
       <!-- 心理援助热线（陪伴型站点的伦理底线） -->
       <div class="bg-white border border-[#f0d8c0] rounded-xl p-2.5 flex flex-col gap-0.5 shrink-0">
         <span class="text-[12px] text-[#c8895a]">心理援助热线</span>
-        <a href="tel:4001619995" class="inline-flex items-center min-h-[44px] text-[#e07a3f] font-bold text-[18px] no-underline">400-161-9995</a>
+        <a href="tel:4001619995" class="inline-flex items-center min-h-[44px] text-[#D87945] font-bold text-[18px] no-underline">400-161-9995</a>
         <span class="text-[11px] text-[#b8b8b8]">（24小时·全国）</span>
       </div>
     </div>
 
-    <div class="page-wide page-x py-3 border-t border-[#eef2f7] flex flex-col gap-2 md:flex-row md:justify-between text-[12px] text-[#a8b2bc]">
+    <div class="page-wide page-x py-3 border-t border-[#E6EAF0] flex flex-col gap-2 md:flex-row md:justify-between text-[12px] text-[#a8b2bc]">
       <span>© {{ year }} 心灵探索 Mind Explorer</span>
       <span>基于 Vue 3 · 仅用于学习交流</span>
     </div>

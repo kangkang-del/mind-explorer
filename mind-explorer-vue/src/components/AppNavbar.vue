@@ -1,9 +1,9 @@
 <template>
-  <header class="sticky top-0 z-[100] bg-white/90 backdrop-blur-md border-b border-[#eef2f7]">
+  <header class="sticky top-0 z-[100] bg-white/90 backdrop-blur-md border-b border-[#E6EAF0]">
     <div class="mx-auto max-w-app flex items-center h-[60px] page-x gap-2">
       <RouterLink
         to="/"
-        class="inline-flex items-center gap-1.5 min-h-[44px] font-bold text-[18px] text-[#3a4a5c] no-underline whitespace-nowrap"
+        class="inline-flex items-center gap-1.5 min-h-[44px] font-bold text-[18px] text-[#263746] no-underline whitespace-nowrap"
       >
         <span class="text-[22px]">🧠</span>
         <span>心灵探索</span>
@@ -16,12 +16,12 @@
           :key="item.to"
           :to="item.to"
           class="relative inline-flex items-center px-3 min-h-[44px] rounded-lg text-[15px] no-underline whitespace-nowrap transition"
-          :class="isActive(item.to) ? 'bg-[#f0f4f9] text-[#3a4a5c] font-semibold' : 'text-[#5a6b7c] hover:bg-[#f0f4f9] hover:text-[#3a4a5c]'"
+          :class="isActive(item.to) ? 'bg-[#f0f4f9] text-[#263746] font-semibold' : 'text-[#5a6b7c] hover:bg-[#f0f4f9] hover:text-[#263746]'"
         >
           {{ item.label }}
           <span
             v-if="item.highlight"
-            class="absolute top-1.5 right-1 w-2 h-2 rounded-full bg-[#e07a3f]"
+            class="absolute top-1.5 right-1 w-2 h-2 rounded-full bg-[#D87945]"
             aria-label="小木新功能"
           ></span>
         </RouterLink>
@@ -34,12 +34,12 @@
           :key="item.to"
           :to="item.to"
           class="relative inline-flex items-center px-2.5 min-h-[44px] rounded-lg text-[15px] no-underline whitespace-nowrap transition"
-          :class="isActive(item.to) ? 'bg-[#f0f4f9] text-[#3a4a5c] font-semibold' : 'text-[#5a6b7c] hover:bg-[#f0f4f9] hover:text-[#3a4a5c]'"
+          :class="isActive(item.to) ? 'bg-[#f0f4f9] text-[#263746] font-semibold' : 'text-[#5a6b7c] hover:bg-[#f0f4f9] hover:text-[#263746]'"
         >
           {{ item.label }}
           <span
             v-if="item.highlight"
-            class="absolute top-1.5 right-1 w-2 h-2 rounded-full bg-[#e07a3f]"
+            class="absolute top-1.5 right-1 w-2 h-2 rounded-full bg-[#D87945]"
             aria-label="小木新功能"
           ></span>
         </RouterLink>
@@ -59,7 +59,7 @@
 
       <!-- ===== 平板：更多（打开同一抽屉） ===== -->
       <button
-        class="hidden md:inline-flex xl:hidden items-center min-h-[44px] px-2.5 rounded-lg text-[15px] text-[#5a6b7c] bg-transparent border-0 cursor-pointer transition hover:bg-[#f0f4f9] hover:text-[#3a4a5c]"
+        class="hidden md:inline-flex xl:hidden items-center min-h-[44px] px-2.5 rounded-lg text-[15px] text-[#5a6b7c] bg-transparent border-0 cursor-pointer transition hover:bg-[#f0f4f9] hover:text-[#263746]"
         @click="menuOpen = !menuOpen"
         :aria-expanded="menuOpen ? 'true' : 'false'"
         aria-label="更多入口"
@@ -81,8 +81,8 @@
           <span v-else-if="auth.isLoggedIn" class="inline-flex items-center justify-center w-9 h-9 rounded-full bg-[#7c9cb8] bg-gradient-to-br from-[#7c9cb8] to-[#a8c3d6] text-white text-[13px]">🐙</span>
           <span v-else class="inline-flex items-center justify-center w-9 h-9 rounded-full bg-[#7c9cb8] bg-gradient-to-br from-[#7c9cb8] to-[#a8c3d6] text-white text-[13px]">访客</span>
         </button>
-        <div v-if="userMenuOpen" class="absolute right-0 top-[46px] min-w-[160px] bg-white border border-[#eef2f7] rounded-xl shadow-lg p-1.5 flex flex-col z-50">
-          <div v-if="auth.isLoggedIn" class="px-3 py-2 text-[13px] text-[#9aa6b2] border-b border-[#eef2f7] mb-1">
+        <div v-if="userMenuOpen" class="absolute right-0 top-[46px] min-w-[160px] bg-white border border-[#E6EAF0] rounded-xl shadow-lg p-1.5 flex flex-col z-50">
+          <div v-if="auth.isLoggedIn" class="px-3 py-2 text-[13px] text-[#9aa6b2] border-b border-[#E6EAF0] mb-1">
             你好，{{ auth.displayName || '朋友' }}{{ auth.isGuest ? '（游客）' : '' }}
           </div>
           <RouterLink to="/profile" class="inline-flex items-center min-h-[44px] px-3 rounded-md text-[14px] text-[#5a6b7c] no-underline hover:bg-[#f0f4f9]" @click="userMenuOpen=false">个人中心</RouterLink>
@@ -118,8 +118,8 @@
           aria-modal="true"
           aria-label="主菜单"
         >
-          <div class="flex items-center justify-between px-5 h-[56px] border-b border-[#eef2f7] shrink-0">
-            <span class="flex items-center gap-1.5 font-bold text-[16px] text-[#3a4a5c]">
+          <div class="flex items-center justify-between px-5 h-[56px] border-b border-[#E6EAF0] shrink-0">
+            <span class="flex items-center gap-1.5 font-bold text-[16px] text-[#263746]">
               <span class="text-[20px]">🧠</span>
               心灵探索
             </span>
@@ -137,18 +137,18 @@
               :to="item.to"
               @click="menuOpen = false"
               class="flex items-center min-h-[48px] px-3 py-3 rounded-xl text-[16px] text-[#5a6b7c] no-underline transition active:bg-[#e6eef5] hover:bg-[#f0f4f9]"
-              active-class="bg-[#f0f4f9] text-[#3a4a5c] font-semibold"
+              active-class="bg-[#f0f4f9] text-[#263746] font-semibold"
             >
               <span class="text-[19px] mr-3 w-6 text-center shrink-0">{{ item.icon }}</span>
               <span class="flex-1">{{ item.label }}</span>
               <span
                 v-if="item.highlight"
-                class="ml-2 w-2 h-2 rounded-full bg-[#e07a3f] shrink-0"
+                class="ml-2 w-2 h-2 rounded-full bg-[#D87945] shrink-0"
                 aria-label="小木新功能"
               ></span>
             </RouterLink>
 
-            <div class="border-t border-[#eef2f7] my-3 mx-2"></div>
+            <div class="border-t border-[#E6EAF0] my-3 mx-2"></div>
 
             <template v-if="auth.isLoggedIn">
               <div class="px-3 py-2 text-[13px] text-[#9aa6b2]">
@@ -158,7 +158,7 @@
                 to="/profile"
                 @click="menuOpen = false"
                 class="flex items-center min-h-[48px] px-3 py-3 rounded-xl text-[16px] text-[#5a6b7c] no-underline hover:bg-[#f0f4f9]"
-                active-class="bg-[#f0f4f9] text-[#3a4a5c] font-semibold"
+                active-class="bg-[#f0f4f9] text-[#263746] font-semibold"
               >
                 <span class="text-[19px] mr-3 w-6 text-center">👤</span>个人中心
               </RouterLink>
@@ -166,7 +166,7 @@
                 to="/admin"
                 @click="menuOpen = false"
                 class="flex items-center min-h-[48px] px-3 py-3 rounded-xl text-[16px] text-[#5a6b7c] no-underline hover:bg-[#f0f4f9]"
-                active-class="bg-[#f0f4f9] text-[#3a4a5c] font-semibold"
+                active-class="bg-[#f0f4f9] text-[#263746] font-semibold"
               >
                 <span class="text-[19px] mr-3 w-6 text-center">🛠️</span>审核后台
               </RouterLink>

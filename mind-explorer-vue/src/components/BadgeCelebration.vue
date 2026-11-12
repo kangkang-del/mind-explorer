@@ -6,7 +6,7 @@
       @click.self="store.dismissNew()"
     >
       <div class="w-full max-w-sm bg-white rounded-3xl p-6 shadow-xl text-center">
-        <p class="text-[15px] font-bold text-[#3a4a5c] m-0">🎉 解锁新成就</p>
+        <p class="text-[15px] font-bold text-[#263746] m-0">🎉 解锁新成就</p>
         <p class="text-[12.5px] text-[#9aa6b2] mt-1 mb-4 m-0">
           你刚刚点亮了 {{ store.newlyEarned.length }} 枚徽章
         </p>

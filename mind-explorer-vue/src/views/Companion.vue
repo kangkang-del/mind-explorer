@@ -8,7 +8,7 @@
     <header class="flex items-center gap-3 mb-3 shrink-0">
       <div class="w-[52px] h-[52px] rounded-full bg-gradient-to-br from-[#a8d5ba] to-[#7c9cb8] flex items-center justify-center text-[26px] shrink-0">🌿</div>
       <div class="flex-1">
-        <h1 class="text-xl font-bold text-[#3a4a5c] m-0 leading-tight">同行者·小木</h1>
+        <h1 class="text-xl font-bold text-[#263746] m-0 leading-tight">同行者·小木</h1>
         <p class="text-[12px] text-[#9aa6b2] m-0">
           <span v-if="emotionLabel">此刻你似乎{{ emotionLabel }}{{ emotionEmoji }}</span>
           <span v-else>研究心理学与哲学的同行者，随时陪你聊聊</span>
@@ -42,7 +42,7 @@
         </svg>
         <span class="hidden md:inline">{{ prefs.voiceOn ? '朗读中' : '朗读' }}</span>
       </button>
-      <button v-if="messages.length" @click="clearChat" class="text-[12px] text-[#9aa6b2] hover:text-[#e07a3f] transition px-2 py-1 shrink-0">清空</button>
+      <button v-if="messages.length" @click="clearChat" class="text-[12px] text-[#9aa6b2] hover:text-[#D87945] transition px-2 py-1 shrink-0">清空</button>
     </header>
 
     <!-- 引导入口（陪伴深度）——
@@ -60,8 +60,8 @@
           :key="g.key"
           @click="openGuide(g.key)"
           :title="g.desc"
-          class="shrink-0 whitespace-nowrap min-h-[44px] px-3 py-1.5 rounded-full text-[12.5px] border transition flex items-center gap-1.5"
-          :class="guide === g.key ? 'font-semibold shadow-sm' : 'bg-white border-[#eef2f7] text-[#7a8a9a] hover:border-[#c5d8ea]'"
+          class="bg-transparent shrink-0 whitespace-nowrap min-h-[44px] px-3 py-1.5 rounded-full text-[12.5px] border transition flex items-center gap-1.5"
+          :class="guide === g.key ? 'font-semibold shadow-sm' : 'bg-white border-[#E6EAF0] text-[#7a8a9a] hover:border-[#c5d8ea]'"
           :style="guide === g.key ? { backgroundColor: g.bg, borderColor: g.color, color: g.color } : {}"
         >
           <span class="text-[15px] leading-none">{{ g.emoji }}</span>
@@ -72,22 +72,22 @@
     </div>
 
     <!-- 情绪命名引导（陪伴深度） -->
-    <div v-if="guide === 'mood'" class="bg-white rounded-2xl border border-[#eef2f7] p-4 mb-3 shrink-0">
+    <div v-if="guide === 'mood'" class="bg-white rounded-2xl border border-[#E6EAF0] p-4 mb-3 shrink-0">
       <p class="text-[13px] text-[#5a6b7c] mb-2.5 m-0">此刻，你感觉……（点一个，小木来接住你）</p>
       <div class="grid grid-cols-6 gap-2 mb-3">
         <button
           v-for="m in MOODS"
           :key="m.key"
           @click="pickEmotion(m)"
-          class="flex flex-col items-center gap-0.5 py-2 rounded-xl border transition"
-          :class="pickedEmotion === m.key ? 'border-[#7c9cb8] bg-[#f0f4f9] scale-[1.03]' : 'border-[#eef2f7] hover:border-[#c5d8ea]'"
+          class="bg-transparent flex flex-col items-center gap-0.5 py-2 rounded-xl border transition"
+          :class="pickedEmotion === m.key ? 'border-[#7c9cb8] bg-[#f0f4f9] scale-[1.03]' : 'border-[#E6EAF0] hover:border-[#c5d8ea]'"
         >
           <span class="text-[22px] leading-none">{{ m.emoji }}</span>
           <span class="text-[11px] text-[#5a6b7c]">{{ m.label }}</span>
         </button>
       </div>
       <div v-if="pickedEmotion" class="flex items-center gap-2 flex-wrap">
-        <input v-model="moodNote" placeholder="想给今天的心情留句话？（可选）" class="flex-1 min-w-[160px] px-3 py-2 border border-[#e0e6ec] rounded-lg text-[16px] focus:outline-none focus:border-[#7c9cb8] min-h-[44px]" />
+        <input v-model="moodNote" placeholder="想给今天的心情留句话？（可选）" class="flex-1 min-w-[160px] px-3 py-2 border border-[#E6EAF0] rounded-lg text-[16px] focus:outline-none focus:border-[#7c9cb8] min-h-[44px]" />
         <button
           @click="logMood"
           :disabled="moodLogging"
@@ -101,7 +101,7 @@
 
     <!-- 对话区 -->
     <div class="relative flex-1 min-h-0 flex flex-col">
-    <section ref="scrollEl" class="flex-1 min-h-0 overflow-y-auto rounded-2xl bg-[#fafbfc] border border-[#eef2f7] p-4 space-y-3" @scroll.passive="onMsgScroll">
+    <section ref="scrollEl" class="flex-1 min-h-0 overflow-y-auto rounded-2xl bg-[#FAFBFD] border border-[#E6EAF0] p-4 space-y-3" @scroll.passive="onMsgScroll">
       <!-- 每日主动陪伴语（P5-2）：当天首次访问显示，可关闭 -->
       <div v-if="greeting" class="flex items-start gap-2 bg-gradient-to-r from-[#fff7ec] to-[#fef2f5] border border-[#f6dcc4] rounded-2xl px-4 py-3">
         <span class="text-[20px] shrink-0">🌅</span>
@@ -130,7 +130,7 @@
         <div v-if="m.type === 'recap'" class="max-w-[90%] bg-white border border-[#e6efe9] rounded-2xl rounded-bl-sm p-4">
           <div class="flex items-center gap-2 mb-2.5">
             <span class="text-[16px]">📊</span>
-            <b class="text-[14px] text-[#3a4a5c]">本周情绪复盘</b>
+            <b class="text-[14px] text-[#263746]">本周情绪复盘</b>
             <span class="ml-auto text-[11px] text-[#9aa6b2]">{{ m.recap?.count || 0 }} 条记录</span>
           </div>
           <div class="flex flex-wrap gap-1.5 mb-2.5">
@@ -147,7 +147,7 @@
           class="max-w-[78%] px-4 py-2.5 rounded-2xl text-[14px] leading-relaxed whitespace-pre-wrap break-words"
           :class="m.role === 'user'
             ? 'bg-[#7c9cb8] bg-gradient-to-r from-[#7c9cb8] to-[#a8c3d6] text-white rounded-br-sm'
-            : 'bg-white border border-[#e6efe9] text-[#3a4a5c] rounded-bl-sm'"
+            : 'bg-white border border-[#e6efe9] text-[#263746] rounded-bl-sm'"
         >
           <span v-if="m.role === 'assistant' && !m.content && m.thinking" class="text-[#9aa6b2]">小木正在听…</span>
           <span>{{ m.content }}</span>
@@ -183,30 +183,30 @@
     <div v-if="guide === 'cbt'" class="fixed inset-0 z-[110] flex items-center justify-center bg-black/40 px-4" @click.self="guide = ''">
       <div class="bg-white rounded-2xl max-w-lg w-full p-5 shadow-xl max-h-[88vh] overflow-y-auto">
         <div class="flex items-center justify-between mb-3">
-          <h3 class="text-[16px] font-bold text-[#3a4a5c] m-0">🧠 换个角度看一看</h3>
-          <button @click="guide = ''" class="text-[#9aa6b2] hover:text-[#3a4a5c] text-xl leading-none">×</button>
+          <h3 class="text-[16px] font-bold text-[#263746] m-0">🧠 换个角度看一看</h3>
+          <button @click="guide = ''" class="text-[#9aa6b2] hover:text-[#263746] text-xl leading-none">×</button>
         </div>
         <p class="text-[12.5px] text-[#9aa6b2] leading-6 m-0 mb-3">当脑中那句反复的话让你难受，试着把它摊开，和小木一起看看它是不是全部的真相。</p>
         <div class="space-y-2.5">
-          <textarea v-model="cbt.situation" rows="2" placeholder="发生了什么？（情境）" class="w-full px-3 py-2 border border-[#e0e6ec] rounded-xl text-[16px] resize-none focus:outline-none focus:border-[#7c9cb8] min-h-[44px]"></textarea>
-          <textarea v-model="cbt.thought" rows="2" placeholder="脑中冒出的想法是……（自动思维）" class="w-full px-3 py-2 border border-[#e0e6ec] rounded-xl text-[16px] resize-none focus:outline-none focus:border-[#7c9cb8] min-h-[44px]"></textarea>
+          <textarea v-model="cbt.situation" rows="2" placeholder="发生了什么？（情境）" class="w-full px-3 py-2 border border-[#E6EAF0] rounded-xl text-[16px] resize-none focus:outline-none focus:border-[#7c9cb8] min-h-[44px]"></textarea>
+          <textarea v-model="cbt.thought" rows="2" placeholder="脑中冒出的想法是……（自动思维）" class="w-full px-3 py-2 border border-[#E6EAF0] rounded-xl text-[16px] resize-none focus:outline-none focus:border-[#7c9cb8] min-h-[44px]"></textarea>
           <div class="flex flex-wrap gap-1.5">
             <button v-for="m in MOODS" :key="m.key" @click="cbt.emotion = m.key"
-              class="px-2.5 py-1 rounded-full text-[12px] border transition"
-              :class="cbt.emotion === m.key ? 'border-[#7c9cb8] bg-[#f0f4f9] text-[#5a7d9a]' : 'border-[#eef2f7] text-[#7a8a9a]'">
+              class="bg-transparent px-2.5 py-1 rounded-full text-[12px] border transition"
+              :class="cbt.emotion === m.key ? 'border-[#7c9cb8] bg-[#f0f4f9] text-[#5a7d9a]' : 'border-[#E6EAF0] text-[#7a8a9a]'">
               {{ m.emoji }} {{ m.label }}
             </button>
           </div>
-          <textarea v-model="cbt.evidenceFor" rows="2" placeholder="支持这个想法的证据……" class="w-full px-3 py-2 border border-[#e0e6ec] rounded-xl text-[16px] resize-none focus:outline-none focus:border-[#7c9cb8] min-h-[44px]"></textarea>
-          <textarea v-model="cbt.evidenceAgainst" rows="2" placeholder="不支持它的证据……（哪怕一点点）" class="w-full px-3 py-2 border border-[#e0e6ec] rounded-xl text-[16px] resize-none focus:outline-none focus:border-[#7c9cb8] min-h-[44px]"></textarea>
-          <textarea v-model="cbt.alternative" rows="2" placeholder="更平衡、更善意的想法是……" class="w-full px-3 py-2 border border-[#e0e6ec] rounded-xl text-[16px] resize-none focus:outline-none focus:border-[#7c9cb8] min-h-[44px]"></textarea>
+          <textarea v-model="cbt.evidenceFor" rows="2" placeholder="支持这个想法的证据……" class="w-full px-3 py-2 border border-[#E6EAF0] rounded-xl text-[16px] resize-none focus:outline-none focus:border-[#7c9cb8] min-h-[44px]"></textarea>
+          <textarea v-model="cbt.evidenceAgainst" rows="2" placeholder="不支持它的证据……（哪怕一点点）" class="w-full px-3 py-2 border border-[#E6EAF0] rounded-xl text-[16px] resize-none focus:outline-none focus:border-[#7c9cb8] min-h-[44px]"></textarea>
+          <textarea v-model="cbt.alternative" rows="2" placeholder="更平衡、更善意的想法是……" class="w-full px-3 py-2 border border-[#E6EAF0] rounded-xl text-[16px] resize-none focus:outline-none focus:border-[#7c9cb8] min-h-[44px]"></textarea>
         </div>
         <div class="flex items-center gap-2 mt-3">
           <button @click="submitCbtForm" :disabled="cbtLoading"
             class="flex-1 py-2.5 bg-[#7c9cb8] bg-gradient-to-r from-[#7c9cb8] to-[#a8c3d6] text-white rounded-lg text-[14px] font-semibold disabled:opacity-50 transition hover:opacity-90">
             {{ cbtLoading ? '小木在读…' : '请小木陪我看看' }}
           </button>
-          <button @click="guide = ''" class="px-4 py-2.5 rounded-lg text-[14px] text-[#5a6b7c] border border-[#e0e6ec] hover:bg-[#f0f4f9] transition">稍后</button>
+          <button @click="guide = ''" class="bg-transparent px-4 py-2.5 rounded-lg text-[14px] text-[#5a6b7c] border border-[#E6EAF0] hover:bg-[#f0f4f9] transition">稍后</button>
         </div>
       </div>
     </div>
@@ -215,15 +215,15 @@
     <div v-if="guide === 'bedtime'" class="fixed inset-0 z-[110] flex items-center justify-center bg-black/40 px-4" @click.self="guide = ''">
       <div class="bg-white rounded-2xl max-w-md w-full p-5 shadow-xl">
         <div class="flex items-center justify-between mb-3">
-          <h3 class="text-[16px] font-bold text-[#3a4a5c] m-0">🌙 睡前一刻</h3>
-          <button @click="guide = ''" class="text-[#9aa6b2] hover:text-[#3a4a5c] text-xl leading-none">×</button>
+          <h3 class="text-[16px] font-bold text-[#263746] m-0">🌙 睡前一刻</h3>
+          <button @click="guide = ''" class="text-[#9aa6b2] hover:text-[#263746] text-xl leading-none">×</button>
         </div>
         <p class="text-[13px] text-[#5a6b7c] leading-7 m-0 mb-3">
           先把注意力放到呼吸上，慢慢吸气、慢慢呼气。然后从脚到头，感受身体一点点松弛下来，把今天的重量交给床。
         </p>
         <p class="text-[13px] text-[#5a6b7c] m-0 mb-2">今天，有三件让你有一点点暖的小事吗？</p>
         <div class="space-y-2 mb-4">
-          <input v-for="i in 3" :key="i" v-model="bedtime.gratitude[i - 1]" :placeholder="'第 ' + i + ' 件小确幸…'" class="w-full px-3 py-2 border border-[#e0e6ec] rounded-xl text-[16px] focus:outline-none focus:border-[#7c9cb8] min-h-[44px]" />
+          <input v-for="i in 3" :key="i" v-model="bedtime.gratitude[i - 1]" :placeholder="'第 ' + i + ' 件小确幸…'" class="w-full px-3 py-2 border border-[#E6EAF0] rounded-xl text-[16px] focus:outline-none focus:border-[#7c9cb8] min-h-[44px]" />
         </div>
         <button @click="finishBedtime" class="w-full py-2.5 bg-[#7c9cb8] bg-gradient-to-r from-[#7c9cb8] to-[#a8c3d6] text-white rounded-lg text-[14px] font-semibold hover:opacity-90 transition">
           完成 · 和小木说晚安
@@ -235,18 +235,18 @@
     <div v-if="guide === 'cbt-history'" class="fixed inset-0 z-[110] flex items-center justify-center bg-black/40 px-4" @click.self="guide = ''">
       <div class="bg-white rounded-2xl max-w-lg w-full p-5 shadow-xl max-h-[85vh] overflow-y-auto">
         <div class="flex items-center justify-between mb-3">
-          <h3 class="text-[16px] font-bold text-[#3a4a5c] m-0">📖 我的思录</h3>
-          <button @click="guide = ''" class="text-[#9aa6b2] hover:text-[#3a4a5c] text-xl leading-none">×</button>
+          <h3 class="text-[16px] font-bold text-[#263746] m-0">📖 我的思录</h3>
+          <button @click="guide = ''" class="text-[#9aa6b2] hover:text-[#263746] text-xl leading-none">×</button>
         </div>
         <p v-if="!cbtHistory.length" class="text-[13px] text-[#9aa6b2] py-6 text-center m-0">还没有思维记录。做完一次「换个角度看」，这里会留下你的思录，方便回看。</p>
         <div v-else class="space-y-3">
-          <div v-for="(r, idx) in cbtHistory" :key="idx" class="border border-[#eef2f7] rounded-xl p-3">
+          <div v-for="(r, idx) in cbtHistory" :key="idx" class="border border-[#E6EAF0] rounded-xl p-3">
             <div class="flex items-center gap-2 mb-1.5">
               <span class="text-[11px] text-[#9aa6b2]">{{ fmtCbtTime(r.at) }}</span>
               <span v-if="r.emotion" class="text-[11px] px-1.5 py-0.5 rounded-full bg-[#eef4f9] text-[#5a7d9a]">{{ moodLabelOf(r.emotion) }}</span>
-              <button @click="deleteCbtRecord(idx)" class="ml-auto text-[11px] text-[#b8c2cc] hover:text-[#e07a3f] transition">删除</button>
+              <button @click="deleteCbtRecord(idx)" class="ml-auto text-[11px] text-[#b8c2cc] hover:text-[#D87945] transition">删除</button>
             </div>
-            <p v-if="r.thought" class="text-[13px] text-[#3a4a5c] m-0 mb-1"><b>想法：</b>{{ r.thought }}</p>
+            <p v-if="r.thought" class="text-[13px] text-[#263746] m-0 mb-1"><b>想法：</b>{{ r.thought }}</p>
             <p v-if="r.alternative" class="text-[13px] text-[#4a8a5e] m-0 mb-1"><b>更平衡：</b>{{ r.alternative }}</p>
             <p v-if="r.suggestion" class="text-[12.5px] text-[#5a6b7c] leading-6 m-0 mt-1.5 pt-1.5 border-t border-[#f0f4f9]">小木：{{ r.suggestion }}</p>
           </div>
@@ -308,7 +308,7 @@
           rows="1"
           @keydown.enter.exact.prevent="send"
           placeholder="和小木说点什么…"
-          class="flex-1 max-h-32 px-4 py-3 border border-[#e0e6ec] rounded-2xl resize-none text-[16px] focus:outline-none focus:border-[#7c9cb8] min-h-[44px]"
+          class="flex-1 max-h-32 px-4 py-3 border border-[#E6EAF0] rounded-2xl resize-none text-[16px] focus:outline-none focus:border-[#7c9cb8] min-h-[44px]"
         ></textarea>
         <button
           @click="send"

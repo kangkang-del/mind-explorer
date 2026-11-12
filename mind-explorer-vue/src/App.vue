@@ -1,6 +1,6 @@
 <template>
   <!-- 手机端给固定底栏留出 64px + 安全区，避免页脚被压在底栏下面 -->
-  <div class="flex min-h-screen flex-col bg-[#fafbfc] pb-[calc(64px+env(safe-area-inset-bottom))] md:pb-0">
+  <div class="flex min-h-screen flex-col bg-[#FAFBFD] md:bg-[#F2F0E8] pb-[calc(64px+env(safe-area-inset-bottom))] md:pb-0">
     <AppNavbar />
     <!-- 页面级容器的唯一来源：宽 1200 + 水平留白。
          各 view 只按手册选 page-wide / page-read / page-narrow，

@@ -7,12 +7,12 @@
     >
       <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl border border-[#f0a868]">
         <div class="text-[24px] mb-2">🌿💛</div>
-        <h3 class="text-lg font-bold text-[#3a4a5c] m-0 mb-2">你值得被好好接住</h3>
+        <h3 class="text-lg font-bold text-[#263746] m-0 mb-2">你值得被好好接住</h3>
         <p class="text-[13px] text-[#5a6b7c] leading-7 m-0 mb-3">
           我听到了你此刻很重的疲惫，也很心疼。想轻轻告诉你：你不需要一个人扛着这些。
           寻求帮助不是软弱，而是对自己温柔的勇气。如果可以，请让专业的人陪你走一段：
         </p>
-        <ul class="text-[13px] text-[#3a4a5c] space-y-1.5 mb-3">
+        <ul class="text-[13px] text-[#263746] space-y-1.5 mb-3">
           <li v-for="h in HOTLINES" :key="h.number">· {{ h.name }}：<b>{{ h.number }}</b></li>
         </ul>
         <p class="text-[12px] text-[#a85a2c] m-0 mb-4">
@@ -21,10 +21,10 @@
 
         <!-- 信任联系人 -->
         <div class="rounded-xl bg-[#f7f9fb] p-3 mb-4">
-          <p class="text-[13px] font-semibold text-[#3a4a5c] m-0 mb-2">🤝 你的信任联系人</p>
+          <p class="text-[13px] font-semibold text-[#263746] m-0 mb-2">🤝 你的信任联系人</p>
           <ul v-if="contacts.contacts.length" class="space-y-1.5">
             <li v-for="c in contacts.contacts" :key="c.id" class="flex items-center justify-between text-[13px]">
-              <span class="text-[#3a4a5c]">
+              <span class="text-[#263746]">
                 {{ c.name }}<span v-if="c.relation" class="text-[#9aa6b2]">（{{ c.relation }}）</span>
               </span>
               <a v-if="c.phone" :href="'tel:' + c.phone" class="text-[#7c9cb8] no-underline font-medium">📞 {{ c.phone }}</a>
@@ -48,7 +48,7 @@
           </RouterLink>
           <button
             @click="crisis.close()"
-            class="px-4 py-2.5 rounded-lg text-[14px] text-[#5a6b7c] border border-[#e0e6ec] hover:bg-[#f0f4f9] transition"
+            class="bg-transparent px-4 py-2.5 rounded-lg text-[14px] text-[#5a6b7c] border border-[#E6EAF0] hover:bg-[#f0f4f9] transition"
           >
             我记住了
           </button>

@@ -1,7 +1,7 @@
 <template>
   <section class="page-narrow py-6">
     <header class="mb-5">
-      <h1 class="text-2xl font-bold text-[#3a4a5c] m-0">🌱 分享治愈瞬间</h1>
+      <h1 class="text-2xl font-bold text-[#263746] m-0">🌱 分享治愈瞬间</h1>
       <p class="text-[#9aa6b2] text-[14px] mt-1 m-0">
         这里收集彼此生命里微小的光。提交后会经小木团队审核，通过即出现在社区「用户贡献」里。
       </p>
@@ -9,7 +9,7 @@
     </header>
 
     <!-- 未登录 -->
-    <section v-if="!auth.isLoggedIn" class="bg-white rounded-2xl border border-[#eef2f7] p-8 text-center">
+    <section v-if="!auth.isLoggedIn" class="bg-white rounded-2xl border border-[#E6EAF0] p-8 text-center">
       <p class="text-[#5a6b7c] text-[15px] m-0 mb-4">登录后即可分享你的治愈瞬间</p>
       <button
         @click="auth.openLogin('register')"
@@ -20,7 +20,7 @@
     </section>
 
     <!-- 投稿表单 -->
-    <section v-else class="bg-white rounded-2xl border border-[#eef2f7] p-5 mb-5">
+    <section v-else class="bg-white rounded-2xl border border-[#E6EAF0] p-5 mb-5">
       <form @submit.prevent="submit" class="space-y-4">
         <div>
           <label class="block text-[14px] text-[#5a6b7c] mb-1.5">标题 *</label>
@@ -28,7 +28,7 @@
             v-model="form.title"
             maxlength="60"
             placeholder="一句话概括这个瞬间，如：楼下小猫今天蹭了蹭我"
-            class="w-full px-3 py-2 border border-[#e0e6ec] rounded-xl text-[16px] focus:outline-none focus:border-[#7c9cb8] min-h-[44px]"
+            class="w-full px-3 py-2 border border-[#E6EAF0] rounded-xl text-[16px] focus:outline-none focus:border-[#7c9cb8] min-h-[44px]"
           />
         </div>
 
@@ -40,8 +40,8 @@
               :key="c"
               type="button"
               @click="form.category = c"
-              class="inline-flex items-center min-h-[44px] px-3.5 py-1.5 rounded-full text-[13px] border transition"
-              :class="form.category === c ? 'border-[#7c9cb8] bg-[#f0f4f9] text-[#3a4a5c]' : 'border-[#eef2f7] text-[#9aa6b2] hover:border-[#c5d8ea]'"
+              class="bg-transparent inline-flex items-center min-h-[44px] px-3.5 py-1.5 rounded-full text-[13px] border transition"
+              :class="form.category === c ? 'border-[#7c9cb8] bg-[#f0f4f9] text-[#263746]' : 'border-[#E6EAF0] text-[#9aa6b2] hover:border-[#c5d8ea]'"
             >
               {{ c }}
             </button>
@@ -55,7 +55,7 @@
             rows="6"
             maxlength="2000"
             placeholder="慢慢写下来吧，发生了什么、你当时的心情、它为什么打动了你……"
-            class="w-full px-3 py-2 border border-[#e0e6ec] rounded-xl text-[16px] resize-y focus:outline-none focus:border-[#7c9cb8] min-h-[44px]"
+            class="w-full px-3 py-2 border border-[#E6EAF0] rounded-xl text-[16px] resize-y focus:outline-none focus:border-[#7c9cb8] min-h-[44px]"
           ></textarea>
           <p class="text-right text-[12px] text-[#b9c4cf] m-0 mt-1">{{ form.content.length }}/2000</p>
         </div>
@@ -65,7 +65,7 @@
           <input
             v-model="form.image"
             placeholder="粘贴一张图片网址，让这一刻更具体（选填）"
-            class="w-full px-3 py-2 border border-[#e0e6ec] rounded-xl text-[16px] focus:outline-none focus:border-[#7c9cb8] min-h-[44px]"
+            class="w-full px-3 py-2 border border-[#E6EAF0] rounded-xl text-[16px] focus:outline-none focus:border-[#7c9cb8] min-h-[44px]"
           />
         </div>
 
@@ -75,11 +75,11 @@
             v-model="form.source"
             maxlength="200"
             placeholder="如：某本书 / 一位朋友 / 自己的日记（选填）"
-            class="w-full px-3 py-2 border border-[#e0e6ec] rounded-xl text-[16px] focus:outline-none focus:border-[#7c9cb8] min-h-[44px]"
+            class="w-full px-3 py-2 border border-[#E6EAF0] rounded-xl text-[16px] focus:outline-none focus:border-[#7c9cb8] min-h-[44px]"
           />
         </div>
 
-        <p v-if="error" class="text-[13px] text-[#e07a3f] m-0">{{ error }}</p>
+        <p v-if="error" class="text-[13px] text-[#D87945] m-0">{{ error }}</p>
         <p v-if="success" class="text-[13px] text-[#5a9e7a] m-0">✅ 已收到，等待审核通过后就会出现在社区里～</p>
 
         <button
@@ -93,8 +93,8 @@
     </section>
 
     <!-- 我的投稿 -->
-    <section v-if="auth.isLoggedIn && myCards.length" class="bg-white rounded-2xl border border-[#eef2f7] p-5">
-      <h2 class="text-[16px] font-bold text-[#3a4a5c] mb-3 m-0">我的投稿</h2>
+    <section v-if="auth.isLoggedIn && myCards.length" class="bg-white rounded-2xl border border-[#E6EAF0] p-5">
+      <h2 class="text-[16px] font-bold text-[#263746] mb-3 m-0">我的投稿</h2>
       <ul class="space-y-2">
         <li
           v-for="c in myCards"
@@ -102,7 +102,7 @@
           class="flex items-center gap-3 py-2.5 border-b border-[#f3f6f9] last:border-0"
         >
           <RouterLink :to="`/user-card/${c.id}`" class="flex-1 min-w-0 no-underline">
-            <span class="block text-[14px] text-[#3a4a5c] truncate">{{ c.title }}</span>
+            <span class="block text-[14px] text-[#263746] truncate">{{ c.title }}</span>
             <span class="text-[12px] text-[#9aa6b2]">{{ fmt(c.created_at) }}</span>
           </RouterLink>
           <span class="text-[12px] px-2 py-0.5 rounded-full shrink-0" :class="statusClass(c.status)">

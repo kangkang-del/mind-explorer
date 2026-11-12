@@ -1,7 +1,7 @@
 <template>
   <section>
     <header class="text-center mb-5">
-      <h1 class="text-2xl md:text-3xl font-bold text-[#3a4a5c] m-0">☀️ 心灵晴天</h1>
+      <h1 class="text-2xl md:text-3xl font-bold text-[#263746] m-0">☀️ 心灵晴天</h1>
       <p class="text-[#9aa6b2] mt-1 m-0">每天更新的善意与温暖——小木会在这里分享，也欢迎你留下你的名字，分享你的光。</p>
     </header>
 
@@ -9,12 +9,12 @@
     <p v-if="loading" class="text-center text-[#9aa6b2] py-12 m-0">正在加载晴天的温暖… ☀️</p>
 
     <!-- 发布 -->
-    <section v-else class="bg-white border border-[#eef2f7] rounded-2xl p-4 mb-5">
+    <section v-else class="bg-white border border-[#E6EAF0] rounded-2xl p-4 mb-5">
       <textarea
         v-model="draft.content"
         rows="3"
         placeholder="分享一个温暖时刻、一件善意小事，或此刻想说的话…（将以你的名字发布）"
-        class="w-full p-3 border border-[#e0e6ec] rounded-lg resize-y text-[16px] focus:outline-none focus:border-[#7c9cb8] min-h-[44px]"
+        class="w-full p-3 border border-[#E6EAF0] rounded-lg resize-y text-[16px] focus:outline-none focus:border-[#7c9cb8] min-h-[44px]"
       ></textarea>
       <div class="flex items-center justify-between mt-3 flex-wrap gap-3">
         <p class="text-[12px] text-[#9aa6b2] m-0">发布人：{{ meName }}</p>
@@ -33,26 +33,26 @@
       <article
         v-for="post in posts"
         :key="post.id"
-        class="bg-white border border-[#eef2f7] rounded-2xl overflow-hidden flex flex-col"
+        class="bg-white border border-[#E6EAF0] rounded-2xl overflow-hidden flex flex-col"
       >
         <img v-if="post.image" :src="post.image" :alt="post.title" class="w-full h-44 object-cover" loading="lazy" />
         <div class="p-4 flex-1 flex flex-col">
           <div class="flex items-center gap-2 mb-1 flex-wrap">
-            <span v-if="post.type === 'auto'" class="text-[11px] text-[#e07a3f] bg-[#fff3e0] px-2 py-0.5 rounded-md">✨ 今日晴天</span>
+            <span v-if="post.type === 'auto'" class="text-[11px] text-[#D87945] bg-[#fff3e0] px-2 py-0.5 rounded-md">✨ 今日晴天</span>
             <span v-else-if="post.type === 'xiaomu'" class="text-[11px] text-[#5a8a6a] bg-[#e6efe9] px-2 py-0.5 rounded-md">🌿 小木</span>
             <span v-else class="text-[11px] text-[#7c9cb8] bg-[#eef4f9] px-2 py-0.5 rounded-md">💛 用户分享</span>
             <span class="text-[11px] text-[#9aa6b2]">{{ post.author }}</span>
           </div>
-          <h3 class="text-[16px] font-bold text-[#3a4a5c] m-0 leading-snug">{{ post.title }}</h3>
+          <h3 class="text-[16px] font-bold text-[#263746] m-0 leading-snug">{{ post.title }}</h3>
           <p class="text-[13px] text-[#5a6b7c] mt-1 flex-1 leading-relaxed m-0">{{ post.content }}</p>
 
           <div class="flex items-center gap-4 mt-3 text-[13px] text-[#9aa6b2]">
             <FavoriteButton :type="post.type === 'xiaomu' ? 'quote' : 'post'" :id="post.id" :title="post.title" :summary="(post.content||'').slice(0,60)" />
-            <button @click="toggleLike(post)" :class="post.liked ? 'text-[#e07a3f]' : ''" class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] px-1 transition">❤️ {{ post.likes }}</button>
+            <button @click="toggleLike(post)" :class="post.liked ? 'text-[#D87945]' : ''" class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] px-1 transition">❤️ {{ post.likes }}</button>
             <button @click="post.showComment = !post.showComment" class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] px-1 transition">💬 {{ post.comments.length }}</button>
           </div>
 
-          <div v-if="post.showComment" class="mt-3 border-t border-[#eef2f7] pt-3">
+          <div v-if="post.showComment" class="mt-3 border-t border-[#E6EAF0] pt-3">
             <div v-for="c in post.comments" :key="c.id" class="text-[12px] text-[#5a6b7c] mb-1">
               <b>{{ c.author }}</b>：{{ c.text }}
             </div>
@@ -60,7 +60,7 @@
               <input
                 v-model="post.draftComment"
                 placeholder="说点温暖的话…"
-                class="flex-1 px-2 py-1 border border-[#e0e6ec] rounded text-[16px] focus:outline-none focus:border-[#7c9cb8] min-h-[44px]"
+                class="flex-1 px-2 py-1 border border-[#E6EAF0] rounded text-[16px] focus:outline-none focus:border-[#7c9cb8] min-h-[44px]"
               />
               <button @click="addComment(post)" class="px-4 py-1 min-h-[44px] bg-[#7c9cb8] text-white rounded text-[13px] shrink-0">发送</button>
             </div>

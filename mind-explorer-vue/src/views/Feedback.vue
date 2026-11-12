@@ -1,15 +1,15 @@
 <template>
   <section class="page-narrow">
     <header class="text-center mb-6">
-      <h1 class="text-2xl md:text-3xl font-bold text-[#3a4a5c] m-0">✉️ 反馈与建议</h1>
+      <h1 class="text-2xl md:text-3xl font-bold text-[#263746] m-0">✉️ 反馈与建议</h1>
       <p class="text-[#9aa6b2] mt-2 m-0">你的每一条声音，都会让心灵探索更温暖。</p>
     </header>
 
-    <form class="bg-white border border-[#eef2f7] rounded-2xl p-6 flex flex-col gap-4" @submit.prevent="onSubmit">
+    <form class="bg-white border border-[#E6EAF0] rounded-2xl p-6 flex flex-col gap-4" @submit.prevent="onSubmit">
       <div class="flex flex-col gap-2">
         <span class="text-[14px] font-semibold text-[#5a6b7c]">类型</span>
         <div class="flex gap-3 flex-wrap">
-          <label v-for="t in types" :key="t.value" class="inline-flex items-center gap-1.5 min-h-[44px] px-3.5 py-1.5 border border-[#eef2f7] rounded-[20px] cursor-pointer text-[14px] text-[#5a6b7c]">
+          <label v-for="t in types" :key="t.value" class="inline-flex items-center gap-1.5 min-h-[44px] px-3.5 py-1.5 border border-[#E6EAF0] rounded-[20px] cursor-pointer text-[14px] text-[#5a6b7c]">
             <input type="radio" v-model="form.type" :value="t.value" class="accent-[#7c9cb8]" />
             <span>{{ t.label }}</span>
           </label>
@@ -22,7 +22,7 @@
           v-model="form.content"
           rows="5"
           placeholder="说说你的想法、遇到的问题，或想感谢的事…"
-          class="w-full p-3 border border-[#e0e6ec] rounded-lg resize-y text-[16px] focus:outline-none focus:border-[#7c9cb8] min-h-[44px]"
+          class="w-full p-3 border border-[#E6EAF0] rounded-lg resize-y text-[16px] focus:outline-none focus:border-[#7c9cb8] min-h-[44px]"
         ></textarea>
       </label>
 
@@ -31,7 +31,7 @@
         <span>匿名提交（不留下昵称信息）</span>
       </label>
 
-      <p v-if="error" class="text-[13px] text-[#e07a3f] m-0">{{ error }}</p>
+      <p v-if="error" class="text-[13px] text-[#D87945] m-0">{{ error }}</p>
       <p v-if="success" class="text-[13px] text-[#5a9e7a] m-0">✅ 已收到你的反馈，我们会认真阅读每一封～</p>
 
       <button

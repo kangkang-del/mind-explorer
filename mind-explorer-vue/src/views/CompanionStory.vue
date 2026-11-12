@@ -8,11 +8,11 @@
       >
         <span aria-hidden="true">←</span> 回到小木
       </RouterLink>
-      <h1 class="text-[17px] font-bold text-[#3a4a5c] m-0 flex-1 truncate">📖 小木记得的你</h1>
+      <h1 class="text-[17px] font-bold text-[#263746] m-0 flex-1 truncate">📖 小木记得的你</h1>
       <button
         v-if="phase !== 'loading'"
         type="button"
-        class="text-[12px] px-2.5 py-1 rounded-full border border-[#e0e6ec] text-[#7a8a9a] hover:border-[#c5d8ea] hover:text-[#5a7d9a] transition shrink-0"
+        class="bg-transparent text-[12px] px-2.5 py-1 rounded-full border border-[#E6EAF0] text-[#7a8a9a] hover:border-[#c5d8ea] hover:text-[#5a7d9a] transition shrink-0"
         @click="replay"
       >
         {{ narrating ? '跳过' : '重播' }}
@@ -26,7 +26,7 @@
         class="text-[12px] px-3 py-1 rounded-full border transition"
         :class="days === o.days
           ? 'bg-[#7c9cb8] border-[#7c9cb8] text-white'
-          : 'bg-white border-[#eef2f7] text-[#7a8a9a] hover:border-[#c5d8ea]'"
+          : 'bg-white border-[#E6EAF0] text-[#7a8a9a] hover:border-[#c5d8ea]'"
         @click="setRange(o.days)"
       >{{ o.label }}</button>
       <span class="ml-auto text-[11px] text-[#b8c2cc]">{{ rangeHint }}</span>
@@ -35,7 +35,7 @@
     <!-- ── 讲故事舞台 ── -->
     <section
       ref="stageEl"
-      class="relative rounded-3xl border border-[#eef2f7] bg-gradient-to-b from-[#fbfdfb] to-[#f7faf8] px-5 pt-5 pb-8 min-h-[380px]"
+      class="relative rounded-3xl border border-[#E6EAF0] bg-gradient-to-b from-[#fbfdfb] to-[#f7faf8] px-5 pt-5 pb-8 min-h-[380px]"
     >
       <!-- 加载中 -->
       <div v-if="phase === 'loading'" class="py-16 text-center">
@@ -92,7 +92,7 @@
               </p>
 
               <!-- 章节标题 -->
-              <h2 v-else-if="seg.kind === 'chapter'" class="text-[15px] font-bold text-[#3a4a5c] m-0 flex items-center gap-2">
+              <h2 v-else-if="seg.kind === 'chapter'" class="text-[15px] font-bold text-[#263746] m-0 flex items-center gap-2">
                 <span aria-hidden="true">{{ seg.emoji }}</span>{{ seg.text }}
                 <span class="flex-1 h-[1px] bg-[#e6efe9]"></span>
               </h2>
@@ -100,7 +100,7 @@
               <!-- 画像条目（key-value） -->
               <div v-else-if="seg.kind === 'fact'" class="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5 text-[13.5px]">
                 <span class="text-[#9aa6b2]">{{ seg.label }}</span>
-                <span class="text-[#3a4a5c]">{{ seg.value }}</span>
+                <span class="text-[#263746]">{{ seg.value }}</span>
               </div>
 
               <!-- 情绪柱（时间线） -->
@@ -119,7 +119,7 @@
                   class="max-w-[80%] rounded-2xl px-3.5 py-2 text-[13px] leading-6 whitespace-pre-wrap break-words"
                   :class="seg.role === 'user'
                     ? 'bg-[#eef4f9] text-[#4a6a8a] rounded-br-sm'
-                    : 'bg-white border border-[#e6efe9] text-[#3a4a5c] rounded-bl-sm'"
+                    : 'bg-white border border-[#e6efe9] text-[#263746] rounded-bl-sm'"
                 >
                   <span class="block text-[10.5px] text-[#b8c2cc] mb-0.5">
                     {{ seg.role === 'user' ? '你' : '小木' }} · {{ seg.time }}
@@ -149,7 +149,7 @@
               </button>
               <button
                 type="button"
-                class="text-[13px] px-4 py-2 rounded-full border border-[#e0e6ec] text-[#5a6b7c] hover:border-[#c5d8ea] transition"
+                class="bg-transparent text-[13px] px-4 py-2 rounded-full border border-[#E6EAF0] text-[#5a6b7c] hover:border-[#c5d8ea] transition"
                 @click="replay"
               >再讲一遍</button>
             </div>

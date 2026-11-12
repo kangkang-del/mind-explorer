@@ -14,7 +14,7 @@
 /* ==================== 设计变量（CSS Custom Properties）==================== */
 :root {
     /* ---- 色彩系统（首页专用，--primary/--primary-dark 已在 style.css 统一为雾霾蓝） ---- */
-    --home-bg:           #F7F4EF;     /* 燕麦色背景 */
+    --home-bg:           #F2F0E8;     /* 燕麦色背景 */
     --home-card:         #FFFDF9;     /* 极暖米白卡片 */
     --home-text:         #4A4A4A;     /* 主文字 */
     --home-text-sub:     #8E908B;     /* 辅助文字 */

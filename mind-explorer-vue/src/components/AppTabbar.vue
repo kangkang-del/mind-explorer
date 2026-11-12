@@ -6,7 +6,7 @@
   -->
   <nav
     v-if="!hidden && !keyboardOpen"
-    class="md:hidden fixed inset-x-0 bottom-0 z-[90] bg-white/95 backdrop-blur-md border-t border-[#eef2f7]"
+    class="md:hidden fixed inset-x-0 bottom-0 z-[90] bg-white/95 backdrop-blur-md border-t border-[#E6EAF0]"
     aria-label="底部导航"
   >
     <ul class="grid grid-cols-5 m-0 p-0 list-none">
@@ -21,7 +21,7 @@
           <span class="truncate max-w-full">{{ tab.label }}</span>
           <span
             v-if="tab.highlight"
-            class="absolute top-1.5 right-1/2 translate-x-[14px] w-1.5 h-1.5 rounded-full bg-[#e07a3f]"
+            class="absolute top-1.5 right-1/2 translate-x-[14px] w-1.5 h-1.5 rounded-full bg-[#D87945]"
             aria-hidden="true"
           ></span>
         </RouterLink>

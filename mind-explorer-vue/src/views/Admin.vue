@@ -1,15 +1,15 @@
 <template>
   <section class="max-w-3xl mx-auto px-4 py-6">
     <!-- 登录门 -->
-    <section v-if="!authed" class="bg-white rounded-2xl border border-[#eef2f7] p-8 max-w-sm mx-auto text-center">
+    <section v-if="!authed" class="bg-white rounded-2xl border border-[#E6EAF0] p-8 max-w-sm mx-auto text-center">
       <div class="text-[28px] mb-2">🔐</div>
-      <h1 class="text-lg font-bold text-[#3a4a5c] m-0 mb-4">审核后台</h1>
+      <h1 class="text-lg font-bold text-[#263746] m-0 mb-4">审核后台</h1>
       <input
         v-model="pwd"
         type="password"
         placeholder="管理员密码"
         @keyup.enter="checkPwd"
-        class="w-full px-3 py-2.5 border border-[#e0e6ec] rounded-xl text-[16px] focus:outline-none focus:border-[#7c9cb8] mb-3 min-h-[44px]"
+        class="w-full px-3 py-2.5 border border-[#E6EAF0] rounded-xl text-[16px] focus:outline-none focus:border-[#7c9cb8] mb-3 min-h-[44px]"
       />
       <button
         @click="checkPwd"
@@ -17,14 +17,14 @@
       >
         进入
       </button>
-      <p v-if="pwdError" class="text-[13px] text-[#e07a3f] m-0 mt-3">{{ pwdError }}</p>
+      <p v-if="pwdError" class="text-[13px] text-[#D87945] m-0 mt-3">{{ pwdError }}</p>
     </section>
 
     <!-- 后台主体 -->
     <section v-else>
       <div class="flex items-center justify-between mb-4">
-        <h1 class="text-xl font-bold text-[#3a4a5c] m-0">🔐 审核后台</h1>
-        <button @click="logout" class="text-[13px] text-[#9aa6b2] hover:text-[#e07a3f] transition">退出</button>
+        <h1 class="text-xl font-bold text-[#263746] m-0">🔐 审核后台</h1>
+        <button @click="logout" class="text-[13px] text-[#9aa6b2] hover:text-[#D87945] transition">退出</button>
       </div>
 
       <div class="flex gap-2 mb-4 overflow-x-auto pb-1 md:flex-wrap md:overflow-visible md:pb-0">
@@ -32,8 +32,8 @@
           v-for="t in tabs"
           :key="t.key"
           @click="load(t.key)"
-          class="px-4 py-2 rounded-xl text-[14px] border transition whitespace-nowrap"
-          :class="tab === t.key ? 'border-[#7c9cb8] bg-[#f0f4f9] text-[#3a4a5c] font-semibold' : 'border-[#eef2f7] text-[#9aa6b2] hover:border-[#c5d8ea]'"
+          class="bg-transparent px-4 py-2 rounded-xl text-[14px] border transition whitespace-nowrap"
+          :class="tab === t.key ? 'border-[#7c9cb8] bg-[#f0f4f9] text-[#263746] font-semibold' : 'border-[#E6EAF0] text-[#9aa6b2] hover:border-[#c5d8ea]'"
         >
           {{ t.label }} ({{ counts[t.key] }})
         </button>
@@ -47,11 +47,11 @@
         <article
           v-for="r in list"
           :key="r.id"
-          class="bg-white rounded-2xl border border-[#eef2f7] p-4"
+          class="bg-white rounded-2xl border border-[#E6EAF0] p-4"
         >
           <div class="flex items-start justify-between gap-3 mb-2">
             <div>
-              <h3 class="text-[15px] font-semibold text-[#3a4a5c] m-0">{{ targetLabel(r.target_type) }} #{{ r.target_id }}</h3>
+              <h3 class="text-[15px] font-semibold text-[#263746] m-0">{{ targetLabel(r.target_type) }} #{{ r.target_id }}</h3>
               <span class="inline-block mt-1 text-[12px] px-2 py-0.5 rounded-full bg-[#fee2e2] text-[#991b1b]">{{ r.reason }}</span>
             </div>
             <span class="text-[12px] text-[#9aa6b2] shrink-0">{{ fmt(r.created_at) }}</span>
@@ -67,7 +67,7 @@
         <article
           v-for="f in list"
           :key="f.id"
-          class="bg-white rounded-2xl border border-[#eef2f7] p-4"
+          class="bg-white rounded-2xl border border-[#E6EAF0] p-4"
           :class="f.status === 'done' ? 'opacity-60' : ''"
         >
           <div class="flex items-center gap-2 mb-2 flex-wrap">
@@ -93,10 +93,10 @@
         <article
           v-for="c in list"
           :key="c.id"
-          class="bg-white rounded-2xl border border-[#eef2f7] p-4"
+          class="bg-white rounded-2xl border border-[#E6EAF0] p-4"
         >
           <div class="flex items-start justify-between gap-3 mb-2">
-            <h3 class="text-[15px] font-semibold text-[#3a4a5c] m-0">{{ c.title }}</h3>
+            <h3 class="text-[15px] font-semibold text-[#263746] m-0">{{ c.title }}</h3>
             <span class="text-[12px] px-2 py-0.5 rounded-full shrink-0" :class="statusClass(c.status)">{{ statusText(c.status) }}</span>
           </div>
           <p class="text-[12px] text-[#9aa6b2] m-0 mb-2">

@@ -1,7 +1,7 @@
 <template>
   <section>
     <header class="mb-5">
-      <h1 class="text-2xl md:text-3xl font-bold text-[#3a4a5c] m-0">📚 了解心理学知识</h1>
+      <h1 class="text-2xl md:text-3xl font-bold text-[#263746] m-0">📚 了解心理学知识</h1>
       <p class="text-[#9aa6b2] mt-1 m-0">知识卡片 · 心理疾病科普 —— 用科学理解心灵。</p>
     </header>
 
@@ -30,7 +30,7 @@
             :key="cat.key"
             @click="activeType = cat.key"
             class="shrink-0 inline-flex items-center min-h-[44px] px-3.5 py-1.5 rounded-[20px] text-[13px] border transition"
-            :class="activeType === cat.key ? 'bg-[#eef4f9] text-[#7c9cb8] border-[#c5d8ea] font-semibold' : 'bg-white text-[#5a6b7c] border-[#eef2f7]'"
+            :class="activeType === cat.key ? 'bg-[#eef4f9] text-[#7c9cb8] border-[#c5d8ea] font-semibold' : 'bg-white text-[#5a6b7c] border-[#E6EAF0]'"
           >
             {{ cat.label }}
           </button>
@@ -42,7 +42,7 @@
           <input
             v-model="search"
             placeholder="搜索知识卡片或心理疾病…"
-            class="w-full pl-9 pr-9 py-2.5 rounded-xl border border-[#e2e8f0] bg-white text-[16px] text-[#3a4a5c] outline-none transition focus:border-[#7c9cb8] focus:ring-2 focus:ring-[#7c9cb8]/20 placeholder:text-[#b8c2cc] min-h-[44px]"
+            class="w-full pl-9 pr-9 py-2.5 rounded-xl border border-[#E6EAF0] bg-white text-[16px] text-[#263746] outline-none transition focus:border-[#7c9cb8] focus:ring-2 focus:ring-[#7c9cb8]/20 placeholder:text-[#b8c2cc] min-h-[44px]"
           />
           <button
             v-if="search"
@@ -58,10 +58,10 @@
             v-for="item in filtered"
             :key="item.type + '-' + item.key"
             @click="openDetail(item)"
-            class="bg-white border border-[#eef2f7] rounded-2xl p-4 cursor-pointer transition hover:-translate-y-0.5 hover:shadow-[0_8px_20px_rgba(0,0,0,0.05)] hover:border-[#c5d8ea]"
+            class="bg-white border border-[#E6EAF0] rounded-2xl p-4 cursor-pointer transition hover:-translate-y-0.5 hover:shadow-[0_8px_20px_rgba(0,0,0,0.05)] hover:border-[#c5d8ea]"
           >
             <div v-if="item.type === 'health'" class="text-2xl mb-1.5">{{ item.icon }}</div>
-            <h3 class="text-[16px] font-bold text-[#3a4a5c] m-0 leading-snug">{{ item.title }}</h3>
+            <h3 class="text-[16px] font-bold text-[#263746] m-0 leading-snug">{{ item.title }}</h3>
             <span class="inline-block mt-1 text-[12px] text-[#7c9cb8] bg-[#eef4f9] px-2 py-0.5 rounded-md">{{ item.category }}</span>
             <p class="text-[13px] text-[#9aa6b2] line-clamp-3 mt-2 m-0 leading-relaxed">{{ item.summary }}</p>
             <div v-if="item.type === 'card' && item.proponent" class="text-[12px] text-[#b8b8b8] mt-2">🧑‍🔬 {{ item.proponent }}</div>
@@ -76,9 +76,9 @@
       <div v-if="dialogVisible" class="fixed inset-0 z-50 flex justify-center" @click.self="dialogVisible = false">
         <div class="absolute inset-0 bg-black/40"></div>
         <div class="relative bg-white rounded-2xl shadow-2xl w-[92%] max-w-2xl mt-[8vh] max-h-[82vh] flex flex-col">
-          <div class="flex items-center justify-between px-5 py-4 border-b border-[#eef2f7] shrink-0">
-            <h3 class="text-lg font-bold text-[#3a4a5c] m-0">{{ detailTitle }}</h3>
-            <button @click="dialogVisible = false" class="text-[#9aa6b2] hover:text-[#3a4a5c] text-xl leading-none" aria-label="关闭">✕</button>
+          <div class="flex items-center justify-between px-5 py-4 border-b border-[#E6EAF0] shrink-0">
+            <h3 class="text-lg font-bold text-[#263746] m-0">{{ detailTitle }}</h3>
+            <button @click="dialogVisible = false" class="text-[#9aa6b2] hover:text-[#263746] text-xl leading-none" aria-label="关闭">✕</button>
           </div>
           <div class="px-5 py-4 overflow-y-auto">
             <div class="detail-content" v-html="detailHtml"></div>
@@ -288,18 +288,18 @@ function formatTime(time) {
 </script>
 
 <style scoped>
-.detail-content :deep(h2) { font-size: 18px; font-weight: 700; color: #3a4a5c; margin: 16px 0 8px; }
+.detail-content :deep(h2) { font-size: 18px; font-weight: 700; color: #263746; margin: 16px 0 8px; }
 .detail-content :deep(p) { color: #5a6b7c; line-height: 1.8; margin: 8px 0; }
 .detail-content :deep(ol),
 .detail-content :deep(ul) { padding-left: 20px; color: #5a6b7c; line-height: 1.8; }
 .detail-content :deep(li) { margin: 4px 0; }
-.detail-content :deep(strong) { color: #3a4a5c; }
+.detail-content :deep(strong) { color: #263746; }
 .detail-content :deep(.warm) {
-  background: #fff3e0; color: #e07a3f; padding: 10px 14px;
+  background: #fff3e0; color: #D87945; padding: 10px 14px;
   border-radius: 10px; display: block; margin-top: 14px; line-height: 1.7;
 }
 .study-links-box { margin: 22px 0 8px; padding: 16px 18px; background: #f6f9fc; border: 1px solid #eef2f7; border-radius: 12px; }
-.study-links-box h4 { margin: 0 0 6px; color: #3a4a5c; font-size: 15px; }
+.study-links-box h4 { margin: 0 0 6px; color: #263746; font-size: 15px; }
 .study-links-tip { margin: 0 0 12px; color: #9aa6b2; font-size: 12px; }
 .study-links { display: flex; gap: 8px; flex-wrap: wrap; }
 .study-link {
@@ -319,11 +319,11 @@ function formatTime(time) {
 .like-btn.liked { background: #7c9cb8; color: #fff; border-color: #7c9cb8; }
 .like-btn:disabled { opacity: 0.6; cursor: not-allowed; }
 .like-hint { font-size: 0.78rem; font-weight: normal; }
-.comments-title { margin: 0 0 10px; color: #3a4a5c; font-size: 15px; }
+.comments-title { margin: 0 0 10px; color: #263746; font-size: 15px; }
 .comment-form { margin-bottom: 12px; }
 .comment-input {
   width: 100%; padding: 10px 12px; border: 1px solid #e2e8f0; border-radius: 10px;
-  font-size: 13px; color: #3a4a5c; outline: none; resize: vertical;
+  font-size: 13px; color: #263746; outline: none; resize: vertical;
   min-height: 56px; box-sizing: border-box; font-family: inherit;
 }
 .comment-input:focus { border-color: #7c9cb8; }

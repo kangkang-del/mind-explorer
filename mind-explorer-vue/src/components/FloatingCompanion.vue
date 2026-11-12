@@ -9,7 +9,7 @@
       <span class="absolute inset-0 rounded-full border-2 border-[#a8d5ba] floating-ring"></span>
     </div>
     <div class="hidden md:flex flex-col leading-tight">
-      <span class="text-[14px] font-bold text-[#3a4a5c]">小木</span>
+      <span class="text-[14px] font-bold text-[#263746]">小木</span>
       <span class="text-[11px] text-[#9aa6b2]">随时陪你聊聊</span>
     </div>
   </RouterLink>

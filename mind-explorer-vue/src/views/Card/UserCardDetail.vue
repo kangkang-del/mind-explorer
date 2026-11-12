@@ -7,14 +7,14 @@
       <RouterLink to="/upload" class="text-[#7c9cb8] no-underline font-semibold">← 返回分享页</RouterLink>
     </div>
 
-    <article v-else class="bg-white rounded-2xl border border-[#eef2f7] p-6">
+    <article v-else class="bg-white rounded-2xl border border-[#E6EAF0] p-6">
       <RouterLink to="/upload" class="inline-block text-[13px] text-[#7c9cb8] no-underline mb-4">← 返回分享页</RouterLink>
 
       <div class="flex items-center gap-2 mb-3">
         <span v-if="card.category" class="inline-block bg-[#f0f4f9] text-[#5a6b7c] text-[12px] px-3 py-1 rounded-full">{{ card.category }}</span>
         <span v-if="card.featured" class="inline-block bg-gradient-to-r from-[#ffe2a8] to-[#fff3d6] text-[#b4791f] text-[12px] px-3 py-1 rounded-full font-semibold border border-[#f3d28a]">✨ 精选</span>
       </div>
-      <h1 class="text-2xl font-bold text-[#3a4a5c] m-0 mb-2">{{ card.title }}</h1>
+      <h1 class="text-2xl font-bold text-[#263746] m-0 mb-2">{{ card.title }}</h1>
       <div class="flex items-center justify-between mb-4">
         <p class="text-[13px] text-[#9aa6b2] m-0">👤 由 {{ card.author_name }} 分享</p>
         <FavoriteButton type="moment" :id="card.id" :title="card.title" :summary="(card.content||'').slice(0,80)" :link="`/user-card/${card.id}`" variant="full" />
@@ -22,7 +22,7 @@
 
       <img v-if="card.image" :src="card.image" alt="配图" class="w-full rounded-xl mb-4 object-cover max-h-[360px]" />
 
-      <p class="text-[15px] text-[#3a4a5c] leading-8 whitespace-pre-wrap m-0">{{ card.content }}</p>
+      <p class="text-[15px] text-[#263746] leading-8 whitespace-pre-wrap m-0">{{ card.content }}</p>
 
       <p v-if="card.source" class="text-[13px] text-[#9aa6b2] mt-4 m-0">来源：{{ card.source }}</p>
 
@@ -42,7 +42,7 @@
         </button>
         <button
           @click="reportOpen = true"
-          class="ml-auto text-[13px] text-[#9aa6b2] hover:text-[#e07a3f] transition"
+          class="ml-auto text-[13px] text-[#9aa6b2] hover:text-[#D87945] transition"
         >
           ⚠️ 举报
         </button>

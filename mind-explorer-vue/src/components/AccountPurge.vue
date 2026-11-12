@@ -7,7 +7,7 @@
     </p>
     <button
       type="button"
-      class="text-[13px] px-4 py-2 min-h-[44px] rounded-full border border-[#e8c8c8] text-[#a86a6a] hover:bg-[#fdf6f6] transition"
+      class="bg-transparent text-[13px] px-4 py-2 min-h-[44px] rounded-full border border-[#e8c8c8] text-[#a86a6a] hover:bg-[#fdf6f6] transition"
       @click="openConfirm"
     >我要删除</button>
   </section>
@@ -20,9 +20,9 @@
       @click.self="closeConfirm"
     >
       <div class="w-full max-w-md bg-white rounded-2xl shadow-xl p-6 max-h-[88vh] overflow-y-auto">
-        <h3 class="text-[17px] font-bold text-[#3a4a5c] m-0 mb-3">删除前，请确认是你本人</h3>
+        <h3 class="text-[17px] font-bold text-[#263746] m-0 mb-3">删除前，请确认是你本人</h3>
         <p class="text-[13.5px] text-[#5a6b7c] leading-6 m-0 mb-4">
-          请输入你的昵称 <strong class="text-[#3a4a5c]">{{ displayName || '（当前身份无昵称）' }}</strong>
+          请输入你的昵称 <strong class="text-[#263746]">{{ displayName || '（当前身份无昵称）' }}</strong>
           —— 输入完全一致才能继续。
         </p>
         <input
@@ -30,7 +30,7 @@
           type="text"
           :placeholder="displayName || '请输入昵称'"
           class="w-full text-[16px] px-3.5 py-2.5 rounded-xl border transition outline-none min-h-[44px]"
-          :class="typedOk ? 'border-[#a8cbb4]' : 'border-[#e0e6ec] focus:border-[#c5d8ea]'"
+          :class="typedOk ? 'border-[#a8cbb4]' : 'border-[#E6EAF0] focus:border-[#c5d8ea]'"
           @keyup.enter="typedOk && goFinal()"
         />
 
@@ -50,7 +50,7 @@
         <div class="flex items-center gap-2 mt-5">
           <button
             type="button"
-            class="flex-1 text-[14px] py-2.5 rounded-full border border-[#e0e6ec] text-[#5a6b7c] hover:border-[#c5d8ea] transition"
+            class="bg-transparent flex-1 text-[14px] py-2.5 rounded-full border border-[#E6EAF0] text-[#5a6b7c] hover:border-[#c5d8ea] transition"
             @click="closeConfirm"
           >取消</button>
           <button
@@ -88,7 +88,7 @@
         <div class="flex items-center gap-2 mt-5">
           <button
             type="button"
-            class="flex-1 text-[14px] py-2.5 rounded-full border border-[#e0e6ec] text-[#5a6b7c] hover:border-[#c5d8ea] transition"
+            class="bg-transparent flex-1 text-[14px] py-2.5 rounded-full border border-[#E6EAF0] text-[#5a6b7c] hover:border-[#c5d8ea] transition"
             :disabled="busy"
             @click="step = 'confirm'"
           >再想想</button>

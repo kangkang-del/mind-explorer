@@ -3,7 +3,7 @@
     <!-- 概览 -->
     <div class="flex items-center justify-between mb-3">
       <p class="text-[13px] text-[#9aa6b2] m-0">
-        已点亮 <span class="font-bold text-[#e07a3f]">{{ earnedCount }}</span> / {{ totalCount }} 枚徽章
+        已点亮 <span class="font-bold text-[#D87945]">{{ earnedCount }}</span> / {{ totalCount }} 枚徽章
       </p>
       <div class="flex gap-1">
         <span
@@ -22,7 +22,7 @@
         v-for="b in badges"
         :key="b.id"
         class="relative p-4 rounded-2xl border text-center transition"
-        :class="b.earned ? 'border-transparent shadow-sm' : 'border-[#eef2f7] bg-[#f7f9fb]'"
+        :class="b.earned ? 'border-transparent shadow-sm' : 'border-[#E6EAF0] bg-[#f7f9fb]'"
         :style="b.earned ? earnedStyle(b.tier) : {}"
       >
         <div

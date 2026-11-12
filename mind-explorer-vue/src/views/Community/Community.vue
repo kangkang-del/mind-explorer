@@ -9,8 +9,8 @@
         <span v-if="auth.user"><img :src="auth.user.avatar" class="user-avatar-sm" /> {{ auth.user.name }}</span>
         <span v-else>👤 游客：{{ auth.guest.name }}</span>
       </div>
-      <input v-model="newTitle" placeholder="标题" class="w-full mb-2 px-3 py-2 rounded-lg border border-[#e2e8f0] bg-white text-[16px] text-[#3a4a5c] outline-none transition focus:border-[#7c9cb8] focus:ring-2 focus:ring-[#7c9cb8]/20 placeholder:text-[#b8c2cc] min-h-[44px]" />
-      <textarea v-model="newContent" rows="3" placeholder="分享你的想法..." class="w-full px-3 py-2 rounded-lg border border-[#e2e8f0] bg-white text-[16px] text-[#3a4a5c] outline-none transition focus:border-[#7c9cb8] focus:ring-2 focus:ring-[#7c9cb8]/20 placeholder:text-[#b8c2cc] resize-y min-h-[72px]"></textarea>
+      <input v-model="newTitle" placeholder="标题" class="w-full mb-2 px-3 py-2 rounded-lg border border-[#E6EAF0] bg-white text-[16px] text-[#263746] outline-none transition focus:border-[#7c9cb8] focus:ring-2 focus:ring-[#7c9cb8]/20 placeholder:text-[#b8c2cc] min-h-[44px]" />
+      <textarea v-model="newContent" rows="3" placeholder="分享你的想法..." class="w-full px-3 py-2 rounded-lg border border-[#E6EAF0] bg-white text-[16px] text-[#263746] outline-none transition focus:border-[#7c9cb8] focus:ring-2 focus:ring-[#7c9cb8]/20 placeholder:text-[#b8c2cc] resize-y min-h-[72px]"></textarea>
       <button @click="submitPost" :disabled="posting" class="mt-2 inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#7c9cb8] text-white text-sm font-medium transition hover:bg-[#6b8aa6] disabled:opacity-60 disabled:cursor-not-allowed">{{ posting ? '发布中…' : '发布帖子' }}</button>
     </div>
 
@@ -18,7 +18,7 @@
       <p>参与社区：</p>
       <button @click="auth.openLogin('register')" class="px-4 py-2 rounded-lg bg-[#7c9cb8] text-white text-sm font-medium transition hover:bg-[#6b8aa6]">游客注册 / 登录</button>
       <span class="divider">或</span>
-      <button @click="auth.login()" class="px-4 py-2 rounded-lg border border-[#e2e8f0] bg-white text-[#5a6b7c] text-sm transition hover:bg-[#f0f4f9]">GitHub 登录</button>
+      <button @click="auth.login()" class="px-4 py-2 rounded-lg border border-[#E6EAF0] bg-white text-[#5a6b7c] text-sm transition hover:bg-[#f0f4f9]">GitHub 登录</button>
     </div>
 
     <!-- 帖子列表 -->
