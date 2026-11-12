@@ -12,7 +12,7 @@
     <!-- 移动底部导航：<768 显示，为它预留高度，避免盖住页脚 -->
     <AppTabbar />
     <!-- M1 小木桌宠：全站常驻（批次 D 正式集成，替换原 FloatingCompanion 入口球） -->
-    <XiaomuPet />
+    <XiaomuPet v-if="prefs.petOn" />
     <BadgeCelebration />
     <CrisisSupport />
   </div>
@@ -27,6 +27,7 @@ import CrisisSupport from './components/CrisisSupport.vue'
 import XiaomuPet from './companion/components/XiaomuPet.vue'
 import { useAuthStore } from './stores/auth'
 import { bindViewport } from './composables/useViewport'
+import { useXiaomuPrefs } from './companion/composables/useXiaomuPrefs'
 
 // 批次 M：身份必须在**应用壳层**恢复，而不是散落在各页面。
 // 原来只有 Profile / Community / CardDetail / PostDetail / Upload 和已弃用的
@@ -37,6 +38,10 @@ import { bindViewport } from './composables/useViewport'
 // 各页面原有的 restoreUser() 调用保持幂等，无需清理。
 const auth = useAuthStore()
 auth.restoreUser()
+
+// 桌宠默认不挂载（prefs.petOn 默认 false）：手册要求小木不默认全局悬浮。
+// 不挂载比 display:none 干净 —— 主动搭话的定时器与手势监听都不会启动。
+const prefs = useXiaomuPrefs()
 
 // 视口/键盘监听全局只绑一次：底部导航与聊天页共用同一份状态
 bindViewport()

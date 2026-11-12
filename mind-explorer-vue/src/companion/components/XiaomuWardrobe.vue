@@ -1,10 +1,19 @@
 <template>
+  <!-- 独立模式：从个人中心打开时没有桌宠可贴，改成居中模态 + 遮罩 -->
+  <Teleport v-if="standalone" to="body">
+    <Transition name="xm-drawer">
+      <div v-if="open" class="xm-wd-backdrop" @click="emit('close')"></div>
+    </Transition>
+  </Teleport>
   <Transition name="xm-drawer">
     <div
       v-if="open"
       ref="panelEl"
       class="xm-wardrobe"
-      :style="panelShift ? { transform: `translate(calc(-50% + ${panelShift}px), 0)` } : {}"
+      :class="{ 'is-standalone': standalone }"
+      :style="!standalone && panelShift ? { transform: `translate(calc(-50% + ${panelShift}px), 0)` } : {}"
+      :role="standalone ? 'dialog' : undefined"
+      :aria-modal="standalone ? 'true' : undefined"
       @pointerdown.stop
       @click.stop
     >
@@ -107,7 +116,7 @@ import { useIdentity } from '../../composables/useIdentity'
 import XiaomuModelPanel from './XiaomuModelPanel.vue'   // M5-3
 import XiaomuVoicePanel from './XiaomuVoicePanel.vue'   // M6-1
 
-const props = defineProps({ open: Boolean })
+const props = defineProps({ open: Boolean, standalone: Boolean })
 const emit = defineEmits(['close'])
 
 const prefs = useXiaomuPrefs()
@@ -250,6 +259,25 @@ onBeforeUnmount(() => removeEventListener('resize', clampPanel))
 </script>
 
 <style>
+.xm-wd-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  z-index: 949;
+}
+
+/* 独立模式（个人中心打开）：居中、限高、层级低于危机层(1000)与注销页(950) */
+.xm-wardrobe.is-standalone {
+  position: fixed;
+  bottom: auto;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(360px, 92vw);
+  max-height: min(80vh, 620px);
+  z-index: 950;
+}
+
 .xm-wardrobe {
   position: absolute;
   bottom: calc(100% + 10px);

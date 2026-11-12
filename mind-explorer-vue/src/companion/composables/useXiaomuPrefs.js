@@ -69,6 +69,9 @@ const defaults = () => ({
   wear: { hat: 'hat-none', scarf: 'scarf-none', bow: 'bow-none' },  // M3：槽位→物品 id
   pos: null,          // { x, y }
   collapsed: false,
+  // 《三端手册》：小木不默认全局悬浮 —— 默认关闭，避免遮挡页面按钮。
+  // 用户可在「个人中心 → 小木」显式打开。
+  petOn: false,
   dnd: false,         // M2 批次 F：免打扰（true = 小木不主动搭话，被动聊天不受影响）
   // ---- M6-1 语音 ----
   voiceOn: false,         // 播报开关
@@ -117,6 +120,7 @@ function load() {
       },
       pos: saved.pos && Number.isFinite(saved.pos.x) && Number.isFinite(saved.pos.y) ? saved.pos : null,
       collapsed: !!saved.collapsed,
+      petOn: !!saved.petOn,
       dnd: !!saved.dnd,
       // ---- M6-1 语音 ----
       voiceOn: !!saved.voiceOn,

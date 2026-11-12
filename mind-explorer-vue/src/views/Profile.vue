@@ -167,6 +167,39 @@
       <p v-else class="text-[13px] text-[#9aa6b2] py-4 text-center m-0">还没有收藏。去社区或知识页逛逛，点 ♥ 收藏你喜欢的～</p>
     </section>
 
+    <!-- 小木：桌宠开关 + 换装/声音设置入口。
+         桌宠改成默认不悬浮之后，换装与声音面板就从「点桌宠」变成了这里 ——
+         否则关掉桌宠的用户再也进不去语音设置。 -->
+    <section class="bg-white border border-[#eef2f7] rounded-2xl p-5 mb-5">
+      <h2 class="text-[15px] font-bold text-[#3a4a5c] m-0 mb-1">🌿 小木</h2>
+      <p class="text-[13px] text-[#9aa6b2] leading-6 m-0 mb-3">
+        桌宠默认不悬浮，免得挡住页面上的按钮。想让她陪在角落时，打开即可。
+      </p>
+      <div class="flex flex-wrap items-center gap-2.5">
+        <button
+          type="button"
+          @click="togglePet"
+          :aria-pressed="prefs.petOn ? 'true' : 'false'"
+          class="inline-flex items-center gap-2 min-h-[44px] px-4 rounded-lg border text-[14px] font-semibold transition"
+          :class="prefs.petOn
+            ? 'border-[#a8cbb4] bg-[#f5faf7] text-[#4a8a5e]'
+            : 'border-[#e0e6ec] bg-white text-[#5a6b7c] hover:border-[#c5d8ea]'"
+        >
+          <span class="w-2 h-2 rounded-full" :class="prefs.petOn ? 'bg-[#5a9e7a]' : 'bg-[#c2ccd6]'"></span>
+          {{ prefs.petOn ? '桌宠已开启' : '桌宠已关闭' }}
+        </button>
+        <button
+          type="button"
+          @click="wardrobeOpen = true"
+          class="inline-flex items-center min-h-[44px] px-4 rounded-lg border border-[#e0e6ec] bg-white text-[14px] text-[#5a6b7c] hover:border-[#c5d8ea] transition"
+        >
+          小木设置（换装 · 声音）
+        </button>
+      </div>
+      <p class="text-[12px] text-[#b8c2cc] m-0 mt-2">换装与语音播报都放在这个面板里。</p>
+      <XiaomuWardrobe :open="wardrobeOpen" standalone @close="wardrobeOpen = false" />
+    </section>
+
     <!-- 彻底删除（批次 P）—— 只有已登录才有数据可删 -->
     <AccountPurge v-if="auth.currentUser" />
 
@@ -206,8 +239,16 @@ import { favoritesApi } from '../api/favorites'
 import { checkinsApi } from '../api/checkins'
 import BadgeWall from '../components/BadgeWall.vue'
 import AccountPurge from '../components/AccountPurge.vue'   // 批次 P：彻底删除
+import XiaomuWardrobe from '../companion/components/XiaomuWardrobe.vue'
+import { useXiaomuPrefs } from '../companion/composables/useXiaomuPrefs'
 
 const auth = useAuthStore()
+// 小木桌宠开关（模块单例，与 App.vue 共用同一份 prefs）
+const prefs = useXiaomuPrefs()
+const wardrobeOpen = ref(false)
+function togglePet() {
+  prefs.petOn = !prefs.petOn
+}
 const badgesStore = useBadgeStore()
 const trusted = useTrustedContactsStore()
 const favorites = ref([])
