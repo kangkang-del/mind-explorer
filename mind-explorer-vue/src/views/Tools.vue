@@ -18,14 +18,14 @@
       <div class="grid grid-cols-2 gap-2 mb-3">
         <a
           href="tel:120"
-          class="flex flex-col items-center justify-center min-h-[52px] sm:min-h-[56px] rounded-xl bg-[#c85a3a] text-white no-underline font-bold leading-tight"
+          class="flex flex-col items-center justify-center min-h-[52px] sm:min-h-[56px] rounded-xl bg-urgent text-white no-underline font-bold leading-tight"
         >
           <span class="text-[11px] font-normal opacity-90">急救</span>
           <span class="text-[18px] tabular-nums">120</span>
         </a>
         <a
           href="tel:110"
-          class="flex flex-col items-center justify-center min-h-[52px] sm:min-h-[56px] rounded-xl bg-[#b8503a] text-white no-underline font-bold leading-tight"
+          class="flex flex-col items-center justify-center min-h-[52px] sm:min-h-[56px] rounded-xl bg-urgent-ink text-white no-underline font-bold leading-tight"
         >
           <span class="text-[11px] font-normal opacity-90">报警</span>
           <span class="text-[18px] tabular-nums">110</span>
@@ -37,7 +37,7 @@
         <li v-for="h in hotlines" :key="h.tel">
           <a
             :href="'tel:' + h.tel.replace(/-/g, '')"
-            class="flex items-center gap-2 min-h-[44px] px-3 py-1.5 rounded-lg bg-white/80 border border-[#f0d8c0] no-underline hover:border-[#e0b48a] transition"
+            class="flex items-center gap-2 min-h-[44px] px-3 py-1.5 rounded-lg bg-white/80 border border-[#f0d8c0] no-underline hover:border-[#f0a868] transition"
           >
             <span class="text-[15px] shrink-0" aria-hidden="true">📞</span>
             <span class="flex-1 text-[12.5px] text-[#7a5a44] leading-tight">{{ h.name }}</span>
@@ -46,7 +46,7 @@
         </li>
       </ul>
 
-      <p class="text-[12px] text-[#8a5a34] leading-6 m-0 mb-3">
+      <p class="text-[12px] text-[#a85a2c] leading-6 m-0 mb-3">
         若你或他人正面临紧急危险，请立即拨打 120 或 110，或前往最近医院急诊。
       </p>
       <p class="text-[13px] text-[#7a5a44] leading-7 m-0 mb-3">
