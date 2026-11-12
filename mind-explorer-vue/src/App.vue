@@ -1,5 +1,6 @@
 <template>
-  <div class="flex min-h-screen flex-col bg-[#fafbfc]">
+  <!-- 手机端给固定底栏留出 64px + 安全区，避免页脚被压在底栏下面 -->
+  <div class="flex min-h-screen flex-col bg-[#fafbfc] pb-[calc(64px+env(safe-area-inset-bottom))] md:pb-0">
     <AppNavbar />
     <!-- 页面级容器的唯一来源：宽 1200 + 水平留白。
          各 view 只按手册选 page-wide / page-read / page-narrow，
@@ -8,6 +9,8 @@
       <RouterView />
     </main>
     <AppFooter />
+    <!-- 移动底部导航：<768 显示，为它预留高度，避免盖住页脚 -->
+    <AppTabbar />
     <!-- M1 小木桌宠：全站常驻（批次 D 正式集成，替换原 FloatingCompanion 入口球） -->
     <XiaomuPet />
     <BadgeCelebration />
@@ -18,6 +21,7 @@
 <script setup>
 import AppNavbar from './components/AppNavbar.vue'
 import AppFooter from './components/AppFooter.vue'
+import AppTabbar from './components/AppTabbar.vue'
 import BadgeCelebration from './components/BadgeCelebration.vue'
 import CrisisSupport from './components/CrisisSupport.vue'
 import XiaomuPet from './companion/components/XiaomuPet.vue'

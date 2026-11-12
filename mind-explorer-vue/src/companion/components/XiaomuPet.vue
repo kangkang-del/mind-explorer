@@ -988,7 +988,8 @@ watch(pttOpen, (v) => {
   right: 14px;
   bottom: calc(18px + env(safe-area-inset-bottom, 0px));
   width: 190px;
-  z-index: 90;
+  /* 低于移动底栏(90)，任何重叠都由底栏压在上面 */
+  z-index: 80;
   touch-action: none;
   cursor: grab;
   transition: left .08s linear, top .08s linear, transform .18s ease;
@@ -1011,6 +1012,12 @@ watch(pttOpen, (v) => {
 }
 @media (prefers-reduced-motion: reduce) {
   .xm-pet.is-growing { animation: none; }
+}
+/* 手机有底部导航，桌宠要抬到它上面，否则下半身被底栏切掉 */
+@media (max-width: 767px) {
+  .xm-pet {
+    bottom: calc(72px + env(safe-area-inset-bottom, 0px));
+  }
 }
 @media (max-width: 480px) {
   .xm-pet { width: 148px; right: 8px; }
