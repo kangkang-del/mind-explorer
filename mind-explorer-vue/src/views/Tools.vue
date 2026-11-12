@@ -26,7 +26,8 @@
     <!-- 呼吸练习 -->
     <section class="mb-6">
       <h2 class="text-[16px] font-bold text-[#3a4a5c] mb-3 m-0">🌬️ 呼吸练习</h2>
-      <div class="grid sm:grid-cols-3 gap-3 mb-4">
+      <!-- 手机 1 列 / 平板 2 列 / 桌面 3 列（分册二：平板常规工具 2 列） -->
+      <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-3 mb-4">
         <div
           v-for="(ex, key) in exercises"
           :key="key"

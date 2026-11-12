@@ -15,7 +15,7 @@
         class="text-[12px] px-3 py-1.5 rounded-full border border-[#e6efe9] bg-white text-[#5a8a6a] hover:border-[#a8cbb4] hover:bg-[#f5faf7] transition no-underline flex items-center gap-1 shrink-0"
         title="小木记得的你 —— 它把记得的事，一段段讲给你听"
       >
-        <span aria-hidden="true">📖</span><span class="hidden sm:inline">故事书</span>
+        <span aria-hidden="true">📖</span><span class="hidden md:inline">故事书</span>
       </RouterLink>
       <!-- M6-1：播报开关（D9：浏览器不支持朗读时隐藏） -->
       <button
@@ -36,7 +36,7 @@
           <path v-if="prefs.voiceOn" d="M18.5 6a9 9 0 0 1 0 12" />
           <line v-if="!prefs.voiceOn" x1="4" y1="20" x2="20" y2="4" />
         </svg>
-        <span class="hidden sm:inline">{{ prefs.voiceOn ? '朗读中' : '朗读' }}</span>
+        <span class="hidden md:inline">{{ prefs.voiceOn ? '朗读中' : '朗读' }}</span>
       </button>
       <button v-if="messages.length" @click="clearChat" class="text-[12px] text-[#9aa6b2] hover:text-[#e07a3f] transition px-2 py-1 shrink-0">清空</button>
     </header>
@@ -279,7 +279,7 @@
             <path d="M5 11a7 7 0 0 0 14 0" />
             <line x1="12" y1="18" x2="12" y2="22" />
           </svg>
-          <span class="hidden sm:inline">{{ iat.pttLabel.value }}</span>
+          <span class="hidden md:inline">{{ iat.pttLabel.value }}</span>
         </button>
         <textarea
           ref="inputEl"

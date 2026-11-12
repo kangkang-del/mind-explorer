@@ -8,7 +8,9 @@
     <!-- 记录区 -->
     <section class="bg-white rounded-2xl border border-[#eef2f7] p-5 mb-5">
       <p class="text-[14px] text-[#5a6b7c] mb-3 m-0">今天，你感觉……</p>
-      <div class="grid grid-cols-3 sm:grid-cols-6 gap-2 mb-4">
+      <!-- 6 项一行只在桌面档出现：640–1023 保持 3×2（手册允许），
+           640 处排 6 列会把单格拉到 76px，触摸和阅读都不达标 -->
+      <div class="grid grid-cols-3 lg:grid-cols-6 gap-2 mb-4">
         <button
           v-for="m in MOODS"
           :key="m.key"

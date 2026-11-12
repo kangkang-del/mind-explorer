@@ -34,7 +34,7 @@
     </section>
 
     <!-- 进度卡片 -->
-    <section v-if="auth.currentUser" class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
+    <section v-if="auth.currentUser" class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
       <div class="bg-white rounded-2xl border border-[#eef2f7] p-4 text-center">
         <p class="text-[28px] font-bold text-[#e07a3f] m-0">🔥</p>
         <p class="text-[12px] text-[#9aa6b2] mt-1 m-0">连续打卡</p>
@@ -94,8 +94,8 @@
       </ul>
       <p v-else class="text-[13px] text-[#9aa6b2] py-2 m-0 mb-4">还没有添加信任联系人，下面加一位吧～</p>
 
-      <form @submit.prevent="addContact" class="grid grid-cols-1 sm:grid-cols-12 gap-2 items-end">
-        <div class="sm:col-span-4">
+      <form @submit.prevent="addContact" class="grid grid-cols-1 md:grid-cols-12 gap-2 items-end">
+        <div class="md:col-span-4">
           <label class="block text-[12px] text-[#9aa6b2] mb-1">称呼 *</label>
           <input
             v-model="tcForm.name"
@@ -104,7 +104,7 @@
             class="w-full px-2.5 py-1.5 border border-[#e0e6ec] rounded-lg text-[14px] focus:outline-none focus:border-[#7c9cb8]"
           />
         </div>
-        <div class="sm:col-span-4">
+        <div class="md:col-span-4">
           <label class="block text-[12px] text-[#9aa6b2] mb-1">电话 / 微信</label>
           <input
             v-model="tcForm.phone"
@@ -113,7 +113,7 @@
             class="w-full px-2.5 py-1.5 border border-[#e0e6ec] rounded-lg text-[14px] focus:outline-none focus:border-[#7c9cb8]"
           />
         </div>
-        <div class="sm:col-span-2">
+        <div class="md:col-span-2">
           <label class="block text-[12px] text-[#9aa6b2] mb-1">关系</label>
           <input
             v-model="tcForm.relation"
@@ -122,7 +122,7 @@
             class="w-full px-2.5 py-1.5 border border-[#e0e6ec] rounded-lg text-[14px] focus:outline-none focus:border-[#7c9cb8]"
           />
         </div>
-        <div class="sm:col-span-2">
+        <div class="md:col-span-2">
           <button
             type="submit"
             :disabled="!tcForm.name.trim()"

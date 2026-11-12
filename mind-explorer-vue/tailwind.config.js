@@ -6,11 +6,12 @@ export default {
     preflight: false,
   },
   theme: {
-    // 标准三档断点：手机(默认) / 平板 / 桌面
-    screens: {
-      md: '768px', // 平板及以上
-      lg: '1024px', // 桌面及以上
-    },
+    // ⚠️ 这里**不要**写 screens 整体覆盖。
+    // 曾经的写法 `screens: { md, lg }` 会把默认的 sm/md/lg/xl/2xl 整组替换掉，
+    // 导致源码里 12 处 `sm:` 在构建产物中一个都不生成（静默失效），排查成本极高。
+    // 现直接采用 Tailwind 默认五档，与《三端手册》分档一致：
+    //   sm 640（大屏手机）/ md 768（平板）/ lg 1024（小桌面）/ xl 1280（桌面）/ 2xl 1536
+    // 若将来确需新增自定义断点，请用 extend.screens 追加，不要覆盖。
     extend: {
       colors: {
         brand: {
