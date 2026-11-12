@@ -533,7 +533,6 @@ function onRate(val) {
   font-family: inherit;
   font-size: 12px;
   padding: 6px 8px;
-  outline: none;
 }
 .xm-vc-input:focus { border-color: #ff9ec4; }
 .xm-vc-input:disabled { background: #faf8f4; }

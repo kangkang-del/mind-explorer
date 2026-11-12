@@ -986,7 +986,7 @@ blockquote {
     border-radius:12px;font-size:.95rem;font-family:inherit;
     resize:vertical;min-height:80px;transition:border-color .2s;
 }
-.comment-input:focus{outline:none;border-color:var(--primary)}
+.comment-input:focus{border-color:var(--primary)}
 .comment-submit{
     background:linear-gradient(135deg,#A3B5BF,#8A9CA8);color:#fff;
     border:none;padding:8px 24px;border-radius:8px;

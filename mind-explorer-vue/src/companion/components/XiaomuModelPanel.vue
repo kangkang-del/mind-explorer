@@ -368,7 +368,6 @@ async function onClear() {
   font-family: inherit;
   font-size: 12px;
   padding: 6px 8px;
-  outline: none;
 }
 .xm-md-input:focus { border-color: #ff9ec4; }
 .xm-md-hint { font-size: 10px; line-height: 1.4; opacity: .5; }

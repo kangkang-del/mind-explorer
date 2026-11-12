@@ -77,7 +77,7 @@
           :aria-expanded="userMenuOpen ? 'true' : 'false'"
         >
           <span v-if="auth.isLoggedIn && auth.guest" class="inline-flex items-center justify-center w-9 h-9 rounded-full bg-gradient-to-br from-[#e0a868] to-[#f0c990] text-white text-[13px]">🏠</span>
-          <img v-else-if="auth.isLoggedIn && auth.user?.avatar" :src="auth.user.avatar" class="w-9 h-9 rounded-full object-cover" />
+          <img v-else-if="auth.isLoggedIn && auth.user?.avatar" :src="auth.user.avatar" alt="用户头像" class="w-9 h-9 rounded-full object-cover" />
           <span v-else-if="auth.isLoggedIn" class="inline-flex items-center justify-center w-9 h-9 rounded-full bg-[#7C9CB8] bg-gradient-to-br from-[#7C9CB8] to-[#A8C3D6] text-white text-[13px]">🐙</span>
           <span v-else class="inline-flex items-center justify-center w-9 h-9 rounded-full bg-[#7C9CB8] bg-gradient-to-br from-[#7C9CB8] to-[#A8C3D6] text-white text-[13px]">访客</span>
         </button>
@@ -89,7 +89,7 @@
           <RouterLink to="/mood" class="inline-flex items-center min-h-[44px] px-3 rounded-md text-[14px] text-[#5a6b7c] no-underline hover:bg-surface-brand-subtle" @click="userMenuOpen=false">心情日记</RouterLink>
           <RouterLink to="/upload" class="inline-flex items-center min-h-[44px] px-3 rounded-md text-[14px] text-[#5a6b7c] no-underline hover:bg-surface-brand-subtle" @click="userMenuOpen=false">治愈瞬间</RouterLink>
           <RouterLink to="/tools" class="inline-flex items-center min-h-[44px] px-3 rounded-md text-[14px] text-[#5a6b7c] no-underline hover:bg-surface-brand-subtle" @click="userMenuOpen=false">自助工具</RouterLink>
-          <RouterLink to="/admin" class="inline-flex items-center min-h-[44px] px-3 rounded-md text-[14px] text-[#5a6b7c] no-underline hover:bg-surface-brand-subtle" @click="userMenuOpen=false">审核后台</RouterLink>
+          <RouterLink v-if="adminAuthed" to="/admin" class="inline-flex items-center min-h-[44px] px-3 rounded-md text-[14px] text-[#5a6b7c] no-underline hover:bg-surface-brand-subtle" @click="userMenuOpen=false">审核后台</RouterLink>
           <RouterLink to="/feedback" class="inline-flex items-center min-h-[44px] px-3 rounded-md text-[14px] text-[#5a6b7c] no-underline hover:bg-surface-brand-subtle" @click="userMenuOpen=false">反馈与建议</RouterLink>
           <button v-if="!auth.isLoggedIn" class="inline-flex items-center min-h-[44px] px-3 rounded-md text-left text-[14px] text-[#345B8E] font-semibold bg-transparent border-0 cursor-pointer hover:bg-surface-brand-subtle" @click="openLogin()">登录 / 注册</button>
           <button v-else class="inline-flex items-center min-h-[44px] px-3 rounded-md text-left text-[14px] text-[#c97b7b] bg-transparent border-0 cursor-pointer hover:bg-[#fdf2f2]" @click="auth.logout()">退出登录</button>
@@ -163,6 +163,7 @@
                 <span class="text-[19px] mr-3 w-6 text-center">👤</span>个人中心
               </RouterLink>
               <RouterLink
+                v-if="adminAuthed"
                 to="/admin"
                 @click="menuOpen = false"
                 class="flex items-center min-h-[48px] px-3 py-3 rounded-xl text-[16px] text-[#5a6b7c] no-underline hover:bg-surface-brand-subtle"
@@ -206,6 +207,14 @@ const auth = useAuthStore()
 const route = useRoute()
 const menuOpen = ref(false)
 const userMenuOpen = ref(false)
+
+// 分册一 §7.1：不把 /admin 暴露给普通访客。
+// 管理端身份 = 本会话已通过管理密码校验（sessionStorage.admin_auth_pwd，唯一事实在 Admin.vue）。
+// Admin.vue 解锁/上锁时派发 admin-auth-changed，这里只做展示层显隐，不做权限判断。
+const adminAuthed = ref(!!sessionStorage.getItem('admin_auth_pwd'))
+window.addEventListener('admin-auth-changed', () => {
+  adminAuthed.value = !!sessionStorage.getItem('admin_auth_pwd')
+})
 
 // 桌面（≥1024）：沿用现有 9 个入口，文字不缩写
 const desktopNav = [

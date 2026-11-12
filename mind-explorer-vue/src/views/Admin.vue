@@ -164,12 +164,14 @@ async function checkPwd() {
   adminPwd.value = trial
   authed.value = true
   sessionStorage.setItem('admin_auth_pwd', adminPwd.value)
+  window.dispatchEvent(new Event('admin-auth-changed'))
   loadAll()
 }
 function logout() {
   authed.value = false
   adminPwd.value = ''
   sessionStorage.removeItem('admin_auth_pwd')
+  window.dispatchEvent(new Event('admin-auth-changed'))
 }
 
 async function loadAll() {

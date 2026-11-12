@@ -1171,7 +1171,6 @@ watch(pttOpen, (v) => {
   flex: 1;
   min-width: 0;
   border: none;
-  outline: none;
   font-size: 13px;
   background: transparent;
   color: #2b2b2b;
