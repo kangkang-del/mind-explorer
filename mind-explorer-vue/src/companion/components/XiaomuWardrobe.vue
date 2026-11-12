@@ -372,7 +372,7 @@ onBeforeUnmount(() => removeEventListener('resize', clampPanel))
 .xm-wd-hint { font-size: 10px; line-height: 1.4; opacity: .5; margin: 6px 0 0; }
 .xm-wd-sync { font-size: 10px; line-height: 1.4; margin: 3px 0 0; opacity: .5; }
 .xm-wd-sync.is-ready { color: #4d7c0f; opacity: .8; }
-.xm-wd-sync.is-degraded, .xm-wd-sync.is-error { color: #c2410c; opacity: .85; }
-.xm-wd-err { font-size: 10px; line-height: 1.4; margin: 4px 0 0; color: #c2410c; }
+.xm-wd-sync.is-degraded, .xm-wd-sync.is-error { color: #263746; font-weight: 600; opacity: .85; }
+.xm-wd-err { font-size: 10px; line-height: 1.4; margin: 4px 0 0; color: #263746; font-weight: 600; }
 .xm-wd-file { display: none; }
 </style>

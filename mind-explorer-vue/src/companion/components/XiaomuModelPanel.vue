@@ -372,8 +372,8 @@ async function onClear() {
 }
 .xm-md-input:focus { border-color: #ff9ec4; }
 .xm-md-hint { font-size: 10px; line-height: 1.4; opacity: .5; }
-.xm-md-hint.is-warn { color: #c2410c; opacity: .9; }
-.xm-md-note { margin: 0; font-size: 10px; line-height: 1.4; color: #c2410c; }
+.xm-md-hint.is-warn { color: #263746; font-weight: 600; opacity: .9; }
+.xm-md-note { margin: 0; font-size: 10px; line-height: 1.4; color: #263746; font-weight: 600; }
 
 /* 模型名候选 */
 .xm-md-chips { display: flex; flex-wrap: wrap; gap: 5px; }
@@ -431,7 +431,7 @@ async function onClear() {
 /* 提示与页脚 */
 .xm-md-msg { margin: 0; font-size: 11px; line-height: 1.4; }
 .xm-md-msg.is-ok { color: #4d7c0f; }
-.xm-md-msg.is-err { color: #c2410c; }
+.xm-md-msg.is-err { color: #263746; font-weight: 600; }
 .xm-md-foot {
   display: flex; flex-direction: column; gap: 7px;
   margin-top: 2px; padding-top: 8px; border-top: 1px dashed #d8d2c6;
@@ -446,6 +446,6 @@ async function onClear() {
   font-family: inherit;
 }
 .xm-md-link:hover { opacity: 1; }
-.xm-md-link.is-danger { color: #c2410c; opacity: 1; }
-.xm-md-warn { font-size: 11px; color: #c2410c; }
+.xm-md-link.is-danger { color: #263746; font-weight: 600; opacity: 1; }
+.xm-md-warn { font-size: 11px; color: #263746; font-weight: 600; }
 </style>

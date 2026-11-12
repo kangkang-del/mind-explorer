@@ -556,7 +556,7 @@ function onRate(val) {
   border-top: 1px dashed #d8d2c6;
   font-size: 10px; line-height: 1.5; opacity: .55;
 }
-.xm-vc-note.is-warn { color: #c2410c; opacity: .9; }
+.xm-vc-note.is-warn { color: #263746; font-weight: 600; opacity: .9; }
 
 /* M6-1b：云端音色设置 */
 .xm-vc-cloud {
@@ -578,7 +578,7 @@ function onRate(val) {
 .xm-vc-cloud-sum::-webkit-details-marker { display: none; }
 .xm-vc-cloud-sum::before { content: '▸ '; opacity: .5; }
 .xm-vc-cloud[open] .xm-vc-cloud-sum::before { content: '▾ '; }
-.xm-vc-hint.is-err { color: #c2410c; opacity: .95; }
+.xm-vc-hint.is-err { color: #263746; font-weight: 600; opacity: .95; }
 
 /* M6-2c：语音输入小节 */
 .xm-vc-sep { margin: 4px 0 2px; border-top: 1px solid #ece6da; }
