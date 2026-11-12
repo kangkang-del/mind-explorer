@@ -1,5 +1,5 @@
 <template>
-  <main class="page-read py-5">
+  <section class="page-read py-5">
     <!-- ── 顶栏：返回 / 区间切换 / 重播 / 导出 ── -->
     <header class="flex items-center gap-3 mb-4 shrink-0">
       <RouterLink
@@ -174,7 +174,7 @@
       </label>
       <span class="ml-auto">{{ totalLines }} 段</span>
     </div>
-  </main>
+  </section>
 </template>
 
 <script setup>

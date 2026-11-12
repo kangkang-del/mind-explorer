@@ -1,5 +1,5 @@
 <template>
-  <main class="container study-page">
+  <section class="container study-page">
     <h1 class="page-title">📖 知识学习</h1>
 
     <!-- Tab 切换 -->
@@ -106,7 +106,7 @@
         </div>
       </div>
     </div>
-  </main>
+  </section>
 </template>
 
 <script setup>

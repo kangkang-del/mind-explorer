@@ -1,5 +1,5 @@
 <template>
-  <main class="home-main">
+  <section class="home-main">
     <!-- 核心转化路径：同行者·小木 CTA 入口（深色重色锚点 + 对角线布局，按钮在右下符合 F 形阅读与拇指自然落点） -->
     <section class="xiaomu-hero">
       <div class="hero-content">
@@ -134,7 +134,7 @@
         </div>
       </div>
     </Teleport>
-  </main>
+  </section>
 </template>
 
 <script setup>

@@ -1,5 +1,5 @@
 <template>
-  <main>
+  <section>
     <header class="mb-5">
       <h1 class="text-2xl md:text-3xl font-bold text-[#3a4a5c] m-0">📚 了解心理学知识</h1>
       <p class="text-[#9aa6b2] mt-1 m-0">知识卡片 · 心理疾病科普 —— 用科学理解心灵。</p>
@@ -132,7 +132,7 @@
         </div>
       </div>
     </Teleport>
-  </main>
+  </section>
 </template>
 
 <script setup>

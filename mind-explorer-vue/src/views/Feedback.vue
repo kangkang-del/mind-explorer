@@ -1,5 +1,5 @@
 <template>
-  <main class="page-narrow">
+  <section class="page-narrow">
     <header class="text-center mb-6">
       <h1 class="text-2xl md:text-3xl font-bold text-[#3a4a5c] m-0">✉️ 反馈与建议</h1>
       <p class="text-[#9aa6b2] mt-2 m-0">你的每一条声音，都会让心灵探索更温暖。</p>
@@ -42,7 +42,7 @@
         {{ submitting ? '提交中…' : '提交反馈' }}
       </button>
     </form>
-  </main>
+  </section>
 </template>
 
 <script setup>

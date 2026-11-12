@@ -1,5 +1,5 @@
 <template>
-  <main class="container" style="padding: 40px 20px; max-width: 800px; margin: 0 auto;">
+  <section class="container" style="padding: 40px 20px; max-width: 800px; margin: 0 auto;">
     <RouterLink to="/community" class="back-link">← 返回社区</RouterLink>
 
     <div v-if="post.id">
@@ -76,7 +76,7 @@
       @close="reportOpen = false"
       @submitted="onReported"
     />
-  </main>
+  </section>
 </template>
 
 <script setup>

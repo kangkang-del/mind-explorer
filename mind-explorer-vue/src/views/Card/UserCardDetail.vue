@@ -1,5 +1,5 @@
 <template>
-  <main class="max-w-2xl mx-auto px-4 py-6">
+  <section class="max-w-2xl mx-auto px-4 py-6">
     <div v-if="loading" class="text-center text-[#9aa6b2] py-16 m-0">加载中…</div>
 
     <div v-else-if="!card" class="text-center py-16">
@@ -56,7 +56,7 @@
       @close="reportOpen = false"
       @submitted="onReported"
     />
-  </main>
+  </section>
 </template>
 
 <script setup>

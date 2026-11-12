@@ -1,6 +1,6 @@
 <template>
   <div class="theme-warm">
-    <main class="container">
+    <section class="container">
       <RouterLink to="/health" class="back-link">← 返回心理健康</RouterLink>
 
       <div v-if="item.title" class="warm-card" style="margin-top: 24px; padding: 36px 32px;">
@@ -59,7 +59,7 @@
         <h2>主题未找到</h2>
         <RouterLink to="/health">返回心理健康</RouterLink>
       </div>
-    </main>
+    </section>
   </div>
 </template>
 

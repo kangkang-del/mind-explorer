@@ -1,6 +1,6 @@
 <template>
   <div class="theme-warm">
-    <main class="container">
+    <section class="container">
       <section class="health-hero">
         <h1>了解心理</h1>
         <p>心理健康知识科普 · {{ healthItems.length }} 个主题</p>
@@ -20,7 +20,7 @@
           <span class="health-card-tag">{{ item.category }}</span>
         </RouterLink>
       </div>
-    </main>
+    </section>
   </div>
 </template>
 

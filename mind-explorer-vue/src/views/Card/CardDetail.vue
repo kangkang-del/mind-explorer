@@ -1,5 +1,5 @@
 <template>
-  <main class="container">
+  <section class="container">
     <RouterLink to="/study" class="back-link">← 返回知识列表</RouterLink>
 
     <div class="card-detail-page" v-if="card.id">
@@ -92,7 +92,7 @@
       <h2>卡片未找到</h2>
       <RouterLink to="/study">返回知识列表</RouterLink>
     </div>
-  </main>
+  </section>
 </template>
 
 <script setup>

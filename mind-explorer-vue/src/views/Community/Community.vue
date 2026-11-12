@@ -1,5 +1,5 @@
 <template>
-  <main class="container" style="padding: 40px 20px; max-width: 800px; margin: 0 auto;">
+  <section class="container" style="padding: 40px 20px; max-width: 800px; margin: 0 auto;">
     <h1>💬 社区交流</h1>
     <p>在这里分享你的想法和经验</p>
 
@@ -35,7 +35,7 @@
       </div>
     </div>
     <div v-else class="no-posts">还没有帖子，快来发第一条吧！</div>
-  </main>
+  </section>
 </template>
 
 <script setup>

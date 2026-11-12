@@ -1,5 +1,5 @@
 <template>
-  <main class="page-wide py-6">
+  <section class="page-wide py-6">
     <header class="mb-5">
       <h1 class="text-2xl font-bold text-[#3a4a5c] m-0">🧰 自助工具箱</h1>
       <p class="text-[#9aa6b2] text-[14px] mt-1 m-0">当情绪翻涌时，这里有几件可以马上做的小事。挑一个，慢慢来。</p>
@@ -94,7 +94,7 @@
         配合缓慢的呼吸，持续约 1–2 分钟。这是一种双侧刺激，常能在强烈的情绪里帮你一点点找回稳定感。
       </p>
     </section>
-  </main>
+  </section>
 </template>
 
 <script setup>

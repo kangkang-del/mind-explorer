@@ -1,5 +1,5 @@
 <template>
-  <main class="page-narrow py-6">
+  <section class="page-narrow py-6">
     <header class="mb-5">
       <h1 class="text-2xl font-bold text-[#3a4a5c] m-0">🌤️ 心情日记</h1>
       <p class="text-[#9aa6b2] text-[14px] mt-1 m-0">每天留一笔，看看自己的情绪起伏。只有你自己和小木能看到。</p>
@@ -66,7 +66,7 @@
       </ul>
       <p v-else class="text-[13px] text-[#9aa6b2] py-4 text-center m-0">暂无记录。点上面的情绪，留下来吧。</p>
     </section>
-  </main>
+  </section>
 </template>
 
 <script setup>

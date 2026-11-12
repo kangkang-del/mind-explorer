@@ -1,5 +1,5 @@
 <template>
-  <main class="page-read py-6">
+  <section class="page-read py-6">
     <header class="mb-5">
       <h1 class="text-2xl font-bold text-[#3a4a5c] m-0">👤 个人中心</h1>
     </header>
@@ -193,7 +193,7 @@
         <span class="ml-auto text-[13px] text-[#9aa6b2]">→</span>
       </RouterLink>
     </section>
-  </main>
+  </section>
 </template>
 
 <script setup>

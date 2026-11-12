@@ -1,5 +1,5 @@
 <template>
-  <main class="page-narrow py-6">
+  <section class="page-narrow py-6">
     <header class="mb-5">
       <h1 class="text-2xl font-bold text-[#3a4a5c] m-0">🌱 分享治愈瞬间</h1>
       <p class="text-[#9aa6b2] text-[14px] mt-1 m-0">
@@ -111,7 +111,7 @@
         </li>
       </ul>
     </section>
-  </main>
+  </section>
 </template>
 
 <script setup>

@@ -1,5 +1,5 @@
 <template>
-  <main class="max-w-3xl mx-auto px-4 py-6">
+  <section class="max-w-3xl mx-auto px-4 py-6">
     <!-- 登录门 -->
     <section v-if="!authed" class="bg-white rounded-2xl border border-[#eef2f7] p-8 max-w-sm mx-auto text-center">
       <div class="text-[28px] mb-2">🔐</div>
@@ -121,7 +121,7 @@
         </article>
       </div>
     </section>
-  </main>
+  </section>
 </template>
 
 <script setup>

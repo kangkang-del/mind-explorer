@@ -1,5 +1,5 @@
 <template>
-  <main>
+  <section>
     <header class="text-center mb-5">
       <h1 class="text-2xl md:text-3xl font-bold text-[#3a4a5c] m-0">☀️ 心灵晴天</h1>
       <p class="text-[#9aa6b2] mt-1 m-0">每天更新的善意与温暖——小木会在这里分享，也欢迎你留下你的名字，分享你的光。</p>
@@ -70,7 +70,7 @@
     </section>
 
     <p v-if="!loading && !posts.length" class="text-center text-[#9aa6b2] py-12 m-0">这里还没有内容，稍后再来看看 ☀️</p>
-  </main>
+  </section>
 </template>
 
 <script setup>
