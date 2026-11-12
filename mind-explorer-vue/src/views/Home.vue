@@ -34,22 +34,12 @@
           </RouterLink>
         </nav>
       </div>
-      <!-- 山川底景：INNER ATLAS 视觉方向的占位插画（正式插画资产另行评审） -->
-      <svg class="hero-mountains" viewBox="0 0 1200 160" preserveAspectRatio="none" aria-hidden="true">
-        <path d="M0 118 L150 62 L290 112 L430 40 L580 108 L720 66 L880 116 L1030 58 L1200 110 L1200 160 L0 160 Z" fill="#C9DAEB" opacity="0.9" />
-        <path d="M0 138 L120 96 L260 132 L420 84 L560 126 L740 92 L900 130 L1060 98 L1200 132 L1200 160 L0 160 Z" fill="#A9C2DC" opacity="0.92" />
-        <path d="M0 152 L180 118 L360 146 L540 112 L760 144 L960 116 L1200 146 L1200 160 L0 160 Z" fill="#8FB0CE" />
-      </svg>
-      <!-- 等高线与路径节点：分册一 §7.2「路线图」边缘装饰，不是任务进度系统 -->
-      <svg class="hero-contours" viewBox="0 0 520 300" fill="none" aria-hidden="true">
-        <ellipse cx="380" cy="150" rx="240" ry="120" stroke="#9AA6B2" stroke-opacity="0.35" />
-        <ellipse cx="380" cy="150" rx="185" ry="90" stroke="#9AA6B2" stroke-opacity="0.3" />
-        <ellipse cx="380" cy="150" rx="130" ry="62" stroke="#9AA6B2" stroke-opacity="0.25" />
-        <path d="M60 268 C 160 236, 250 208, 322 162" stroke="#9AA6B2" stroke-opacity="0.45" stroke-dasharray="2 8" stroke-linecap="round" />
-        <circle cx="322" cy="162" r="5" fill="#9AA6B2" fill-opacity="0.55" />
-        <circle cx="210" cy="220" r="4" fill="#9AA6B2" fill-opacity="0.45" />
-        <circle cx="118" cy="252" r="3.5" fill="#9AA6B2" fill-opacity="0.4" />
-      </svg>
+      <!-- 插画 = 用户 2026-11-12 提供的占位资产（正式资产仍需评审）。
+           桌面走 CSS 背景（左文右景）；手机端用下面这个上层画幅做 §4.2.2「上下分层」，
+           画中的路牌与山径就是分册一 §7.2「路线图」的地图隐喻 -->
+      <div class="hero-art" aria-hidden="true">
+        <img :src="heroAtlas" alt="" />
+      </div>
     </section>
 
     <!-- 快速开始（交接文档 §4.3）：三张低门槛行动卡，手机端展示；桌面入口在 Hero 路标 -->
@@ -214,6 +204,7 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import cardsRaw from '../data/cards.json'
+import heroAtlas from '../assets/hero-atlas.jpg'
 import { communityApi } from '../api/community'
 import { userCardsApi } from '../api/userCards'
 import { useAuthStore } from '../stores/auth'
@@ -497,36 +488,29 @@ onUnmounted(() => {
   width: 100%;
 }
 
-/* 小木 CTA Hero（核心转化锚点，浅色山川场景 + 深蓝文字，视觉方向 A「心灵地貌」） */
+/* 小木 CTA Hero（核心转化锚点，插画背景 + 深蓝文字；插画 = 用户 2026-11-12 提供的占位资产） */
 .xiaomu-hero {
   position: relative;
   width: 100%;
   margin: 0 auto 28px;
-  padding: 56px 40px 96px;
-  background: linear-gradient(180deg, #DFEBF7 0%, #EFF5FB 46%, #FDFBF3 100%);
+  padding: 56px 40px 64px;
+  /* 桌面：左侧文字区用白色渐变让白（最左 0.95 保证 4.5:1+），
+     插画主体（人物/小木/日出/远山）在右侧中景与路标后面透出来 */
+  background-color: #DFEBF7;
+  background-image:
+    linear-gradient(88deg, rgba(250, 251, 253, 0.96) 0%, rgba(250, 251, 253, 0.86) 30%, rgba(250, 251, 253, 0.45) 52%, rgba(250, 251, 253, 0.06) 74%),
+    url('../assets/hero-atlas.jpg');
+  background-size: auto, cover;
+  background-position: left, center 30%;
+  background-repeat: no-repeat;
   border-radius: 24px;
   overflow: hidden;
   color: #263746;
   box-shadow: 0 10px 30px rgba(52, 91, 142, 0.1);
 }
-.hero-mountains {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  width: 100%;
-  height: 118px;
-  z-index: 0;
-  pointer-events: none;
-}
-.hero-contours {
-  position: absolute;
-  top: -36px;
-  right: -48px;
-  width: 520px;
-  height: 300px;
-  z-index: 0;
-  pointer-events: none;
+/* 手机端专用画幅：桌面走背景，这里默认隐藏 */
+.hero-art {
+  display: none;
 }
 .hero-content {
   position: relative;
@@ -672,8 +656,27 @@ onUnmounted(() => {
   margin: 0;
 }
 @media (max-width: 768px) {
+  /* 交接文档 §4.2.2「上下分层」：上部 150px 画幅（object-position 取人物/小木中带），
+     下部文字落在纯浅底上——不用背景渐变兜底，人物不会被文字区盖住 */
   .xiaomu-hero {
-    padding: 34px 22px 88px;
+    padding: 158px 22px 30px;
+    background-image: none;
+    background-color: #F4F8FC;
+  }
+  .hero-art {
+    display: block;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 150px;
+    overflow: hidden;
+  }
+  .hero-art img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: 32% 68%;
   }
   .hero-title {
     font-size: 26px; /* 交接文档 §4.2.1：标题 25–28px */
