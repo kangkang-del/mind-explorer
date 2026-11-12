@@ -82,7 +82,7 @@
           <span v-else class="inline-flex items-center justify-center w-9 h-9 rounded-full bg-[#7c9cb8] bg-gradient-to-br from-[#7c9cb8] to-[#a8c3d6] text-white text-[13px]">访客</span>
         </button>
         <div v-if="userMenuOpen" class="absolute right-0 top-[46px] min-w-[160px] bg-white border border-[#E6EAF0] rounded-xl shadow-lg p-1.5 flex flex-col z-50">
-          <div v-if="auth.isLoggedIn" class="px-3 py-2 text-[13px] text-[#9aa6b2] border-b border-[#E6EAF0] mb-1">
+          <div v-if="auth.isLoggedIn" class="px-3 py-2 text-[13px] text-[#5A6B7C] border-b border-[#E6EAF0] mb-1">
             你好，{{ auth.displayName || '朋友' }}{{ auth.isGuest ? '（游客）' : '' }}
           </div>
           <RouterLink to="/profile" class="inline-flex items-center min-h-[44px] px-3 rounded-md text-[14px] text-[#5a6b7c] no-underline hover:bg-[#f0f4f9]" @click="userMenuOpen=false">个人中心</RouterLink>
@@ -124,7 +124,7 @@
               心灵探索
             </span>
             <button
-              class="border-0 bg-transparent text-[26px] text-[#9aa6b2] cursor-pointer w-11 h-11 -mr-2 flex items-center justify-center active:bg-[#f0f4f9] rounded-full"
+              class="border-0 bg-transparent text-[26px] text-[#5A6B7C] cursor-pointer w-11 h-11 -mr-2 flex items-center justify-center active:bg-[#f0f4f9] rounded-full"
               @click="menuOpen = false"
               aria-label="关闭菜单"
             >×</button>
@@ -151,7 +151,7 @@
             <div class="border-t border-[#E6EAF0] my-3 mx-2"></div>
 
             <template v-if="auth.isLoggedIn">
-              <div class="px-3 py-2 text-[13px] text-[#9aa6b2]">
+              <div class="px-3 py-2 text-[13px] text-[#5A6B7C]">
                 你好，{{ auth.displayName || '朋友' }}{{ auth.isGuest ? '（游客）' : '' }}
               </div>
               <RouterLink

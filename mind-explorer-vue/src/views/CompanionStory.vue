@@ -42,7 +42,7 @@
         <div class="mx-auto mb-4 xm-story-pet">
           <XiaomuSvg state="think" :micro="{ eyesClosed: true }" variant="wood" :wear="wear" />
         </div>
-        <p class="text-[13.5px] text-[#9aa6b2] m-0">小木正在翻它的记事本…</p>
+        <p class="text-[13.5px] text-[#5A6B7C] m-0">小木正在翻它的记事本…</p>
       </div>
 
       <!-- 读不到（未登录 / 后端未部署 / 网络失败） -->
@@ -64,7 +64,7 @@
           <XiaomuSvg state="idle" :action="'swayLeaf'" variant="wood" :wear="wear" />
         </div>
         <p class="text-[14.5px] text-[#5a6b7c] leading-7 m-0 mb-1">我还记得的，是空白的。</p>
-        <p class="text-[13px] text-[#9aa6b2] leading-7 m-0">
+        <p class="text-[13px] text-[#5A6B7C] leading-7 m-0">
           去和我聊几句吧，或者记一笔今天的心情 —— 下次来，这里就会有你我的故事了 🌱
         </p>
       </div>
@@ -99,7 +99,7 @@
 
               <!-- 画像条目（key-value） -->
               <div v-else-if="seg.kind === 'fact'" class="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5 text-[13.5px]">
-                <span class="text-[#9aa6b2]">{{ seg.label }}</span>
+                <span class="text-[#5A6B7C]">{{ seg.label }}</span>
                 <span class="text-[#263746]">{{ seg.value }}</span>
               </div>
 
@@ -162,7 +162,7 @@
     </section>
 
     <!-- 底部：叙事控制（旁白开关 / 语速） -->
-    <div v-if="phase === 'ready'" class="flex items-center gap-3 mt-3 text-[11.5px] text-[#9aa6b2]">
+    <div v-if="phase === 'ready'" class="flex items-center gap-3 mt-3 text-[11.5px] text-[#5A6B7C]">
       <label class="flex items-center gap-1.5 cursor-pointer select-none">
         <input type="checkbox" v-model="voiceOn" class="accent-[#7c9cb8]" />
         小木念旁白

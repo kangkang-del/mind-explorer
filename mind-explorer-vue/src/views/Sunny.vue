@@ -2,11 +2,11 @@
   <section>
     <header class="text-center mb-5">
       <h1 class="text-2xl md:text-3xl font-bold text-[#263746] m-0">☀️ 心灵晴天</h1>
-      <p class="text-[#9aa6b2] mt-1 m-0">每天更新的善意与温暖——小木会在这里分享，也欢迎你留下你的名字，分享你的光。</p>
+      <p class="text-[#5A6B7C] mt-1 m-0">每天更新的善意与温暖——小木会在这里分享，也欢迎你留下你的名字，分享你的光。</p>
     </header>
 
     <!-- 加载态 -->
-    <p v-if="loading" class="text-center text-[#9aa6b2] py-12 m-0">正在加载晴天的温暖… ☀️</p>
+    <p v-if="loading" class="text-center text-[#5A6B7C] py-12 m-0">正在加载晴天的温暖… ☀️</p>
 
     <!-- 发布 -->
     <section v-else class="bg-white border border-[#E6EAF0] rounded-2xl p-4 mb-5">
@@ -17,7 +17,7 @@
         class="w-full p-3 border border-[#E6EAF0] rounded-lg resize-y text-[16px] focus:outline-none focus:border-[#7c9cb8] min-h-[44px]"
       ></textarea>
       <div class="flex items-center justify-between mt-3 flex-wrap gap-3">
-        <p class="text-[12px] text-[#9aa6b2] m-0">发布人：{{ meName }}</p>
+        <p class="text-[12px] text-[#5A6B7C] m-0">发布人：{{ meName }}</p>
         <button
           @click="publish"
           :disabled="!draft.content.trim() || publishing"
@@ -41,12 +41,12 @@
             <span v-if="post.type === 'auto'" class="text-[11px] text-[#D87945] bg-[#fff3e0] px-2 py-0.5 rounded-md">✨ 今日晴天</span>
             <span v-else-if="post.type === 'xiaomu'" class="text-[11px] text-[#5a8a6a] bg-[#e6efe9] px-2 py-0.5 rounded-md">🌿 小木</span>
             <span v-else class="text-[11px] text-[#7c9cb8] bg-[#eef4f9] px-2 py-0.5 rounded-md">💛 用户分享</span>
-            <span class="text-[11px] text-[#9aa6b2]">{{ post.author }}</span>
+            <span class="text-[11px] text-[#5A6B7C]">{{ post.author }}</span>
           </div>
           <h3 class="text-[16px] font-bold text-[#263746] m-0 leading-snug">{{ post.title }}</h3>
           <p class="text-[13px] text-[#5a6b7c] mt-1 flex-1 leading-relaxed m-0">{{ post.content }}</p>
 
-          <div class="flex items-center gap-4 mt-3 text-[13px] text-[#9aa6b2]">
+          <div class="flex items-center gap-4 mt-3 text-[13px] text-[#5A6B7C]">
             <FavoriteButton :type="post.type === 'xiaomu' ? 'quote' : 'post'" :id="post.id" :title="post.title" :summary="(post.content||'').slice(0,60)" />
             <button @click="toggleLike(post)" :class="post.liked ? 'text-[#D87945]' : ''" class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] px-1 transition">❤️ {{ post.likes }}</button>
             <button @click="post.showComment = !post.showComment" class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] px-1 transition">💬 {{ post.comments.length }}</button>
@@ -69,7 +69,7 @@
       </article>
     </section>
 
-    <p v-if="!loading && !posts.length" class="text-center text-[#9aa6b2] py-12 m-0">这里还没有内容，稍后再来看看 ☀️</p>
+    <p v-if="!loading && !posts.length" class="text-center text-[#5A6B7C] py-12 m-0">这里还没有内容，稍后再来看看 ☀️</p>
   </section>
 </template>
 

@@ -2,7 +2,7 @@
   <section class="page-narrow py-6">
     <header class="mb-5">
       <h1 class="text-2xl font-bold text-[#263746] m-0">🌱 分享治愈瞬间</h1>
-      <p class="text-[#9aa6b2] text-[14px] mt-1 m-0">
+      <p class="text-[#5A6B7C] text-[14px] mt-1 m-0">
         这里收集彼此生命里微小的光。提交后会经小木团队审核，通过即出现在社区「用户贡献」里。
       </p>
       <RouterLink to="/study" class="inline-flex items-center min-h-[44px] text-[13px] text-[#7c9cb8] no-underline mt-1 hover:underline">看看大家分享的治愈瞬间 →</RouterLink>
@@ -41,7 +41,7 @@
               type="button"
               @click="form.category = c"
               class="bg-transparent inline-flex items-center min-h-[44px] px-3.5 py-1.5 rounded-full text-[13px] border transition"
-              :class="form.category === c ? 'border-[#7c9cb8] bg-[#f0f4f9] text-[#263746]' : 'border-[#E6EAF0] text-[#9aa6b2] hover:border-[#c5d8ea]'"
+              :class="form.category === c ? 'border-[#7c9cb8] bg-[#f0f4f9] text-[#263746]' : 'border-[#E6EAF0] text-[#5A6B7C] hover:border-[#c5d8ea]'"
             >
               {{ c }}
             </button>
@@ -103,7 +103,7 @@
         >
           <RouterLink :to="`/user-card/${c.id}`" class="flex-1 min-w-0 no-underline">
             <span class="block text-[14px] text-[#263746] truncate">{{ c.title }}</span>
-            <span class="text-[12px] text-[#9aa6b2]">{{ fmt(c.created_at) }}</span>
+            <span class="text-[12px] text-[#5A6B7C]">{{ fmt(c.created_at) }}</span>
           </RouterLink>
           <span class="text-[12px] px-2 py-0.5 rounded-full shrink-0" :class="statusClass(c.status)">
             {{ statusText(c.status) }}
@@ -186,7 +186,7 @@ function statusClass(s) {
     pending: 'bg-[#fef3c7] text-[#92400e]',
     approved: 'bg-[#dcfce7] text-[#166534]',
     rejected: 'bg-[#fee2e2] text-[#991b1b]',
-  }[s] || 'bg-[#eef2f7] text-[#9aa6b2]'
+  }[s] || 'bg-[#eef2f7] text-[#5A6B7C]'
 }
 function fmt(iso) {
   if (!iso) return ''

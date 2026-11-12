@@ -1,6 +1,6 @@
 <template>
   <section class="max-w-2xl mx-auto px-4 py-6">
-    <div v-if="loading" class="text-center text-[#9aa6b2] py-16 m-0">加载中…</div>
+    <div v-if="loading" class="text-center text-[#5A6B7C] py-16 m-0">加载中…</div>
 
     <div v-else-if="!card" class="text-center py-16">
       <p class="text-[#5a6b7c] text-[15px] m-0 mb-3">这条治愈瞬间不存在或已被移除</p>
@@ -16,7 +16,7 @@
       </div>
       <h1 class="text-2xl font-bold text-[#263746] m-0 mb-2">{{ card.title }}</h1>
       <div class="flex items-center justify-between mb-4">
-        <p class="text-[13px] text-[#9aa6b2] m-0">👤 由 {{ card.author_name }} 分享</p>
+        <p class="text-[13px] text-[#5A6B7C] m-0">👤 由 {{ card.author_name }} 分享</p>
         <FavoriteButton type="moment" :id="card.id" :title="card.title" :summary="(card.content||'').slice(0,80)" :link="`/user-card/${card.id}`" variant="full" />
       </div>
 
@@ -24,7 +24,7 @@
 
       <p class="text-[15px] text-[#263746] leading-8 whitespace-pre-wrap m-0">{{ card.content }}</p>
 
-      <p v-if="card.source" class="text-[13px] text-[#9aa6b2] mt-4 m-0">来源：{{ card.source }}</p>
+      <p v-if="card.source" class="text-[13px] text-[#5A6B7C] mt-4 m-0">来源：{{ card.source }}</p>
 
       <p v-if="card.status !== 'approved'" class="text-[13px] text-[#b08968] mt-4 m-0">
         状态：{{ statusText(card.status) }}（通过后将展示在社区里）
@@ -42,7 +42,7 @@
         </button>
         <button
           @click="reportOpen = true"
-          class="ml-auto text-[13px] text-[#9aa6b2] hover:text-[#D87945] transition"
+          class="ml-auto text-[13px] text-[#5A6B7C] hover:text-[#D87945] transition"
         >
           ⚠️ 举报
         </button>

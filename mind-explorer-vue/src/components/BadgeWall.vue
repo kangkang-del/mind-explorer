@@ -2,7 +2,7 @@
   <div>
     <!-- 概览 -->
     <div class="flex items-center justify-between mb-3">
-      <p class="text-[13px] text-[#9aa6b2] m-0">
+      <p class="text-[13px] text-[#5A6B7C] m-0">
         已点亮 <span class="font-bold text-[#D87945]">{{ earnedCount }}</span> / {{ totalCount }} 枚徽章
       </p>
       <div class="flex gap-1">
@@ -35,7 +35,7 @@
         >{{ b.name }}</p>
         <p
           class="text-[11px] mt-0.5 m-0 leading-snug"
-          :class="b.earned ? 'text-white/80' : 'text-[#9aa6b2]'"
+          :class="b.earned ? 'text-white/80' : 'text-[#5A6B7C]'"
         >{{ b.desc }}</p>
 
         <!-- 未解锁：进度条 -->
@@ -46,7 +46,7 @@
               :style="{ width: Math.round(b.progress * 100) + '%' }"
             ></div>
           </div>
-          <p class="text-[10.5px] text-[#9aa6b2] mt-1 m-0">{{ Math.min(b.value, b.goal) }} / {{ b.goal }}</p>
+          <p class="text-[10.5px] text-[#5A6B7C] mt-1 m-0">{{ Math.min(b.value, b.goal) }} / {{ b.goal }}</p>
         </div>
         <!-- 已解锁：角标 -->
         <span

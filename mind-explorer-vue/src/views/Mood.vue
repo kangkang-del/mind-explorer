@@ -2,7 +2,7 @@
   <section class="page-narrow py-6">
     <header class="mb-5">
       <h1 class="text-2xl font-bold text-[#263746] m-0">🌤️ 心情日记</h1>
-      <p class="text-[#9aa6b2] text-[14px] mt-1 m-0">每天留一笔，看看自己的情绪起伏。只有你自己和小木能看到。</p>
+      <p class="text-[#5A6B7C] text-[14px] mt-1 m-0">每天留一笔，看看自己的情绪起伏。只有你自己和小木能看到。</p>
     </header>
 
     <!-- 记录区 -->
@@ -30,7 +30,7 @@
         class="w-full px-3 py-2 border border-[#E6EAF0] rounded-xl text-[16px] resize-none focus:outline-none focus:border-[#7c9cb8] mb-3 min-h-[44px]"
       ></textarea>
       <div class="flex items-center justify-between">
-        <span class="text-[12px] text-[#9aa6b2]">{{ savedTip }}</span>
+        <span class="text-[12px] text-[#5A6B7C]">{{ savedTip }}</span>
         <div class="flex items-center gap-3">
           <span class="text-[11px] text-[#b8c2cc]">{{ note.length }}/120</span>
           <button
@@ -48,7 +48,7 @@
     <section class="bg-white rounded-2xl border border-[#E6EAF0] p-5 mb-5">
       <h2 class="text-[16px] font-bold text-[#263746] mb-3 m-0">近 14 天情绪曲线</h2>
       <div v-if="entries.length" v-html="chartSvg" class="w-full"></div>
-      <p v-else class="text-[13px] text-[#9aa6b2] py-6 text-center m-0">还没有记录，保存第一条心情后这里会出现你的曲线～</p>
+      <p v-else class="text-[13px] text-[#5A6B7C] py-6 text-center m-0">还没有记录，保存第一条心情后这里会出现你的曲线～</p>
     </section>
 
     <!-- 近期记录 -->
@@ -59,12 +59,12 @@
           <span class="text-[18px] shrink-0">{{ moodEmoji(e.emotion) }}</span>
           <div>
             <span class="text-[#263746]">{{ moodLabel(e.emotion) }}</span>
-            <span class="text-[#9aa6b2] text-[12px] ml-2">{{ fmt(e.created_at) }}</span>
+            <span class="text-[#5A6B7C] text-[12px] ml-2">{{ fmt(e.created_at) }}</span>
             <p v-if="e.note" class="text-[#5a6b7c] text-[13px] mt-0.5 m-0">{{ e.note }}</p>
           </div>
         </li>
       </ul>
-      <p v-else class="text-[13px] text-[#9aa6b2] py-4 text-center m-0">暂无记录。点上面的情绪，留下来吧。</p>
+      <p v-else class="text-[13px] text-[#5A6B7C] py-4 text-center m-0">暂无记录。点上面的情绪，留下来吧。</p>
     </section>
   </section>
 </template>

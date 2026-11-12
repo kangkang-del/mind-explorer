@@ -218,7 +218,7 @@ function formatTime(time) {
 .divider { color: #999; margin: 0 4px; }
 .study-links-box { margin: 28px 0; padding: 20px 22px; background: #f6f9fc; border: 1px solid #eef2f7; border-radius: 14px; }
 .study-links-box h3 { margin: 0 0 6px; color: #263746; font-size: 1.05rem; }
-.study-links-tip { margin: 0 0 14px; color: #9aa6b2; font-size: 0.88rem; }
+.study-links-tip { margin: 0 0 14px; color: #5A6B7C; font-size: 0.88rem; }
 .study-links { display: flex; gap: 10px; flex-wrap: wrap; }
 .study-link {
   display: inline-flex; align-items: center; gap: 6px;

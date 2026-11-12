@@ -109,7 +109,7 @@ async function guestSignIn() {
   width: 330px; text-align: center; box-shadow: 0 8px 32px rgba(0,0,0,0.2);
 }
 .login-modal-content h3 { margin: 0 0 6px; color: #263746; font-size: 18px; }
-.modal-sub { margin: 0 0 18px; color: #9aa6b2; font-size: 12px; }
+.modal-sub { margin: 0 0 18px; color: #5A6B7C; font-size: 12px; }
 .github-login-btn {
   width: 100%; padding: 12px; border: none; border-radius: 8px;
   background: #24292e; color: #fff; font-size: 15px; cursor: pointer;

@@ -2,7 +2,7 @@
   <section class="page-narrow">
     <header class="text-center mb-6">
       <h1 class="text-2xl md:text-3xl font-bold text-[#263746] m-0">✉️ 反馈与建议</h1>
-      <p class="text-[#9aa6b2] mt-2 m-0">你的每一条声音，都会让心灵探索更温暖。</p>
+      <p class="text-[#5A6B7C] mt-2 m-0">你的每一条声音，都会让心灵探索更温暖。</p>
     </header>
 
     <form class="bg-white border border-[#E6EAF0] rounded-2xl p-6 flex flex-col gap-4" @submit.prevent="onSubmit">

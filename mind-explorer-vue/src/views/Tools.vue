@@ -2,7 +2,7 @@
   <section class="page-wide py-6">
     <header class="mb-5">
       <h1 class="text-2xl font-bold text-[#263746] m-0">🧰 自助工具箱</h1>
-      <p class="hidden sm:block text-[#9aa6b2] text-[14px] mt-1 m-0">当情绪翻涌时，这里有几件可以马上做的小事。挑一个，慢慢来。</p>
+      <p class="hidden sm:block text-[#5A6B7C] text-[14px] mt-1 m-0">当情绪翻涌时，这里有几件可以马上做的小事。挑一个，慢慢来。</p>
     </header>
 
     <!-- 紧急资源卡（首页可直达 /tools#emergency-resources）
@@ -69,7 +69,7 @@
           :class="breathing.active === key ? 'border-[#7c9cb8] shadow-sm' : 'border-[#E6EAF0]'"
         >
           <h3 class="text-[14px] font-semibold text-[#263746] m-0 mb-1">{{ ex.name }}</h3>
-          <p class="text-[12px] text-[#9aa6b2] leading-6 m-0 mb-3">{{ ex.desc }}</p>
+          <p class="text-[12px] text-[#5A6B7C] leading-6 m-0 mb-3">{{ ex.desc }}</p>
           <button
             @click="startBreathing(key)"
             class="px-5 py-2 min-h-[44px] rounded-lg text-[13px] font-semibold transition"
@@ -85,7 +85,7 @@
       <!-- 呼吸动画 -->
       <div v-if="breathing.active" class="bg-white rounded-2xl border border-[#E6EAF0] p-6 flex flex-col items-center">
         <p class="text-[15px] font-semibold text-[#263746] m-0 mb-1">{{ exercises[breathing.active].name }}</p>
-        <p class="text-[13px] text-[#9aa6b2] m-0 mb-5">{{ currentPhase?.label }}</p>
+        <p class="text-[13px] text-[#5A6B7C] m-0 mb-5">{{ currentPhase?.label }}</p>
         <div class="relative w-[180px] h-[180px] flex items-center justify-center mb-4">
           <div
             class="absolute w-[120px] h-[120px] rounded-full bg-gradient-to-br from-[#a8d5ba] to-[#7c9cb8] opacity-80"
@@ -93,20 +93,20 @@
           ></div>
           <span class="relative text-[34px] font-bold text-white tabular-nums">{{ breathing.remaining }}</span>
         </div>
-        <button @click="stopBreathing" class="text-[13px] text-[#9aa6b2] hover:text-[#D87945] transition">结束</button>
+        <button @click="stopBreathing" class="text-[13px] text-[#5A6B7C] hover:text-[#D87945] transition">结束</button>
       </div>
     </section>
 
     <!-- 5-4-3-2-1 接地练习 -->
     <section class="mb-6">
       <h2 class="text-[16px] font-bold text-[#263746] mb-2 m-0">🌿 5-4-3-2-1 接地练习</h2>
-      <p class="text-[13px] text-[#9aa6b2] m-0 mb-3">当思绪飘远或陷入慌乱，用五感把注意力轻轻拉回此刻。一项项写下来，不用赶。</p>
+      <p class="text-[13px] text-[#5A6B7C] m-0 mb-3">当思绪飘远或陷入慌乱，用五感把注意力轻轻拉回此刻。一项项写下来，不用赶。</p>
       <div class="space-y-3">
         <div v-for="(step, si) in groundSteps" :key="si" class="bg-white rounded-2xl border border-[#E6EAF0] p-4">
           <p class="text-[14px] font-semibold text-[#263746] m-0 mb-1">
             {{ step.count }} 样你此刻能{{ step.sense }}的
           </p>
-          <p class="text-[12px] text-[#9aa6b2] m-0 mb-2">{{ step.hint }}</p>
+          <p class="text-[12px] text-[#5A6B7C] m-0 mb-2">{{ step.hint }}</p>
           <div class="space-y-2">
             <input
               v-for="i in step.count"

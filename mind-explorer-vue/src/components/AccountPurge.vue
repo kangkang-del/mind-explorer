@@ -1,7 +1,7 @@
 <template>
   <section class="bg-white rounded-2xl border border-[#f0e2e2] p-5 mb-5">
     <h2 class="text-[16px] font-bold text-[#8a5a5a] mb-2 m-0">🗑️ 删除我的全部数据</h2>
-    <p class="text-[13px] text-[#9aa6b2] leading-6 m-0 mb-4">
+    <p class="text-[13px] text-[#5A6B7C] leading-6 m-0 mb-4">
       会删掉小木记得你的全部内容：对话记忆、用户画像、换装与解锁、自定义形象图片、心情日记。
       <strong class="text-[#8a5a5a]">删除后无法恢复。</strong>
     </p>
@@ -39,7 +39,7 @@
           <input type="checkbox" v-model="includeCommunity" class="mt-0.5 accent-[#7c9cb8]" />
           <span class="text-[13px] text-[#5a6b7c] leading-6">
             同时处理我在社区的足迹（帖子 / 治愈瞬间 / 评论 / 认同）
-            <span class="block text-[12px] text-[#9aa6b2] mt-0.5">
+            <span class="block text-[12px] text-[#5A6B7C] mt-0.5">
               不勾选：社区内容<strong>会保留但匿名化</strong> —— 内容还在，但不再与你的昵称关联，别人也找不到是你发的。
             </span>
           </span>

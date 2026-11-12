@@ -25,13 +25,13 @@
           <ul v-if="contacts.contacts.length" class="space-y-1.5">
             <li v-for="c in contacts.contacts" :key="c.id" class="flex items-center justify-between text-[13px]">
               <span class="text-[#263746]">
-                {{ c.name }}<span v-if="c.relation" class="text-[#9aa6b2]">（{{ c.relation }}）</span>
+                {{ c.name }}<span v-if="c.relation" class="text-[#5A6B7C]">（{{ c.relation }}）</span>
               </span>
               <a v-if="c.phone" :href="'tel:' + c.phone" class="text-[#7c9cb8] no-underline font-medium">📞 {{ c.phone }}</a>
-              <span v-else class="text-[#9aa6b2]">未留电话</span>
+              <span v-else class="text-[#5A6B7C]">未留电话</span>
             </li>
           </ul>
-          <p v-else class="text-[12px] text-[#9aa6b2] m-0">
+          <p v-else class="text-[12px] text-[#5A6B7C] m-0">
             还没有设置。在
             <RouterLink to="/profile" class="text-[#7c9cb8] no-underline" @click="crisis.close()">个人中心</RouterLink>
             添加信任的人，危机时更容易伸手。

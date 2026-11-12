@@ -9,7 +9,7 @@
       <div class="w-[52px] h-[52px] rounded-full bg-gradient-to-br from-[#a8d5ba] to-[#7c9cb8] flex items-center justify-center text-[26px] shrink-0">🌿</div>
       <div class="flex-1">
         <h1 class="text-xl font-bold text-[#263746] m-0 leading-tight">同行者·小木</h1>
-        <p class="text-[12px] text-[#9aa6b2] m-0">
+        <p class="text-[12px] text-[#5A6B7C] m-0">
           <span v-if="emotionLabel">此刻你似乎{{ emotionLabel }}{{ emotionEmoji }}</span>
           <span v-else>研究心理学与哲学的同行者，随时陪你聊聊</span>
         </p>
@@ -29,7 +29,7 @@
         class="text-[12px] min-h-[44px] min-w-[44px] justify-center px-2.5 py-1.5 rounded-full border transition shrink-0 flex items-center gap-1"
         :class="prefs.voiceOn
           ? 'border-[#e7a8c2] bg-[#fdeef5] text-[#b0446f]'
-          : 'border-[#e6efe9] bg-white text-[#9aa6b2] hover:border-[#a8cbb4]'"
+          : 'border-[#e6efe9] bg-white text-[#5A6B7C] hover:border-[#a8cbb4]'"
         :title="prefs.voiceOn ? '小木会把回复读出来（点此关闭）' : '让小木把回复读出来'"
         :aria-label="prefs.voiceOn ? '关闭朗读' : '开启朗读'"
         @click="toggleVoice"
@@ -42,7 +42,7 @@
         </svg>
         <span class="hidden md:inline">{{ prefs.voiceOn ? '朗读中' : '朗读' }}</span>
       </button>
-      <button v-if="messages.length" @click="clearChat" class="text-[12px] text-[#9aa6b2] hover:text-[#D87945] transition px-2 py-1 shrink-0">清空</button>
+      <button v-if="messages.length" @click="clearChat" class="text-[12px] text-[#5A6B7C] hover:text-[#D87945] transition px-2 py-1 shrink-0">清空</button>
     </header>
 
     <!-- 引导入口（陪伴深度）——
@@ -51,7 +51,7 @@
     <div v-if="!compact" class="mb-2 shrink-0">
       <div v-if="showGuidesHint" class="flex items-center gap-2 bg-[#f0f4f9] rounded-xl px-3 py-1.5 mb-2">
         <span class="text-[12px] text-[#5a7d9a] leading-5 flex-1">小木准备了几件可以一起做的事，点下面试试 👇</span>
-        <button @click="dismissGuidesHint" class="inline-flex items-center justify-center w-11 h-11 shrink-0 text-[#9aa6b2] hover:text-[#5a7d9a] text-[16px] leading-none">×</button>
+        <button @click="dismissGuidesHint" class="inline-flex items-center justify-center w-11 h-11 shrink-0 text-[#5A6B7C] hover:text-[#5a7d9a] text-[16px] leading-none">×</button>
       </div>
       <!-- 快捷功能：手册要求单行横向滚动，不折行、不挤压输入区 -->
       <div class="flex flex-nowrap gap-2 overflow-x-auto no-scrollbar pb-1">
@@ -95,7 +95,7 @@
         >
           {{ moodLogging ? '记入中…' : '记入心情 + 打卡' }}
         </button>
-        <span class="text-[12px] text-[#9aa6b2]">{{ moodTip }}</span>
+        <span class="text-[12px] text-[#5A6B7C]">{{ moodTip }}</span>
       </div>
     </div>
 
@@ -110,7 +110,7 @@
       </div>
 
       <!-- 欢迎语 -->
-      <div v-if="!messages.length" class="text-center text-[#9aa6b2] text-[14px] leading-8 py-10">
+      <div v-if="!messages.length" class="text-center text-[#5A6B7C] text-[14px] leading-8 py-10">
         <p>🌿 我是小木，一个研究心理学与哲学的同行者。这里没有对错，只有被认真听见的你。</p>
         <p>随便说点什么，或试着聊聊今天的心情。</p>
       </div>
@@ -131,7 +131,7 @@
           <div class="flex items-center gap-2 mb-2.5">
             <span class="text-[16px]">📊</span>
             <b class="text-[14px] text-[#263746]">本周情绪复盘</b>
-            <span class="ml-auto text-[11px] text-[#9aa6b2]">{{ m.recap?.count || 0 }} 条记录</span>
+            <span class="ml-auto text-[11px] text-[#5A6B7C]">{{ m.recap?.count || 0 }} 条记录</span>
           </div>
           <div class="flex flex-wrap gap-1.5 mb-2.5">
             <span class="px-2 py-0.5 rounded-full text-[11.5px] bg-[#eef4f9] text-[#5a7d9a]">高频 {{ m.recap?.topEmoji }} {{ moodLabelOf(m.recap?.topEmotion) }}</span>
@@ -149,7 +149,7 @@
             ? 'bg-[#7c9cb8] bg-gradient-to-r from-[#7c9cb8] to-[#a8c3d6] text-white rounded-br-sm'
             : 'bg-white border border-[#e6efe9] text-[#263746] rounded-bl-sm'"
         >
-          <span v-if="m.role === 'assistant' && !m.content && m.thinking" class="text-[#9aa6b2]">小木正在听…</span>
+          <span v-if="m.role === 'assistant' && !m.content && m.thinking" class="text-[#5A6B7C]">小木正在听…</span>
           <span>{{ m.content }}</span>
           <span v-if="m.role === 'assistant' && m.thinking && m.content" class="inline-block w-1.5 h-4 ml-0.5 bg-[#9aa6b2] align-middle animate-blink"></span>
         </div>
@@ -184,9 +184,9 @@
       <div class="bg-white rounded-2xl max-w-lg w-full p-5 shadow-xl max-h-[88vh] overflow-y-auto">
         <div class="flex items-center justify-between mb-3">
           <h3 class="text-[16px] font-bold text-[#263746] m-0">🧠 换个角度看一看</h3>
-          <button @click="guide = ''" class="text-[#9aa6b2] hover:text-[#263746] text-xl leading-none">×</button>
+          <button @click="guide = ''" class="text-[#5A6B7C] hover:text-[#263746] text-xl leading-none">×</button>
         </div>
-        <p class="text-[12.5px] text-[#9aa6b2] leading-6 m-0 mb-3">当脑中那句反复的话让你难受，试着把它摊开，和小木一起看看它是不是全部的真相。</p>
+        <p class="text-[12.5px] text-[#5A6B7C] leading-6 m-0 mb-3">当脑中那句反复的话让你难受，试着把它摊开，和小木一起看看它是不是全部的真相。</p>
         <div class="space-y-2.5">
           <textarea v-model="cbt.situation" rows="2" placeholder="发生了什么？（情境）" class="w-full px-3 py-2 border border-[#E6EAF0] rounded-xl text-[16px] resize-none focus:outline-none focus:border-[#7c9cb8] min-h-[44px]"></textarea>
           <textarea v-model="cbt.thought" rows="2" placeholder="脑中冒出的想法是……（自动思维）" class="w-full px-3 py-2 border border-[#E6EAF0] rounded-xl text-[16px] resize-none focus:outline-none focus:border-[#7c9cb8] min-h-[44px]"></textarea>
@@ -216,7 +216,7 @@
       <div class="bg-white rounded-2xl max-w-md w-full p-5 shadow-xl">
         <div class="flex items-center justify-between mb-3">
           <h3 class="text-[16px] font-bold text-[#263746] m-0">🌙 睡前一刻</h3>
-          <button @click="guide = ''" class="text-[#9aa6b2] hover:text-[#263746] text-xl leading-none">×</button>
+          <button @click="guide = ''" class="text-[#5A6B7C] hover:text-[#263746] text-xl leading-none">×</button>
         </div>
         <p class="text-[13px] text-[#5a6b7c] leading-7 m-0 mb-3">
           先把注意力放到呼吸上，慢慢吸气、慢慢呼气。然后从脚到头，感受身体一点点松弛下来，把今天的重量交给床。
@@ -236,13 +236,13 @@
       <div class="bg-white rounded-2xl max-w-lg w-full p-5 shadow-xl max-h-[85vh] overflow-y-auto">
         <div class="flex items-center justify-between mb-3">
           <h3 class="text-[16px] font-bold text-[#263746] m-0">📖 我的思录</h3>
-          <button @click="guide = ''" class="text-[#9aa6b2] hover:text-[#263746] text-xl leading-none">×</button>
+          <button @click="guide = ''" class="text-[#5A6B7C] hover:text-[#263746] text-xl leading-none">×</button>
         </div>
-        <p v-if="!cbtHistory.length" class="text-[13px] text-[#9aa6b2] py-6 text-center m-0">还没有思维记录。做完一次「换个角度看」，这里会留下你的思录，方便回看。</p>
+        <p v-if="!cbtHistory.length" class="text-[13px] text-[#5A6B7C] py-6 text-center m-0">还没有思维记录。做完一次「换个角度看」，这里会留下你的思录，方便回看。</p>
         <div v-else class="space-y-3">
           <div v-for="(r, idx) in cbtHistory" :key="idx" class="border border-[#E6EAF0] rounded-xl p-3">
             <div class="flex items-center gap-2 mb-1.5">
-              <span class="text-[11px] text-[#9aa6b2]">{{ fmtCbtTime(r.at) }}</span>
+              <span class="text-[11px] text-[#5A6B7C]">{{ fmtCbtTime(r.at) }}</span>
               <span v-if="r.emotion" class="text-[11px] px-1.5 py-0.5 rounded-full bg-[#eef4f9] text-[#5a7d9a]">{{ moodLabelOf(r.emotion) }}</span>
               <button @click="deleteCbtRecord(idx)" class="ml-auto text-[11px] text-[#b8c2cc] hover:text-[#D87945] transition">删除</button>
             </div>

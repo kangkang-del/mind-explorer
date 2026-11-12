@@ -3,7 +3,7 @@
     <div class="page-wide page-x py-8 flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
       <div class="min-w-[200px]">
         <span class="font-bold text-[#263746] text-[16px]">🧠 心灵探索</span>
-        <p class="mt-1.5 text-[#9aa6b2]">用科学理解心灵，以知识温暖生活</p>
+        <p class="mt-1.5 text-[#5A6B7C]">用科学理解心灵，以知识温暖生活</p>
       </div>
 
       <div class="flex flex-wrap gap-x-5 gap-y-2">

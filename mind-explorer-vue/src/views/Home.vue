@@ -676,7 +676,7 @@ onUnmounted(() => {
   border-radius: 2px;
 }
 .feature-subtitle {
-  color: #9aa6b2;
+  color: #5A6B7C;
   font-size: 14px;
   margin: 4px 0 0;
 }
@@ -700,7 +700,7 @@ onUnmounted(() => {
 .feature-loading,
 .feature-empty {
   text-align: center;
-  color: #9aa6b2;
+  color: #5A6B7C;
   padding: 32px 0;
   margin: 0;
   background: #fff;
@@ -761,7 +761,7 @@ onUnmounted(() => {
 }
 .feature-card-meta {
   font-size: 12px;
-  color: #9aa6b2;
+  color: #5A6B7C;
   display: flex;
   gap: 16px;
   flex-wrap: wrap;
@@ -842,7 +842,7 @@ onUnmounted(() => {
 }
 .post-modal-author {
   font-size: 12px;
-  color: #9aa6b2;
+  color: #5A6B7C;
 }
 .post-modal-title {
   font-size: 22px;

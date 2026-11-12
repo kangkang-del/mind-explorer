@@ -2,7 +2,7 @@
   <section>
     <header class="mb-5">
       <h1 class="text-2xl md:text-3xl font-bold text-[#263746] m-0">📚 了解心理学知识</h1>
-      <p class="text-[#9aa6b2] mt-1 m-0">知识卡片 · 心理疾病科普 —— 用科学理解心灵。</p>
+      <p class="text-[#5A6B7C] mt-1 m-0">知识卡片 · 心理疾病科普 —— 用科学理解心灵。</p>
     </header>
 
     <div class="flex flex-col md:flex-row gap-5">
@@ -63,12 +63,12 @@
             <div v-if="item.type === 'health'" class="text-2xl mb-1.5">{{ item.icon }}</div>
             <h3 class="text-[16px] font-bold text-[#263746] m-0 leading-snug">{{ item.title }}</h3>
             <span class="inline-block mt-1 text-[12px] text-[#7c9cb8] bg-[#eef4f9] px-2 py-0.5 rounded-md">{{ item.category }}</span>
-            <p class="text-[13px] text-[#9aa6b2] line-clamp-3 mt-2 m-0 leading-relaxed">{{ item.summary }}</p>
+            <p class="text-[13px] text-[#5A6B7C] line-clamp-3 mt-2 m-0 leading-relaxed">{{ item.summary }}</p>
             <div v-if="item.type === 'card' && item.proponent" class="text-[12px] text-[#b8b8b8] mt-2">🧑‍🔬 {{ item.proponent }}</div>
           </article>
         </div>
 
-        <p v-if="!filtered.length" class="text-center text-[#9aa6b2] py-12 m-0">没有找到相关内容，换个关键词试试。</p>
+        <p v-if="!filtered.length" class="text-center text-[#5A6B7C] py-12 m-0">没有找到相关内容，换个关键词试试。</p>
       </div>
     </div>
 
@@ -78,7 +78,7 @@
         <div class="relative bg-white rounded-2xl shadow-2xl w-[92%] max-w-2xl mt-[8vh] max-h-[82vh] flex flex-col">
           <div class="flex items-center justify-between px-5 py-4 border-b border-[#E6EAF0] shrink-0">
             <h3 class="text-lg font-bold text-[#263746] m-0">{{ detailTitle }}</h3>
-            <button @click="dialogVisible = false" class="text-[#9aa6b2] hover:text-[#263746] text-xl leading-none" aria-label="关闭">✕</button>
+            <button @click="dialogVisible = false" class="text-[#5A6B7C] hover:text-[#263746] text-xl leading-none" aria-label="关闭">✕</button>
           </div>
           <div class="px-5 py-4 overflow-y-auto">
             <div class="detail-content" v-html="detailHtml"></div>
@@ -300,7 +300,7 @@ function formatTime(time) {
 }
 .study-links-box { margin: 22px 0 8px; padding: 16px 18px; background: #f6f9fc; border: 1px solid #eef2f7; border-radius: 12px; }
 .study-links-box h4 { margin: 0 0 6px; color: #263746; font-size: 15px; }
-.study-links-tip { margin: 0 0 12px; color: #9aa6b2; font-size: 12px; }
+.study-links-tip { margin: 0 0 12px; color: #5A6B7C; font-size: 12px; }
 .study-links { display: flex; gap: 8px; flex-wrap: wrap; }
 .study-link {
   display: inline-flex; align-items: center; gap: 5px;
@@ -341,7 +341,7 @@ function formatTime(time) {
   padding: 8px 16px; border: 1.5px solid #e2e8f0; border-radius: 10px;
   background: #fff; color: #5a6b7c; font-size: 13px; cursor: pointer;
 }
-.divider { color: #9aa6b2; font-size: 12px; }
+.divider { color: #5A6B7C; font-size: 12px; }
 .comment-list { margin-top: 8px; }
 .comment-item { padding: 10px 0; border-bottom: 1px solid #f0f4f9; }
 .comment-header { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }

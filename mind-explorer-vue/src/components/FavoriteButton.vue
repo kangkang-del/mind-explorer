@@ -2,7 +2,7 @@
   <button
     @click.prevent="onClick"
     :class="variant === 'full'
-      ? 'inline-flex items-center gap-1.5 min-h-[44px] px-3 py-1.5 rounded-full text-[13px] border transition ' + (faved ? 'border-[#f0a868] bg-[#fff3e0] text-[#D87945]' : 'border-[#E6EAF0] text-[#9aa6b2] hover:border-[#f0a868]')
+      ? 'inline-flex items-center gap-1.5 min-h-[44px] px-3 py-1.5 rounded-full text-[13px] border transition ' + (faved ? 'border-[#f0a868] bg-[#fff3e0] text-[#D87945]' : 'border-[#E6EAF0] text-[#5A6B7C] hover:border-[#f0a868]')
       : 'fav-hit inline-flex items-center justify-center w-8 h-8 rounded-full transition ' + (faved ? 'text-[#D87945]' : 'text-[#b9c4cf] hover:text-[#D87945]')"
     :title="faved ? '取消收藏' : '收藏'"
     :aria-pressed="faved"

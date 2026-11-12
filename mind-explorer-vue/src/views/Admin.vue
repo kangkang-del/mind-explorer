@@ -24,7 +24,7 @@
     <section v-else>
       <div class="flex items-center justify-between mb-4">
         <h1 class="text-xl font-bold text-[#263746] m-0">🔐 审核后台</h1>
-        <button @click="logout" class="text-[13px] text-[#9aa6b2] hover:text-[#D87945] transition">退出</button>
+        <button @click="logout" class="text-[13px] text-[#5A6B7C] hover:text-[#D87945] transition">退出</button>
       </div>
 
       <div class="flex gap-2 mb-4 overflow-x-auto pb-1 md:flex-wrap md:overflow-visible md:pb-0">
@@ -33,17 +33,17 @@
           :key="t.key"
           @click="load(t.key)"
           class="bg-transparent px-4 py-2 rounded-xl text-[14px] border transition whitespace-nowrap"
-          :class="tab === t.key ? 'border-[#7c9cb8] bg-[#f0f4f9] text-[#263746] font-semibold' : 'border-[#E6EAF0] text-[#9aa6b2] hover:border-[#c5d8ea]'"
+          :class="tab === t.key ? 'border-[#7c9cb8] bg-[#f0f4f9] text-[#263746] font-semibold' : 'border-[#E6EAF0] text-[#5A6B7C] hover:border-[#c5d8ea]'"
         >
           {{ t.label }} ({{ counts[t.key] }})
         </button>
       </div>
 
-      <p v-if="loading" class="text-center text-[#9aa6b2] py-10 m-0">加载中…</p>
+      <p v-if="loading" class="text-center text-[#5A6B7C] py-10 m-0">加载中…</p>
 
       <!-- 举报列表 -->
       <div v-else-if="tab === 'reports'" class="space-y-3">
-        <p v-if="!list.length" class="text-center text-[#9aa6b2] py-10 m-0">暂无待处理举报</p>
+        <p v-if="!list.length" class="text-center text-[#5A6B7C] py-10 m-0">暂无待处理举报</p>
         <article
           v-for="r in list"
           :key="r.id"
@@ -54,7 +54,7 @@
               <h3 class="text-[15px] font-semibold text-[#263746] m-0">{{ targetLabel(r.target_type) }} #{{ r.target_id }}</h3>
               <span class="inline-block mt-1 text-[12px] px-2 py-0.5 rounded-full bg-[#fee2e2] text-[#991b1b]">{{ r.reason }}</span>
             </div>
-            <span class="text-[12px] text-[#9aa6b2] shrink-0">{{ fmt(r.created_at) }}</span>
+            <span class="text-[12px] text-[#5A6B7C] shrink-0">{{ fmt(r.created_at) }}</span>
           </div>
           <p v-if="r.detail" class="text-[13px] text-[#5a6b7c] leading-7 whitespace-pre-wrap m-0 mb-2">{{ r.detail }}</p>
           <button @click="resolveReport(r.id)" class="px-4 py-1.5 rounded-lg text-[13px] font-semibold text-white bg-[#7c9cb8] hover:opacity-90 transition">标记已处理</button>
@@ -63,7 +63,7 @@
 
       <!-- 反馈列表（0012 新增） -->
       <div v-else-if="tab === 'feedback'" class="space-y-3">
-        <p v-if="!list.length" class="text-center text-[#9aa6b2] py-10 m-0">暂无反馈建议</p>
+        <p v-if="!list.length" class="text-center text-[#5A6B7C] py-10 m-0">暂无反馈建议</p>
         <article
           v-for="f in list"
           :key="f.id"
@@ -73,8 +73,8 @@
           <div class="flex items-center gap-2 mb-2 flex-wrap">
             <span class="text-[12px] px-2 py-0.5 rounded-full" :class="typeClass(f.type)">{{ typeText(f.type) }}</span>
             <span class="text-[12px] font-semibold" :class="f.status === 'done' ? 'text-[#5a9e7a]' : 'text-[#b4791f]'">{{ f.status === 'done' ? '✓ 已处理' : '待处理' }}</span>
-            <span class="text-[12px] text-[#9aa6b2]">{{ f.anonymous ? '匿名' : (f.user_name || '匿名') }}</span>
-            <span class="text-[12px] text-[#9aa6b2] ml-auto shrink-0">{{ fmt(f.created_at) }}</span>
+            <span class="text-[12px] text-[#5A6B7C]">{{ f.anonymous ? '匿名' : (f.user_name || '匿名') }}</span>
+            <span class="text-[12px] text-[#5A6B7C] ml-auto shrink-0">{{ fmt(f.created_at) }}</span>
           </div>
           <p class="text-[14px] text-[#5a6b7c] leading-7 whitespace-pre-wrap m-0 mb-2">{{ f.content }}</p>
           <button
@@ -89,7 +89,7 @@
 
       <!-- 卡片列表 -->
       <div v-else class="space-y-3">
-        <p v-if="!list.length" class="text-center text-[#9aa6b2] py-10 m-0">暂无{{ tabLabel }}内容</p>
+        <p v-if="!list.length" class="text-center text-[#5A6B7C] py-10 m-0">暂无{{ tabLabel }}内容</p>
         <article
           v-for="c in list"
           :key="c.id"
@@ -99,12 +99,12 @@
             <h3 class="text-[15px] font-semibold text-[#263746] m-0">{{ c.title }}</h3>
             <span class="text-[12px] px-2 py-0.5 rounded-full shrink-0" :class="statusClass(c.status)">{{ statusText(c.status) }}</span>
           </div>
-          <p class="text-[12px] text-[#9aa6b2] m-0 mb-2">
+          <p class="text-[12px] text-[#5A6B7C] m-0 mb-2">
             分类：{{ c.category || '未分类' }} · 作者：{{ c.author_name }} · {{ fmt(c.created_at) }}
             <span v-if="c.featured" class="ml-2 text-[#b4791f]">✨ 精选</span>
           </p>
           <p class="text-[14px] text-[#5a6b7c] leading-7 whitespace-pre-wrap m-0 mb-2">{{ c.content }}</p>
-          <p v-if="c.source" class="text-[12px] text-[#9aa6b2] m-0 mb-2">来源：{{ c.source }}</p>
+          <p v-if="c.source" class="text-[12px] text-[#5A6B7C] m-0 mb-2">来源：{{ c.source }}</p>
           <div v-if="c.status === 'approved'" class="flex gap-2 mt-1">
             <button
               @click="toggleFeature(c)"
@@ -253,7 +253,7 @@ function typeClass(t) {
     suggest: 'bg-[#eef4f9] text-[#7c9cb8]',
     issue: 'bg-[#fee2e2] text-[#991b1b]',
     thanks: 'bg-[#dcfce7] text-[#166534]',
-  }[t] || 'bg-[#eef2f7] text-[#9aa6b2]'
+  }[t] || 'bg-[#eef2f7] text-[#5A6B7C]'
 }
 
 async function act(id, type) {
@@ -275,7 +275,7 @@ function statusClass(s) {
     pending: 'bg-[#fef3c7] text-[#92400e]',
     approved: 'bg-[#dcfce7] text-[#166534]',
     rejected: 'bg-[#fee2e2] text-[#991b1b]',
-  }[s] || 'bg-[#eef2f7] text-[#9aa6b2]'
+  }[s] || 'bg-[#eef2f7] text-[#5A6B7C]'
 }
 function fmt(iso) {
   if (!iso) return ''

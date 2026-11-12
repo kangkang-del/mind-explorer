@@ -8,9 +8,9 @@
       <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl">
         <div class="flex items-center justify-between mb-3">
           <h3 class="text-lg font-bold text-[#263746] m-0">⚠️ 举报内容</h3>
-          <button @click="$emit('close')" class="text-[#9aa6b2] text-[18px] leading-none hover:text-[#5a6b7c]">✕</button>
+          <button @click="$emit('close')" class="text-[#5A6B7C] text-[18px] leading-none hover:text-[#5a6b7c]">✕</button>
         </div>
-        <p class="text-[13px] text-[#9aa6b2] m-0 mb-4">感谢你帮助维护温暖安全的社区。我们会尽快核实处理。</p>
+        <p class="text-[13px] text-[#5A6B7C] m-0 mb-4">感谢你帮助维护温暖安全的社区。我们会尽快核实处理。</p>
 
         <p class="text-[13px] text-[#5a6b7c] font-semibold mb-2 m-0">请选择举报理由</p>
         <div class="flex flex-wrap gap-2 mb-4">
@@ -19,7 +19,7 @@
             :key="r"
             @click="reason = r"
             class="bg-transparent px-3 py-1.5 rounded-full text-[13px] border transition"
-            :class="reason === r ? 'border-[#D87945] bg-[#fff4ec] text-[#d2691e]' : 'border-[#E6EAF0] text-[#9aa6b2] hover:border-[#c5d8ea]'"
+            :class="reason === r ? 'border-[#D87945] bg-[#fff4ec] text-[#d2691e]' : 'border-[#E6EAF0] text-[#5A6B7C] hover:border-[#c5d8ea]'"
           >
             {{ r }}
           </button>

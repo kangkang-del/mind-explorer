@@ -19,7 +19,7 @@
         </button>
         <button
           @click="reportOpen = true"
-          class="text-[13px] text-[#9aa6b2] hover:text-[#D87945] transition ml-4 align-middle"
+          class="text-[13px] text-[#5A6B7C] hover:text-[#D87945] transition ml-4 align-middle"
         >
           ⚠️ 举报
         </button>

@@ -11,7 +11,7 @@
       </div>
       <div class="text-center md:text-left flex-1">
         <h2 class="text-lg font-bold text-[#263746] m-0">{{ displayName }}</h2>
-        <p class="text-[13px] text-[#9aa6b2] my-1 m-0">
+        <p class="text-[13px] text-[#5A6B7C] my-1 m-0">
           <span v-if="auth.currentUser && auth.currentUser.type === 'github'">🐙 GitHub 登录</span>
           <span v-else-if="auth.currentUser">🏠 游客用户</span>
           <span v-else>登录后可同步收藏、对话记录与反馈</span>
@@ -26,7 +26,7 @@
         <button
           v-else
           @click="auth.logout()"
-          class="bg-transparent px-4 py-1.5 min-h-[44px] text-[13px] text-[#9aa6b2] border border-[#E6EAF0] rounded-md hover:bg-[#f0f4f9] transition"
+          class="bg-transparent px-4 py-1.5 min-h-[44px] text-[13px] text-[#5A6B7C] border border-[#E6EAF0] rounded-md hover:bg-[#f0f4f9] transition"
         >
           退出登录
         </button>
@@ -37,23 +37,23 @@
     <section v-if="auth.currentUser" class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
       <div class="bg-white rounded-2xl border border-[#E6EAF0] p-4 text-center">
         <p class="text-[28px] font-bold text-[#D87945] m-0">🔥</p>
-        <p class="text-[12px] text-[#9aa6b2] mt-1 m-0">连续打卡</p>
+        <p class="text-[12px] text-[#5A6B7C] mt-1 m-0">连续打卡</p>
         <p class="text-[20px] font-bold text-[#263746] m-0">{{ checkinStats.streak }} 天</p>
       </div>
       <div class="bg-white rounded-2xl border border-[#E6EAF0] p-4 text-center">
         <p class="text-[28px] font-bold text-[#7c9cb8] m-0">📅</p>
-        <p class="text-[12px] text-[#9aa6b2] mt-1 m-0">累计打卡</p>
+        <p class="text-[12px] text-[#5A6B7C] mt-1 m-0">累计打卡</p>
         <p class="text-[20px] font-bold text-[#263746] m-0">{{ checkinStats.total }} 天</p>
       </div>
       <div class="bg-white rounded-2xl border border-[#E6EAF0] p-4 text-center">
         <p class="text-[28px] font-bold text-[#D87945] m-0">♥</p>
-        <p class="text-[12px] text-[#9aa6b2] mt-1 m-0">我的收藏</p>
+        <p class="text-[12px] text-[#5A6B7C] mt-1 m-0">我的收藏</p>
         <p class="text-[20px] font-bold text-[#263746] m-0">{{ favorites.length }}</p>
       </div>
       <div class="bg-white rounded-2xl border border-[#E6EAF0] p-4 text-center">
         <RouterLink to="/upload" class="no-underline">
           <p class="text-[28px] font-bold text-[#7c9cb8] m-0">🌱</p>
-          <p class="text-[12px] text-[#9aa6b2] mt-1 m-0">我的投稿</p>
+          <p class="text-[12px] text-[#5A6B7C] mt-1 m-0">我的投稿</p>
           <p class="text-[20px] font-bold text-[#263746] m-0">写一条</p>
         </RouterLink>
       </div>
@@ -68,7 +68,7 @@
     <!-- 信任联系人 -->
     <section v-if="auth.currentUser" class="bg-white rounded-2xl border border-[#E6EAF0] p-5 mb-5">
       <h2 class="text-[16px] font-bold text-[#263746] mb-1.5 m-0">🛡️ 信任联系人</h2>
-      <p class="text-[13px] text-[#9aa6b2] m-0 mb-4 leading-relaxed">
+      <p class="text-[13px] text-[#5A6B7C] m-0 mb-4 leading-relaxed">
         遇到难熬的时刻，可以找这些重要的人聊聊。信息只保存在你的设备上，不会上传到服务器。
       </p>
 
@@ -80,7 +80,7 @@
         >
           <div class="flex-1 min-w-0">
             <p class="text-[14px] text-[#263746] font-semibold m-0 truncate">
-              {{ c.name }}<span v-if="c.relation" class="text-[12px] text-[#9aa6b2] font-normal ml-2">{{ c.relation }}</span>
+              {{ c.name }}<span v-if="c.relation" class="text-[12px] text-[#5A6B7C] font-normal ml-2">{{ c.relation }}</span>
             </p>
             <p v-if="c.phone" class="text-[13px] text-[#7c9cb8] m-0">{{ c.phone }}</p>
           </div>
@@ -92,11 +92,11 @@
           </button>
         </li>
       </ul>
-      <p v-else class="text-[13px] text-[#9aa6b2] py-2 m-0 mb-4">还没有添加信任联系人，下面加一位吧～</p>
+      <p v-else class="text-[13px] text-[#5A6B7C] py-2 m-0 mb-4">还没有添加信任联系人，下面加一位吧～</p>
 
       <form @submit.prevent="addContact" class="grid grid-cols-1 md:grid-cols-12 gap-2 items-end">
         <div class="md:col-span-4">
-          <label class="block text-[12px] text-[#9aa6b2] mb-1">称呼 *</label>
+          <label class="block text-[12px] text-[#5A6B7C] mb-1">称呼 *</label>
           <input
             v-model="tcForm.name"
             maxlength="20"
@@ -105,7 +105,7 @@
           />
         </div>
         <div class="md:col-span-4">
-          <label class="block text-[12px] text-[#9aa6b2] mb-1">电话 / 微信</label>
+          <label class="block text-[12px] text-[#5A6B7C] mb-1">电话 / 微信</label>
           <input
             v-model="tcForm.phone"
             maxlength="40"
@@ -114,7 +114,7 @@
           />
         </div>
         <div class="md:col-span-2">
-          <label class="block text-[12px] text-[#9aa6b2] mb-1">关系</label>
+          <label class="block text-[12px] text-[#5A6B7C] mb-1">关系</label>
           <input
             v-model="tcForm.relation"
             maxlength="20"
@@ -147,7 +147,7 @@
           :title="d.date + (d.checked ? ' ✓' : '')"
         ></div>
       </div>
-      <p v-else class="text-[13px] text-[#9aa6b2] py-4 text-center m-0">记录心情或完成练习后，这里会出现你的打卡日历 🌱</p>
+      <p v-else class="text-[13px] text-[#5A6B7C] py-4 text-center m-0">记录心情或完成练习后，这里会出现你的打卡日历 🌱</p>
     </section>
 
     <!-- 我的收藏 -->
@@ -164,7 +164,7 @@
           <span v-else class="flex-1 text-[14px] text-[#263746] truncate">{{ f.title || '未命名' }}</span>
         </li>
       </ul>
-      <p v-else class="text-[13px] text-[#9aa6b2] py-4 text-center m-0">还没有收藏。去社区或知识页逛逛，点 ♥ 收藏你喜欢的～</p>
+      <p v-else class="text-[13px] text-[#5A6B7C] py-4 text-center m-0">还没有收藏。去社区或知识页逛逛，点 ♥ 收藏你喜欢的～</p>
     </section>
 
     <!-- 小木：桌宠开关 + 换装/声音设置入口。
@@ -172,7 +172,7 @@
          否则关掉桌宠的用户再也进不去语音设置。 -->
     <section class="bg-white border border-[#E6EAF0] rounded-2xl p-5 mb-5">
       <h2 class="text-[15px] font-bold text-[#263746] m-0 mb-1">🌿 小木</h2>
-      <p class="text-[13px] text-[#9aa6b2] leading-6 m-0 mb-3">
+      <p class="text-[13px] text-[#5A6B7C] leading-6 m-0 mb-3">
         桌宠默认不悬浮，免得挡住页面上的按钮。想让她陪在角落时，打开即可。
       </p>
       <div class="flex flex-wrap items-center gap-2.5">
@@ -208,22 +208,22 @@
       <RouterLink to="/mood" class="flex items-center gap-2.5 p-4 bg-white border border-[#E6EAF0] rounded-xl no-underline hover:shadow-sm transition">
         <span class="text-[22px]">🌤️</span>
         <span class="text-[15px] font-semibold text-[#263746]">心情日记</span>
-        <span class="ml-auto text-[13px] text-[#9aa6b2]">→</span>
+        <span class="ml-auto text-[13px] text-[#5A6B7C]">→</span>
       </RouterLink>
       <RouterLink to="/tools" class="flex items-center gap-2.5 p-4 bg-white border border-[#E6EAF0] rounded-xl no-underline hover:shadow-sm transition">
         <span class="text-[22px]">🧰</span>
         <span class="text-[15px] font-semibold text-[#263746]">自助工具箱</span>
-        <span class="ml-auto text-[13px] text-[#9aa6b2]">→</span>
+        <span class="ml-auto text-[13px] text-[#5A6B7C]">→</span>
       </RouterLink>
       <RouterLink to="/upload" class="flex items-center gap-2.5 p-4 bg-white border border-[#E6EAF0] rounded-xl no-underline hover:shadow-sm transition">
         <span class="text-[22px]">🌱</span>
         <span class="text-[15px] font-semibold text-[#263746]">分享治愈瞬间</span>
-        <span class="ml-auto text-[13px] text-[#9aa6b2]">→</span>
+        <span class="ml-auto text-[13px] text-[#5A6B7C]">→</span>
       </RouterLink>
       <RouterLink to="/feedback" class="flex items-center gap-2.5 p-4 bg-white border border-[#E6EAF0] rounded-xl no-underline hover:shadow-sm transition">
         <span class="text-[22px]">✉️</span>
         <span class="text-[15px] font-semibold text-[#263746]">反馈建议</span>
-        <span class="ml-auto text-[13px] text-[#9aa6b2]">→</span>
+        <span class="ml-auto text-[13px] text-[#5A6B7C]">→</span>
       </RouterLink>
     </section>
   </section>
