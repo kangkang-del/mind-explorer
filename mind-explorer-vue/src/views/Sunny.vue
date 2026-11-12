@@ -21,7 +21,7 @@
         <button
           @click="publish"
           :disabled="!draft.content.trim() || publishing"
-          class="px-5 py-2 bg-gradient-to-r from-[#7c9cb8] to-[#a8c3d6] text-white rounded-lg text-[14px] disabled:opacity-50 disabled:cursor-not-allowed transition hover:opacity-90"
+          class="px-5 py-2 min-h-[44px] bg-gradient-to-r from-[#7c9cb8] to-[#a8c3d6] text-white rounded-lg text-[14px] disabled:opacity-50 disabled:cursor-not-allowed transition hover:opacity-90"
         >
           {{ publishing ? '发布中…' : '发布' }}
         </button>
@@ -48,8 +48,8 @@
 
           <div class="flex items-center gap-4 mt-3 text-[13px] text-[#9aa6b2]">
             <FavoriteButton :type="post.type === 'xiaomu' ? 'quote' : 'post'" :id="post.id" :title="post.title" :summary="(post.content||'').slice(0,60)" />
-            <button @click="toggleLike(post)" :class="post.liked ? 'text-[#e07a3f]' : ''" class="transition">❤️ {{ post.likes }}</button>
-            <button @click="post.showComment = !post.showComment" class="transition">💬 {{ post.comments.length }}</button>
+            <button @click="toggleLike(post)" :class="post.liked ? 'text-[#e07a3f]' : ''" class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] px-1 transition">❤️ {{ post.likes }}</button>
+            <button @click="post.showComment = !post.showComment" class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] px-1 transition">💬 {{ post.comments.length }}</button>
           </div>
 
           <div v-if="post.showComment" class="mt-3 border-t border-[#eef2f7] pt-3">
@@ -62,7 +62,7 @@
                 placeholder="说点温暖的话…"
                 class="flex-1 px-2 py-1 border border-[#e0e6ec] rounded text-[16px] focus:outline-none focus:border-[#7c9cb8] min-h-[44px]"
               />
-              <button @click="addComment(post)" class="px-3 py-1 bg-[#7c9cb8] text-white rounded text-[13px] shrink-0">发送</button>
+              <button @click="addComment(post)" class="px-4 py-1 min-h-[44px] bg-[#7c9cb8] text-white rounded text-[13px] shrink-0">发送</button>
             </div>
           </div>
         </div>

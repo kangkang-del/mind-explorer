@@ -5,7 +5,7 @@
       <p class="text-[#9aa6b2] text-[14px] mt-1 m-0">
         这里收集彼此生命里微小的光。提交后会经小木团队审核，通过即出现在社区「用户贡献」里。
       </p>
-      <RouterLink to="/study" class="inline-block text-[13px] text-[#7c9cb8] no-underline mt-1 hover:underline">看看大家分享的治愈瞬间 →</RouterLink>
+      <RouterLink to="/study" class="inline-flex items-center min-h-[44px] text-[13px] text-[#7c9cb8] no-underline mt-1 hover:underline">看看大家分享的治愈瞬间 →</RouterLink>
     </header>
 
     <!-- 未登录 -->
@@ -40,7 +40,7 @@
               :key="c"
               type="button"
               @click="form.category = c"
-              class="px-3 py-1.5 rounded-full text-[13px] border transition"
+              class="inline-flex items-center min-h-[44px] px-3.5 py-1.5 rounded-full text-[13px] border transition"
               :class="form.category === c ? 'border-[#7c9cb8] bg-[#f0f4f9] text-[#3a4a5c]' : 'border-[#eef2f7] text-[#9aa6b2] hover:border-[#c5d8ea]'"
             >
               {{ c }}

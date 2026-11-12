@@ -13,7 +13,7 @@
             v-for="cat in categories"
             :key="cat.key"
             @click="activeType = cat.key"
-            class="text-left px-3 py-2 rounded-lg text-[14px] transition"
+            class="flex items-center text-left min-h-[44px] px-3 py-2 rounded-lg text-[14px] transition"
             :class="activeType === cat.key ? 'bg-[#eef4f9] text-[#7c9cb8] font-semibold' : 'text-[#5a6b7c] hover:bg-[#f0f4f9]'"
           >
             {{ cat.label }} <span class="text-[#b8b8b8]">{{ cat.count }}</span>
@@ -29,7 +29,7 @@
             v-for="cat in categories"
             :key="cat.key"
             @click="activeType = cat.key"
-            class="shrink-0 px-3 py-1.5 rounded-[20px] text-[13px] border transition"
+            class="shrink-0 inline-flex items-center min-h-[44px] px-3.5 py-1.5 rounded-[20px] text-[13px] border transition"
             :class="activeType === cat.key ? 'bg-[#eef4f9] text-[#7c9cb8] border-[#c5d8ea] font-semibold' : 'bg-white text-[#5a6b7c] border-[#eef2f7]'"
           >
             {{ cat.label }}

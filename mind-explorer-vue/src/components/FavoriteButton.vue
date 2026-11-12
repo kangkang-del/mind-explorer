@@ -2,8 +2,8 @@
   <button
     @click.prevent="onClick"
     :class="variant === 'full'
-      ? 'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[13px] border transition ' + (faved ? 'border-[#f0a868] bg-[#fff3e0] text-[#e07a3f]' : 'border-[#eef2f7] text-[#9aa6b2] hover:border-[#f0a868]')
-      : 'inline-flex items-center justify-center w-8 h-8 rounded-full transition ' + (faved ? 'text-[#e07a3f]' : 'text-[#b9c4cf] hover:text-[#e07a3f]')"
+      ? 'inline-flex items-center gap-1.5 min-h-[44px] px-3 py-1.5 rounded-full text-[13px] border transition ' + (faved ? 'border-[#f0a868] bg-[#fff3e0] text-[#e07a3f]' : 'border-[#eef2f7] text-[#9aa6b2] hover:border-[#f0a868]')
+      : 'fav-hit inline-flex items-center justify-center w-8 h-8 rounded-full transition ' + (faved ? 'text-[#e07a3f]' : 'text-[#b9c4cf] hover:text-[#e07a3f]')"
     :title="faved ? '取消收藏' : '收藏'"
     :aria-pressed="faved"
   >
@@ -42,3 +42,17 @@ async function onClick() {
   await toggle(props.type, props.id, { title: props.title, summary: props.summary, link: props.link })
 }
 </script>
+
+<style scoped>
+/* 图标态：视觉尺寸保持 32px（卡片头部放 44 会挤），
+   但把可点区域扩到 44×44，手指够得着。 */
+.fav-hit {
+  position: relative;
+}
+.fav-hit::after {
+  content: '';
+  position: absolute;
+  inset: -6px;
+  border-radius: 9999px;
+}
+</style>

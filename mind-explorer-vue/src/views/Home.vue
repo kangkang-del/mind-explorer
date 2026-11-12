@@ -599,8 +599,8 @@ onUnmounted(() => {
   transform: translateY(-50%);
   background: rgba(255, 255, 255, 0.85);
   border: none;
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   cursor: pointer;
   font-size: 22px;
@@ -990,8 +990,9 @@ onUnmounted(() => {
     padding: 20px 16px 24px;
   }
   .carousel-arrow {
-    width: 34px;
-    height: 34px;
+    /* 触控目标不能小于 44：原来这里缩到 34，手机上很难点中 */
+    width: 44px;
+    height: 44px;
     font-size: 18px;
   }
   .carousel-prev {

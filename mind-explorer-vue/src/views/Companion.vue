@@ -16,7 +16,7 @@
       </div>
       <RouterLink
         to="/companion/story"
-        class="text-[12px] px-3 py-1.5 rounded-full border border-[#e6efe9] bg-white text-[#5a8a6a] hover:border-[#a8cbb4] hover:bg-[#f5faf7] transition no-underline flex items-center gap-1 shrink-0"
+        class="text-[12px] min-h-[44px] min-w-[44px] justify-center px-3 py-1.5 rounded-full border border-[#e6efe9] bg-white text-[#5a8a6a] hover:border-[#a8cbb4] hover:bg-[#f5faf7] transition no-underline flex items-center gap-1 shrink-0"
         title="小木记得的你 —— 它把记得的事，一段段讲给你听"
       >
         <span aria-hidden="true">📖</span><span class="hidden md:inline">故事书</span>
@@ -26,7 +26,7 @@
         v-if="voiceSupported"
         type="button"
         data-xm="voiceToggle"
-        class="text-[12px] px-2.5 py-1.5 rounded-full border transition shrink-0 flex items-center gap-1"
+        class="text-[12px] min-h-[44px] min-w-[44px] justify-center px-2.5 py-1.5 rounded-full border transition shrink-0 flex items-center gap-1"
         :class="prefs.voiceOn
           ? 'border-[#e7a8c2] bg-[#fdeef5] text-[#b0446f]'
           : 'border-[#e6efe9] bg-white text-[#9aa6b2] hover:border-[#a8cbb4]'"
@@ -51,7 +51,7 @@
     <div v-if="!compact" class="mb-2 shrink-0">
       <div v-if="showGuidesHint" class="flex items-center gap-2 bg-[#f0f4f9] rounded-xl px-3 py-1.5 mb-2">
         <span class="text-[12px] text-[#5a7d9a] leading-5 flex-1">小木准备了几件可以一起做的事，点下面试试 👇</span>
-        <button @click="dismissGuidesHint" class="text-[#9aa6b2] hover:text-[#5a7d9a] text-[14px] leading-none">×</button>
+        <button @click="dismissGuidesHint" class="inline-flex items-center justify-center w-11 h-11 shrink-0 text-[#9aa6b2] hover:text-[#5a7d9a] text-[16px] leading-none">×</button>
       </div>
       <!-- 快捷功能：手册要求单行横向滚动，不折行、不挤压输入区 -->
       <div class="flex flex-nowrap gap-2 overflow-x-auto no-scrollbar pb-1">
@@ -60,7 +60,7 @@
           :key="g.key"
           @click="openGuide(g.key)"
           :title="g.desc"
-          class="shrink-0 whitespace-nowrap px-3 py-1.5 rounded-full text-[12.5px] border transition flex items-center gap-1.5"
+          class="shrink-0 whitespace-nowrap min-h-[44px] px-3 py-1.5 rounded-full text-[12.5px] border transition flex items-center gap-1.5"
           :class="guide === g.key ? 'font-semibold shadow-sm' : 'bg-white border-[#eef2f7] text-[#7a8a9a] hover:border-[#c5d8ea]'"
           :style="guide === g.key ? { backgroundColor: g.bg, borderColor: g.color, color: g.color } : {}"
         >

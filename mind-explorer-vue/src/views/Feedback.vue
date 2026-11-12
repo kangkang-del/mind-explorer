@@ -9,7 +9,7 @@
       <div class="flex flex-col gap-2">
         <span class="text-[14px] font-semibold text-[#5a6b7c]">类型</span>
         <div class="flex gap-3 flex-wrap">
-          <label v-for="t in types" :key="t.value" class="inline-flex items-center gap-1.5 px-3.5 py-1.5 border border-[#eef2f7] rounded-[20px] cursor-pointer text-[14px] text-[#5a6b7c]">
+          <label v-for="t in types" :key="t.value" class="inline-flex items-center gap-1.5 min-h-[44px] px-3.5 py-1.5 border border-[#eef2f7] rounded-[20px] cursor-pointer text-[14px] text-[#5a6b7c]">
             <input type="radio" v-model="form.type" :value="t.value" class="accent-[#7c9cb8]" />
             <span>{{ t.label }}</span>
           </label>
