@@ -22,6 +22,15 @@ img {
   }
 }
 
+/* 横向滚动的胶囊行：隐藏滚动条，避免在窄屏上多出一条灰线 */
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
 /* ---------- 键盘可达性 ----------
    只对键盘焦点画描边（focus-visible），鼠标点击不触发。
    用 :where() 把特异性压到 0，避免盖掉组件自己的焦点样式。 */

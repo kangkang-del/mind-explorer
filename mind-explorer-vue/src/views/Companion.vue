@@ -53,13 +53,14 @@
         <span class="text-[12px] text-[#5a7d9a] leading-5 flex-1">小木准备了几件可以一起做的事，点下面试试 👇</span>
         <button @click="dismissGuidesHint" class="text-[#9aa6b2] hover:text-[#5a7d9a] text-[14px] leading-none">×</button>
       </div>
-      <div class="flex flex-wrap gap-2">
+      <!-- 快捷功能：手册要求单行横向滚动，不折行、不挤压输入区 -->
+      <div class="flex flex-nowrap gap-2 overflow-x-auto no-scrollbar pb-1">
         <button
           v-for="g in guides"
           :key="g.key"
           @click="openGuide(g.key)"
           :title="g.desc"
-          class="px-3 py-1.5 rounded-full text-[12.5px] border transition flex items-center gap-1.5"
+          class="shrink-0 whitespace-nowrap px-3 py-1.5 rounded-full text-[12.5px] border transition flex items-center gap-1.5"
           :class="guide === g.key ? 'font-semibold shadow-sm' : 'bg-white border-[#eef2f7] text-[#7a8a9a] hover:border-[#c5d8ea]'"
           :style="guide === g.key ? { backgroundColor: g.bg, borderColor: g.color, color: g.color } : {}"
         >
