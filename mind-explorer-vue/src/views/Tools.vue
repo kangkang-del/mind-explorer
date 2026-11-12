@@ -2,22 +2,56 @@
   <section class="page-wide py-6">
     <header class="mb-5">
       <h1 class="text-2xl font-bold text-[#3a4a5c] m-0">🧰 自助工具箱</h1>
-      <p class="text-[#9aa6b2] text-[14px] mt-1 m-0">当情绪翻涌时，这里有几件可以马上做的小事。挑一个，慢慢来。</p>
+      <p class="hidden sm:block text-[#9aa6b2] text-[14px] mt-1 m-0">当情绪翻涌时，这里有几件可以马上做的小事。挑一个，慢慢来。</p>
     </header>
 
-    <!-- 当你很难受时：紧急资源卡 -->
-    <section class="rounded-2xl border border-[#f0a868] bg-[#fff8f1] p-5 mb-6">
-      <div class="flex items-center gap-2 mb-2">
-        <span class="text-[20px]">🌿💛</span>
-        <h2 class="text-[16px] font-bold text-[#a85a2c] m-0">当你很难受时，这里有人接住你</h2>
+    <!-- 紧急资源卡（首页可直达 /tools#emergency-resources）
+         顺序是刻意的：120/110 排在最前，其次是可拨热线，最后才是引导语与聊天入口。
+         小屏（320×568）下必须保证这两块在首屏内，不多说一句废话。 -->
+    <section id="emergency-resources" class="rounded-2xl border-2 border-[#f0a868] bg-[#fff8f1] p-3 sm:p-4 md:p-5 mb-6">
+      <h2 class="flex items-center gap-2 text-[15px] md:text-[16px] font-bold text-[#a85a2c] m-0 mb-2 sm:mb-3">
+        <span class="text-[18px]" aria-hidden="true">🌿</span>
+        很难受时，这里有人接住你
+      </h2>
+
+      <!-- 急救 / 报警：两个最大的按钮，手机上也一屏可见 -->
+      <div class="grid grid-cols-2 gap-2 mb-3">
+        <a
+          href="tel:120"
+          class="flex flex-col items-center justify-center min-h-[52px] sm:min-h-[56px] rounded-xl bg-[#c85a3a] text-white no-underline font-bold leading-tight"
+        >
+          <span class="text-[11px] font-normal opacity-90">急救</span>
+          <span class="text-[18px] tabular-nums">120</span>
+        </a>
+        <a
+          href="tel:110"
+          class="flex flex-col items-center justify-center min-h-[52px] sm:min-h-[56px] rounded-xl bg-[#b8503a] text-white no-underline font-bold leading-tight"
+        >
+          <span class="text-[11px] font-normal opacity-90">报警</span>
+          <span class="text-[18px] tabular-nums">110</span>
+        </a>
       </div>
-      <p class="text-[13px] text-[#7a5a44] leading-7 m-0 mb-3">
-        你不需要一个人扛着这些。寻求帮助不是软弱，而是对自己温柔的勇气。如果可以，请让专业的人陪你走一段：
-      </p>
-      <ul class="text-[13px] text-[#5a3a24] space-y-1.5 mb-3">
-        <li v-for="h in hotlines" :key="h.tel">· {{ h.name }}：<b>{{ h.tel }}</b></li>
+
+      <!-- 心理援助热线：每条都可点即拨 -->
+      <ul class="space-y-1 sm:space-y-1.5 m-0 p-0 list-none mb-3">
+        <li v-for="h in hotlines" :key="h.tel">
+          <a
+            :href="'tel:' + h.tel.replace(/-/g, '')"
+            class="flex items-center gap-2 min-h-[44px] px-3 py-1.5 rounded-lg bg-white/80 border border-[#f0d8c0] no-underline hover:border-[#e0b48a] transition"
+          >
+            <span class="text-[15px] shrink-0" aria-hidden="true">📞</span>
+            <span class="flex-1 text-[12.5px] text-[#7a5a44] leading-tight">{{ h.name }}</span>
+            <b class="text-[14px] text-[#a85a2c] tabular-nums shrink-0">{{ h.tel }}</b>
+          </a>
+        </li>
       </ul>
-      <p class="text-[12px] text-[#a85a2c] m-0 mb-3">⚠️ 若你或他人正面临紧急危险，请立即拨打 <b>120</b> 或前往最近医院急诊，或拨打 <b>110</b>。</p>
+
+      <p class="text-[12px] text-[#8a5a34] leading-6 m-0 mb-3">
+        若你或他人正面临紧急危险，请立即拨打 120 或 110，或前往最近医院急诊。
+      </p>
+      <p class="text-[13px] text-[#7a5a44] leading-7 m-0 mb-3">
+        你不需要一个人扛着这些。寻求帮助不是软弱，而是对自己温柔的勇气。
+      </p>
       <RouterLink to="/companion" class="inline-flex items-center px-5 py-2 min-h-[44px] bg-[#7c9cb8] bg-gradient-to-r from-[#7c9cb8] to-[#a8c3d6] text-white rounded-xl text-[14px] font-semibold no-underline hover:opacity-90 transition">
         现在就和「小木」聊聊
       </RouterLink>
