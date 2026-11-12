@@ -38,7 +38,7 @@
         <img v-if="post.image" :src="post.image" :alt="post.title" class="w-full h-44 object-cover" loading="lazy" />
         <div class="p-4 flex-1 flex flex-col">
           <div class="flex items-center gap-2 mb-1 flex-wrap">
-            <span v-if="post.type === 'auto'" class="text-[11px] text-[#D87945] bg-[#fff3e0] px-2 py-0.5 rounded-md">✨ 今日晴天</span>
+            <span v-if="post.type === 'auto'" class="text-[11px] text-[#263746] bg-[#F0F4F9] px-2 py-0.5 rounded-md">✨ 今日晴天</span>
             <span v-else-if="post.type === 'xiaomu'" class="text-[11px] text-[#5a8a6a] bg-[#e6efe9] px-2 py-0.5 rounded-md">🌿 小木</span>
             <span v-else class="text-[11px] text-[#345B8E] bg-[#eef4f9] px-2 py-0.5 rounded-md">💛 用户分享</span>
             <span class="text-[11px] text-[#5A6B7C]">{{ post.author }}</span>
@@ -48,7 +48,7 @@
 
           <div class="flex items-center gap-4 mt-3 text-[13px] text-[#5A6B7C]">
             <FavoriteButton :type="post.type === 'xiaomu' ? 'quote' : 'post'" :id="post.id" :title="post.title" :summary="(post.content||'').slice(0,60)" />
-            <button @click="toggleLike(post)" :class="post.liked ? 'text-[#D87945]' : ''" class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] px-1 transition">❤️ {{ post.likes }}</button>
+            <button @click="toggleLike(post)" :class="post.liked ? 'text-[#345B8E]' : ''" class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] px-1 transition">❤️ {{ post.likes }}</button>
             <button @click="post.showComment = !post.showComment" class="border-0 inline-flex items-center justify-center min-h-[44px] min-w-[44px] px-1 transition">💬 {{ post.comments.length }}</button>
           </div>
 

@@ -36,7 +36,7 @@
     <!-- 进度卡片 -->
     <section v-if="auth.currentUser" class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
       <div class="bg-white rounded-2xl border border-[#E6EAF0] p-4 text-center">
-        <p class="text-[28px] font-bold text-[#D87945] m-0">🔥</p>
+        <p class="text-[28px] font-bold text-[#345B8E] m-0">🔥</p>
         <p class="text-[12px] text-[#5A6B7C] mt-1 m-0">连续打卡</p>
         <p class="text-[20px] font-bold text-[#263746] m-0">{{ checkinStats.streak }} 天</p>
       </div>
@@ -46,7 +46,7 @@
         <p class="text-[20px] font-bold text-[#263746] m-0">{{ checkinStats.total }} 天</p>
       </div>
       <div class="bg-white rounded-2xl border border-[#E6EAF0] p-4 text-center">
-        <p class="text-[28px] font-bold text-[#D87945] m-0">♥</p>
+        <p class="text-[28px] font-bold text-[#345B8E] m-0">♥</p>
         <p class="text-[12px] text-[#5A6B7C] mt-1 m-0">我的收藏</p>
         <p class="text-[20px] font-bold text-[#263746] m-0">{{ favorites.length }}</p>
       </div>

@@ -8,7 +8,7 @@
     <!-- 紧急资源卡（首页可直达 /tools#emergency-resources）
          顺序是刻意的：120/110 排在最前，其次是可拨热线，最后才是引导语与聊天入口。
          小屏（320×568）下必须保证这两块在首屏内，不多说一句废话。 -->
-    <section id="emergency-resources" class="rounded-2xl border-2 border-[#f0a868] bg-[#fff8f1] p-3 sm:p-4 md:p-5 mb-6">
+    <section id="emergency-resources" class="rounded-2xl border-2 border-[#D87945] bg-[rgba(216,121,69,0.06)] p-3 sm:p-4 md:p-5 mb-6">
       <h2 class="flex items-center gap-2 text-[15px] md:text-[16px] font-bold text-[#a85a2c] m-0 mb-2 sm:mb-3">
         <span class="text-[18px]" aria-hidden="true">🌿</span>
         很难受时，这里有人接住你
@@ -37,11 +37,11 @@
         <li v-for="h in hotlines" :key="h.tel">
           <a
             :href="'tel:' + h.tel.replace(/-/g, '')"
-            class="flex items-center gap-2 min-h-[44px] px-3 py-1.5 rounded-lg bg-white/80 border border-[#f0d8c0] no-underline hover:border-[#f0a868] transition"
+            class="flex items-center gap-2 min-h-[44px] px-3 py-1.5 rounded-lg bg-white/80 border border-[rgba(216,121,69,0.25)] no-underline hover:border-[#D87945] transition"
           >
             <span class="text-[15px] shrink-0" aria-hidden="true">📞</span>
-            <span class="flex-1 text-[12.5px] text-[#7a5a44] leading-tight">{{ h.name }}</span>
-            <b class="text-[14px] text-[#a85a2c] tabular-nums shrink-0">{{ h.tel }}</b>
+            <span class="flex-1 text-[12.5px] text-[#5A6B7C] leading-tight">{{ h.name }}</span>
+            <b class="text-[14px] text-[#D87945] tabular-nums shrink-0">{{ h.tel }}</b>
           </a>
         </li>
       </ul>

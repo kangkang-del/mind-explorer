@@ -98,10 +98,6 @@
           <h2 class="feature-title">今日精选</h2>
           <p class="feature-subtitle">来自心灵晴天的每日推送，每天自动换新</p>
         </div>
-        <div class="feature-stats">
-          <span>1200+ 次浏览</span>
-          <span>100+ 温暖推送</span>
-        </div>
       </div>
 
       <div class="feature-grid">
@@ -969,12 +965,6 @@ onUnmounted(() => {
   color: #5A6B7C;
   font-size: 14px;
   margin: 4px 0 0;
-}
-.feature-stats {
-  font-size: 13px;
-  color: #345B8E;
-  display: flex;
-  gap: 12px;
 }
 .feature-grid {
   display: grid;
