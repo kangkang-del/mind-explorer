@@ -27,7 +27,7 @@
         rows="2"
         maxlength="120"
         placeholder="想多说一点吗？（可选）"
-        class="w-full px-3 py-2 border border-[#e0e6ec] rounded-xl text-[14px] resize-none focus:outline-none focus:border-[#7c9cb8] mb-3"
+        class="w-full px-3 py-2 border border-[#e0e6ec] rounded-xl text-[16px] resize-none focus:outline-none focus:border-[#7c9cb8] mb-3 min-h-[44px]"
       ></textarea>
       <div class="flex items-center justify-between">
         <span class="text-[12px] text-[#9aa6b2]">{{ savedTip }}</span>
@@ -36,7 +36,7 @@
           <button
             @click="save"
             :disabled="!selected || saving"
-            class="px-5 py-2 bg-gradient-to-r from-[#7c9cb8] to-[#a8c3d6] text-white rounded-xl text-[14px] font-semibold disabled:opacity-50 transition hover:opacity-90"
+            class="px-5 py-2 min-h-[44px] bg-[#7c9cb8] bg-gradient-to-r from-[#7c9cb8] to-[#a8c3d6] text-white rounded-xl text-[14px] font-semibold disabled:opacity-50 transition hover:opacity-90"
           >
             {{ saving ? '保存中…' : '保存今天的心情' }}
           </button>

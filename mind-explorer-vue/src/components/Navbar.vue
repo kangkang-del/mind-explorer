@@ -29,9 +29,9 @@
       <button @click="auth.login()" class="github-login-btn">🔗 GitHub 登录</button>
       <div class="divider"><span>或</span></div>
 
-      <input v-model="guestName" :placeholder="guestMode === 'login' ? '昵称' : '设置昵称'" class="guest-input" />
-      <input v-if="guestMode === 'register'" v-model="guestDisplay" placeholder="显示名称（可选）" class="guest-input" />
-      <input v-model="guestPwd" type="password" :placeholder="guestMode === 'login' ? '密码' : '设置密码（至少6位）'" class="guest-input" @keyup.enter="guestMode === 'login' ? guestSignIn() : guestSignUp()" />
+      <input v-model="guestName" :placeholder="guestMode === 'login' ? '昵称' : '设置昵称'" class="guest-input min-h-[44px]" />
+      <input v-if="guestMode === 'register'" v-model="guestDisplay" placeholder="显示名称（可选）" class="guest-input min-h-[44px]" />
+      <input v-model="guestPwd" type="password" :placeholder="guestMode === 'login' ? '密码' : '设置密码（至少6位）'" class="guest-input min-h-[44px]" @keyup.enter="guestMode === 'login' ? guestSignIn() : guestSignUp()" />
 
       <button v-if="guestMode === 'login'" @click="guestSignIn" class="guest-login-btn">👤 登录</button>
       <button v-else @click="guestSignUp" class="guest-login-btn">👤 注册并登录</button>

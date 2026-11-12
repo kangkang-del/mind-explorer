@@ -42,7 +42,7 @@
           <input
             v-model="search"
             placeholder="搜索知识卡片或心理疾病…"
-            class="w-full pl-9 pr-9 py-2.5 rounded-xl border border-[#e2e8f0] bg-white text-sm text-[#3a4a5c] outline-none transition focus:border-[#7c9cb8] focus:ring-2 focus:ring-[#7c9cb8]/20 placeholder:text-[#b8c2cc]"
+            class="w-full pl-9 pr-9 py-2.5 rounded-xl border border-[#e2e8f0] bg-white text-[16px] text-[#3a4a5c] outline-none transition focus:border-[#7c9cb8] focus:ring-2 focus:ring-[#7c9cb8]/20 placeholder:text-[#b8c2cc] min-h-[44px]"
           />
           <button
             v-if="search"
@@ -104,7 +104,7 @@
 
               <h4 class="comments-title">评论 ({{ comments.length }})</h4>
               <div v-if="auth.isLoggedIn" class="comment-form">
-                <textarea v-model="newComment" rows="2" placeholder="写下你的想法..." class="comment-input"></textarea>
+                <textarea v-model="newComment" rows="2" placeholder="写下你的想法..." class="comment-input min-h-[44px]"></textarea>
                 <button @click="submitComment" :disabled="submitting" class="comment-submit">{{ submitting ? '发表中…' : '发表评论' }}</button>
               </div>
               <div v-else class="login-options">

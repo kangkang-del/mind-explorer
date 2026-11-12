@@ -18,7 +18,7 @@
         <li v-for="h in hotlines" :key="h.tel">· {{ h.name }}：<b>{{ h.tel }}</b></li>
       </ul>
       <p class="text-[12px] text-[#a85a2c] m-0 mb-3">⚠️ 若你或他人正面临紧急危险，请立即拨打 <b>120</b> 或前往最近医院急诊，或拨打 <b>110</b>。</p>
-      <RouterLink to="/companion" class="inline-block px-5 py-2 bg-gradient-to-r from-[#7c9cb8] to-[#a8c3d6] text-white rounded-xl text-[14px] font-semibold no-underline hover:opacity-90 transition">
+      <RouterLink to="/companion" class="inline-flex items-center px-5 py-2 min-h-[44px] bg-[#7c9cb8] bg-gradient-to-r from-[#7c9cb8] to-[#a8c3d6] text-white rounded-xl text-[14px] font-semibold no-underline hover:opacity-90 transition">
         现在就和「小木」聊聊
       </RouterLink>
     </section>
@@ -38,7 +38,7 @@
           <p class="text-[12px] text-[#9aa6b2] leading-6 m-0 mb-3">{{ ex.desc }}</p>
           <button
             @click="startBreathing(key)"
-            class="px-5 py-2 rounded-lg text-[13px] font-semibold transition"
+            class="px-5 py-2 min-h-[44px] rounded-lg text-[13px] font-semibold transition"
             :class="breathing.active === key && breathing.running
               ? 'bg-[#eef2f7] text-[#5a6b7c]'
               : 'bg-[#f0f4f9] text-[#5a6b7c] hover:bg-[#e3ebf2]'"
@@ -79,7 +79,7 @@
               :key="i"
               v-model="groundInputs[si][i - 1]"
               :placeholder="'第 ' + i + ' 项…'"
-              class="w-full px-3 py-2 border border-[#e0e6ec] rounded-xl text-[14px] focus:outline-none focus:border-[#7c9cb8]"
+              class="w-full px-3 py-2 border border-[#e0e6ec] rounded-xl text-[16px] focus:outline-none focus:border-[#7c9cb8] min-h-[44px]"
             />
           </div>
         </div>

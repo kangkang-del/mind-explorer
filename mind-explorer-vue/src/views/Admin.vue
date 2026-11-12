@@ -9,7 +9,7 @@
         type="password"
         placeholder="管理员密码"
         @keyup.enter="checkPwd"
-        class="w-full px-3 py-2.5 border border-[#e0e6ec] rounded-xl text-[14px] focus:outline-none focus:border-[#7c9cb8] mb-3"
+        class="w-full px-3 py-2.5 border border-[#e0e6ec] rounded-xl text-[16px] focus:outline-none focus:border-[#7c9cb8] mb-3 min-h-[44px]"
       />
       <button
         @click="checkPwd"

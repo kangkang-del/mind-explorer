@@ -30,7 +30,7 @@
           rows="3"
           maxlength="300"
           placeholder="补充说明（选填）"
-          class="w-full px-3 py-2 border border-[#e0e6ec] rounded-xl text-[14px] resize-y focus:outline-none focus:border-[#7c9cb8] mb-1"
+          class="w-full px-3 py-2 border border-[#e0e6ec] rounded-xl text-[16px] resize-y focus:outline-none focus:border-[#7c9cb8] mb-1 min-h-[44px]"
         ></textarea>
         <p class="text-right text-[12px] text-[#b9c4cf] m-0 mb-4">{{ detail.length }}/300</p>
 

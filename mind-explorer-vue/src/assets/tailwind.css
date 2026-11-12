@@ -22,6 +22,16 @@ img {
   }
 }
 
+/* ---------- 键盘可达性 ----------
+   只对键盘焦点画描边（focus-visible），鼠标点击不触发。
+   用 :where() 把特异性压到 0，避免盖掉组件自己的焦点样式。 */
+@layer base {
+  :where(a, button, select, summary, [tabindex]:not([tabindex="-1"])):focus-visible {
+    outline: 2px solid #7c9cb8;
+    outline-offset: 2px;
+  }
+}
+
 /* ---------- 三端页面容器（《三端手册》分册一 §3） ----------
    wide 1200 / read 760 / narrow 680，均为 border-box 最大宽度。
    规则：水平留白只由「页面级容器」提供一次，子组件不得重复添加 px。

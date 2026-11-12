@@ -80,7 +80,7 @@
         </button>
       </div>
       <div v-if="pickedEmotion" class="flex items-center gap-2 flex-wrap">
-        <input v-model="moodNote" placeholder="想给今天的心情留句话？（可选）" class="flex-1 min-w-[160px] px-3 py-2 border border-[#e0e6ec] rounded-lg text-[13px] focus:outline-none focus:border-[#7c9cb8]" />
+        <input v-model="moodNote" placeholder="想给今天的心情留句话？（可选）" class="flex-1 min-w-[160px] px-3 py-2 border border-[#e0e6ec] rounded-lg text-[16px] focus:outline-none focus:border-[#7c9cb8] min-h-[44px]" />
         <button
           @click="logMood"
           :disabled="moodLogging"
@@ -167,8 +167,8 @@
         </div>
         <p class="text-[12.5px] text-[#9aa6b2] leading-6 m-0 mb-3">当脑中那句反复的话让你难受，试着把它摊开，和小木一起看看它是不是全部的真相。</p>
         <div class="space-y-2.5">
-          <textarea v-model="cbt.situation" rows="2" placeholder="发生了什么？（情境）" class="w-full px-3 py-2 border border-[#e0e6ec] rounded-xl text-[13.5px] resize-none focus:outline-none focus:border-[#7c9cb8]"></textarea>
-          <textarea v-model="cbt.thought" rows="2" placeholder="脑中冒出的想法是……（自动思维）" class="w-full px-3 py-2 border border-[#e0e6ec] rounded-xl text-[13.5px] resize-none focus:outline-none focus:border-[#7c9cb8]"></textarea>
+          <textarea v-model="cbt.situation" rows="2" placeholder="发生了什么？（情境）" class="w-full px-3 py-2 border border-[#e0e6ec] rounded-xl text-[16px] resize-none focus:outline-none focus:border-[#7c9cb8] min-h-[44px]"></textarea>
+          <textarea v-model="cbt.thought" rows="2" placeholder="脑中冒出的想法是……（自动思维）" class="w-full px-3 py-2 border border-[#e0e6ec] rounded-xl text-[16px] resize-none focus:outline-none focus:border-[#7c9cb8] min-h-[44px]"></textarea>
           <div class="flex flex-wrap gap-1.5">
             <button v-for="m in MOODS" :key="m.key" @click="cbt.emotion = m.key"
               class="px-2.5 py-1 rounded-full text-[12px] border transition"
@@ -176,9 +176,9 @@
               {{ m.emoji }} {{ m.label }}
             </button>
           </div>
-          <textarea v-model="cbt.evidenceFor" rows="2" placeholder="支持这个想法的证据……" class="w-full px-3 py-2 border border-[#e0e6ec] rounded-xl text-[13.5px] resize-none focus:outline-none focus:border-[#7c9cb8]"></textarea>
-          <textarea v-model="cbt.evidenceAgainst" rows="2" placeholder="不支持它的证据……（哪怕一点点）" class="w-full px-3 py-2 border border-[#e0e6ec] rounded-xl text-[13.5px] resize-none focus:outline-none focus:border-[#7c9cb8]"></textarea>
-          <textarea v-model="cbt.alternative" rows="2" placeholder="更平衡、更善意的想法是……" class="w-full px-3 py-2 border border-[#e0e6ec] rounded-xl text-[13.5px] resize-none focus:outline-none focus:border-[#7c9cb8]"></textarea>
+          <textarea v-model="cbt.evidenceFor" rows="2" placeholder="支持这个想法的证据……" class="w-full px-3 py-2 border border-[#e0e6ec] rounded-xl text-[16px] resize-none focus:outline-none focus:border-[#7c9cb8] min-h-[44px]"></textarea>
+          <textarea v-model="cbt.evidenceAgainst" rows="2" placeholder="不支持它的证据……（哪怕一点点）" class="w-full px-3 py-2 border border-[#e0e6ec] rounded-xl text-[16px] resize-none focus:outline-none focus:border-[#7c9cb8] min-h-[44px]"></textarea>
+          <textarea v-model="cbt.alternative" rows="2" placeholder="更平衡、更善意的想法是……" class="w-full px-3 py-2 border border-[#e0e6ec] rounded-xl text-[16px] resize-none focus:outline-none focus:border-[#7c9cb8] min-h-[44px]"></textarea>
         </div>
         <div class="flex items-center gap-2 mt-3">
           <button @click="submitCbtForm" :disabled="cbtLoading"
@@ -202,7 +202,7 @@
         </p>
         <p class="text-[13px] text-[#5a6b7c] m-0 mb-2">今天，有三件让你有一点点暖的小事吗？</p>
         <div class="space-y-2 mb-4">
-          <input v-for="i in 3" :key="i" v-model="bedtime.gratitude[i - 1]" :placeholder="'第 ' + i + ' 件小确幸…'" class="w-full px-3 py-2 border border-[#e0e6ec] rounded-xl text-[13.5px] focus:outline-none focus:border-[#7c9cb8]" />
+          <input v-for="i in 3" :key="i" v-model="bedtime.gratitude[i - 1]" :placeholder="'第 ' + i + ' 件小确幸…'" class="w-full px-3 py-2 border border-[#e0e6ec] rounded-xl text-[16px] focus:outline-none focus:border-[#7c9cb8] min-h-[44px]" />
         </div>
         <button @click="finishBedtime" class="w-full py-2.5 bg-[#7c9cb8] bg-gradient-to-r from-[#7c9cb8] to-[#a8c3d6] text-white rounded-lg text-[14px] font-semibold hover:opacity-90 transition">
           完成 · 和小木说晚安
@@ -287,7 +287,7 @@
           rows="1"
           @keydown.enter.exact.prevent="send"
           placeholder="和小木说点什么…（Enter 发送）"
-          class="flex-1 max-h-32 px-4 py-3 border border-[#e0e6ec] rounded-2xl resize-none text-[14px] focus:outline-none focus:border-[#7c9cb8]"
+          class="flex-1 max-h-32 px-4 py-3 border border-[#e0e6ec] rounded-2xl resize-none text-[16px] focus:outline-none focus:border-[#7c9cb8] min-h-[44px]"
         ></textarea>
         <button
           @click="send"

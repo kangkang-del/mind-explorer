@@ -22,7 +22,7 @@
           v-model="form.content"
           rows="5"
           placeholder="说说你的想法、遇到的问题，或想感谢的事…"
-          class="w-full p-3 border border-[#e0e6ec] rounded-lg resize-y text-[14px] focus:outline-none focus:border-[#7c9cb8]"
+          class="w-full p-3 border border-[#e0e6ec] rounded-lg resize-y text-[16px] focus:outline-none focus:border-[#7c9cb8] min-h-[44px]"
         ></textarea>
       </label>
 
@@ -37,7 +37,7 @@
       <button
         type="submit"
         :disabled="!form.content.trim() || submitting"
-        class="self-start px-7 py-2.5 bg-gradient-to-r from-[#7c9cb8] to-[#a8c3d6] text-white border-0 rounded-lg text-[15px] cursor-pointer transition hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
+        class="self-start px-7 py-2.5 min-h-[44px] bg-[#7c9cb8] bg-gradient-to-r from-[#7c9cb8] to-[#a8c3d6] text-white border-0 rounded-lg text-[15px] cursor-pointer transition hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
       >
         {{ submitting ? '提交中…' : '提交反馈' }}
       </button>

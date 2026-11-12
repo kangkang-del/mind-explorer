@@ -64,7 +64,7 @@
       <div class="user-toolbar">
         <input
           v-model="userSearch"
-          class="search-input"
+          class="search-input min-h-[44px]"
           type="text"
           placeholder="🔍 搜索标题 / 内容 / 作者…"
         />

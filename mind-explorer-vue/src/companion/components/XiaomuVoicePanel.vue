@@ -42,7 +42,7 @@
         <span class="xm-vc-label">小木的声音</span>
         <div class="xm-vc-picker">
           <select
-            v-model="voiceValue" class="xm-vc-input" data-xm="voiceSelect"
+            v-model="voiceValue" class="xm-vc-input min-h-[44px]" data-xm="voiceSelect"
             :disabled="!prefs.voiceOn || (!isCloud && !voice.voices.value.length)"
           >
             <template v-if="isCloud">
@@ -73,7 +73,7 @@
         <div class="xm-vc-row">
           <span class="xm-vc-label">接口地址</span>
           <input
-            class="xm-vc-input" data-xm="ttsBaseUrl" :value="prefs.ttsBaseUrl"
+            class="xm-vc-input min-h-[44px]" data-xm="ttsBaseUrl" :value="prefs.ttsBaseUrl"
             placeholder="https://open.bigmodel.cn/api/paas/v4" @change="onBase"
           />
         </div>
@@ -81,7 +81,7 @@
         <div class="xm-vc-row">
           <span class="xm-vc-label">模型</span>
           <input
-            class="xm-vc-input" data-xm="ttsModel" :value="prefs.ttsModel"
+            class="xm-vc-input min-h-[44px]" data-xm="ttsModel" :value="prefs.ttsModel"
             placeholder="glm-tts" @change="onModel"
           />
         </div>
@@ -90,7 +90,7 @@
           <span class="xm-vc-label">API Key</span>
           <div class="xm-vc-picker">
             <input
-              class="xm-vc-input" type="password" data-xm="ttsKey" v-model="keyInput"
+              class="xm-vc-input min-h-[44px]" type="password" data-xm="ttsKey" v-model="keyInput"
               placeholder="粘贴你自己的密钥" autocomplete="off" spellcheck="false"
             />
             <button type="button" class="xm-vc-mini" data-xm="ttsKeySave" :disabled="accountBusy" @click="onSaveKey">保存</button>
@@ -148,7 +148,7 @@
       <div class="xm-vc-row" :class="{ 'is-dim': !prefs.voiceOn }">
         <span class="xm-vc-label">语速 · {{ rateLabel }}</span>
         <input
-          class="xm-vc-range" type="range" min="0.6" max="1.6" step="0.05"
+          class="xm-vc-range min-h-[44px]" type="range" min="0.6" max="1.6" step="0.05"
           data-xm="voiceRate" :value="prefs.voiceRate" :disabled="!prefs.voiceOn"
           @input="onRate($event.target.value)"
         />

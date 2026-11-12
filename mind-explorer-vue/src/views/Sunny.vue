@@ -14,7 +14,7 @@
         v-model="draft.content"
         rows="3"
         placeholder="分享一个温暖时刻、一件善意小事，或此刻想说的话…（将以你的名字发布）"
-        class="w-full p-3 border border-[#e0e6ec] rounded-lg resize-y text-[14px] focus:outline-none focus:border-[#7c9cb8]"
+        class="w-full p-3 border border-[#e0e6ec] rounded-lg resize-y text-[16px] focus:outline-none focus:border-[#7c9cb8] min-h-[44px]"
       ></textarea>
       <div class="flex items-center justify-between mt-3 flex-wrap gap-3">
         <p class="text-[12px] text-[#9aa6b2] m-0">发布人：{{ meName }}</p>
@@ -60,7 +60,7 @@
               <input
                 v-model="post.draftComment"
                 placeholder="说点温暖的话…"
-                class="flex-1 px-2 py-1 border border-[#e0e6ec] rounded text-[13px] focus:outline-none focus:border-[#7c9cb8]"
+                class="flex-1 px-2 py-1 border border-[#e0e6ec] rounded text-[16px] focus:outline-none focus:border-[#7c9cb8] min-h-[44px]"
               />
               <button @click="addComment(post)" class="px-3 py-1 bg-[#7c9cb8] text-white rounded text-[13px] shrink-0">发送</button>
             </div>

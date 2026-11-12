@@ -28,7 +28,7 @@
             v-model="form.title"
             maxlength="60"
             placeholder="一句话概括这个瞬间，如：楼下小猫今天蹭了蹭我"
-            class="w-full px-3 py-2 border border-[#e0e6ec] rounded-xl text-[14px] focus:outline-none focus:border-[#7c9cb8]"
+            class="w-full px-3 py-2 border border-[#e0e6ec] rounded-xl text-[16px] focus:outline-none focus:border-[#7c9cb8] min-h-[44px]"
           />
         </div>
 
@@ -55,7 +55,7 @@
             rows="6"
             maxlength="2000"
             placeholder="慢慢写下来吧，发生了什么、你当时的心情、它为什么打动了你……"
-            class="w-full px-3 py-2 border border-[#e0e6ec] rounded-xl text-[14px] resize-y focus:outline-none focus:border-[#7c9cb8]"
+            class="w-full px-3 py-2 border border-[#e0e6ec] rounded-xl text-[16px] resize-y focus:outline-none focus:border-[#7c9cb8] min-h-[44px]"
           ></textarea>
           <p class="text-right text-[12px] text-[#b9c4cf] m-0 mt-1">{{ form.content.length }}/2000</p>
         </div>
@@ -65,7 +65,7 @@
           <input
             v-model="form.image"
             placeholder="粘贴一张图片网址，让这一刻更具体（选填）"
-            class="w-full px-3 py-2 border border-[#e0e6ec] rounded-xl text-[14px] focus:outline-none focus:border-[#7c9cb8]"
+            class="w-full px-3 py-2 border border-[#e0e6ec] rounded-xl text-[16px] focus:outline-none focus:border-[#7c9cb8] min-h-[44px]"
           />
         </div>
 
@@ -75,7 +75,7 @@
             v-model="form.source"
             maxlength="200"
             placeholder="如：某本书 / 一位朋友 / 自己的日记（选填）"
-            class="w-full px-3 py-2 border border-[#e0e6ec] rounded-xl text-[14px] focus:outline-none focus:border-[#7c9cb8]"
+            class="w-full px-3 py-2 border border-[#e0e6ec] rounded-xl text-[16px] focus:outline-none focus:border-[#7c9cb8] min-h-[44px]"
           />
         </div>
 

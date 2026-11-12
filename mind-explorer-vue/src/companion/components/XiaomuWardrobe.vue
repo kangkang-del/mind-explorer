@@ -68,7 +68,7 @@
         <p class="xm-wd-sync" :class="`is-${sync.phase.value}`">{{ syncText }}</p>
         <p v-if="skin.error.value" class="xm-wd-err">{{ skin.error.value }}</p>
         <p v-if="sync.cloudNote.value" class="xm-wd-err">{{ sync.cloudNote.value }}</p>
-        <input ref="fileEl" class="xm-wd-file" type="file" accept="image/*" @change="onFile" />
+        <input ref="fileEl" class="xm-wd-file min-h-[44px]" type="file" accept="image/*" @change="onFile" />
       </div>
       </template>
 

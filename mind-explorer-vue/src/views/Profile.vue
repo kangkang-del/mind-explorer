@@ -26,7 +26,7 @@
         <button
           v-else
           @click="auth.logout()"
-          class="px-4 py-1.5 text-[13px] text-[#9aa6b2] border border-[#e0e6ec] rounded-md hover:bg-[#f0f4f9] transition"
+          class="px-4 py-1.5 min-h-[44px] text-[13px] text-[#9aa6b2] border border-[#e0e6ec] rounded-md hover:bg-[#f0f4f9] transition"
         >
           退出登录
         </button>
@@ -101,7 +101,7 @@
             v-model="tcForm.name"
             maxlength="20"
             placeholder="如：妈妈 / 阿琳"
-            class="w-full px-2.5 py-1.5 border border-[#e0e6ec] rounded-lg text-[14px] focus:outline-none focus:border-[#7c9cb8]"
+            class="w-full px-2.5 py-1.5 border border-[#e0e6ec] rounded-lg text-[16px] focus:outline-none focus:border-[#7c9cb8] min-h-[44px]"
           />
         </div>
         <div class="md:col-span-4">
@@ -110,7 +110,7 @@
             v-model="tcForm.phone"
             maxlength="40"
             placeholder="方便时联系到 TA 的方式"
-            class="w-full px-2.5 py-1.5 border border-[#e0e6ec] rounded-lg text-[14px] focus:outline-none focus:border-[#7c9cb8]"
+            class="w-full px-2.5 py-1.5 border border-[#e0e6ec] rounded-lg text-[16px] focus:outline-none focus:border-[#7c9cb8] min-h-[44px]"
           />
         </div>
         <div class="md:col-span-2">
@@ -119,14 +119,14 @@
             v-model="tcForm.relation"
             maxlength="20"
             placeholder="如：家人"
-            class="w-full px-2.5 py-1.5 border border-[#e0e6ec] rounded-lg text-[14px] focus:outline-none focus:border-[#7c9cb8]"
+            class="w-full px-2.5 py-1.5 border border-[#e0e6ec] rounded-lg text-[16px] focus:outline-none focus:border-[#7c9cb8] min-h-[44px]"
           />
         </div>
         <div class="md:col-span-2">
           <button
             type="submit"
             :disabled="!tcForm.name.trim()"
-            class="w-full py-1.5 bg-[#7c9cb8] text-white border-0 rounded-lg text-[13px] font-semibold disabled:opacity-50 hover:opacity-90 transition"
+            class="w-full py-1.5 min-h-[44px] bg-[#7c9cb8] text-white border-0 rounded-lg text-[13px] font-semibold disabled:opacity-50 hover:opacity-90 transition"
           >
             添加
           </button>

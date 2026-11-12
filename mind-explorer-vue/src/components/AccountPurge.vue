@@ -7,7 +7,7 @@
     </p>
     <button
       type="button"
-      class="text-[13px] px-4 py-2 rounded-full border border-[#e8c8c8] text-[#a86a6a] hover:bg-[#fdf6f6] transition"
+      class="text-[13px] px-4 py-2 min-h-[44px] rounded-full border border-[#e8c8c8] text-[#a86a6a] hover:bg-[#fdf6f6] transition"
       @click="openConfirm"
     >我要删除</button>
   </section>
@@ -29,7 +29,7 @@
           v-model="typed"
           type="text"
           :placeholder="displayName || '请输入昵称'"
-          class="w-full text-[14px] px-3.5 py-2.5 rounded-xl border transition outline-none"
+          class="w-full text-[16px] px-3.5 py-2.5 rounded-xl border transition outline-none min-h-[44px]"
           :class="typedOk ? 'border-[#a8cbb4]' : 'border-[#e0e6ec] focus:border-[#c5d8ea]'"
           @keyup.enter="typedOk && goFinal()"
         />

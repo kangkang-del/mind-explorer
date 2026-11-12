@@ -36,7 +36,7 @@
 
         <label class="xm-md-row">
           <span class="xm-md-label">模型平台</span>
-          <select v-model="form.provider" class="xm-md-input" data-xm="provider" @change="onProviderChange">
+          <select v-model="form.provider" class="xm-md-input min-h-[44px]" data-xm="provider" @change="onProviderChange">
             <option v-for="p in presets" :key="p.id" :value="p.id">{{ p.label }}</option>
           </select>
         </label>
@@ -44,7 +44,7 @@
         <label v-if="needEndpoint" class="xm-md-row">
           <span class="xm-md-label">endpoint</span>
           <input
-            v-model="form.baseUrl" class="xm-md-input" type="text" data-xm="endpoint"
+            v-model="form.baseUrl" class="xm-md-input min-h-[44px]" type="text" data-xm="endpoint"
             placeholder="https://..." spellcheck="false" autocomplete="off"
           />
           <span v-if="localHint" class="xm-md-hint is-warn" data-xm="localHint">{{ localHint }}</span>
@@ -54,7 +54,7 @@
         <div class="xm-md-row">
           <span class="xm-md-label">模型名</span>
           <input
-            v-model="form.model" class="xm-md-input" type="text" data-xm="model"
+            v-model="form.model" class="xm-md-input min-h-[44px]" type="text" data-xm="model"
             :placeholder="currentPreset.customEndpoint ? '例如 qwen2.5:7b' : '选择或填写模型名'"
             spellcheck="false" autocomplete="off"
           />
@@ -78,7 +78,7 @@
           </template>
           <template v-else>
             <input
-              v-model="form.key" class="xm-md-input" type="password" data-xm="key"
+              v-model="form.key" class="xm-md-input min-h-[44px]" type="password" data-xm="key"
               placeholder="sk-..." autocomplete="off" spellcheck="false"
             />
             <span class="xm-md-hint">只提交给服务端加密保存，前端不留存</span>

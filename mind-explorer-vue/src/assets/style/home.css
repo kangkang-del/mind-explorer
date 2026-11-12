@@ -330,7 +330,9 @@ body {
 @media (max-width: 768px) {
 
     body {
-        font-size: 15px;              /* 移动端正文 15px */
+        /* 《三端手册》：移动端正文建议 16px，15px 只是下限。
+           这里原来是 15px，会把 768 整点的正文压回 15（Tailwind md 此时已生效）。 */
+        font-size: 16px;
         line-height: 1.8;
     }
 
