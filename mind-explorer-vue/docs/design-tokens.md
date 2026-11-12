@@ -1,82 +1,139 @@
 # 设计 Token 与旧色值映射
 
-> 依据：《心灵探索者 三端 UI 设计与开发总手册 V2.0》分册一 §2
-> 状态：**阶段 1 只建词表，组件里的硬编码色值一律未改。** 替换在阶段 5 与插画一并进行。
+> 依据：《心灵探索者 三端 UI 设计与开发总手册》分册一 §2 + 项目方 2026-11-12 补充决定
+> 本文档是**开发者真源**，与 `tailwind.config.js` 的 `theme.extend.colors` 一一对应。
 > 最后更新：2026-11-12
 
-## 1. 为什么先只建词表
+---
 
-组件里现有 **1074 处**十六进制色值，散布在 40+ 个 `.vue` 文件。一次性替换会产出几千行 diff，
-既没法逐页验收，也会把「结构改造」和「视觉换皮」混在同一个提交里 —— 手册明确禁止。
+## 1. 文字层级
 
-所以阶段 1 只做两件事：
-
-1. 在 `tailwind.config.js` 里定义**正式语义 token**（未使用的 token 不会生成任何 CSS，零运行时成本）；
-2. 在本文档里建立**旧值 → token 的映射关系**，让阶段 5 的替换有据可依。
-
-## 2. 正式 token
-
-| Token | 值 | Tailwind 写法 | 用途 / 约束 |
+| Token | 值 | Tailwind | 用途 |
 |---|---|---|---|
-| `brand.primary` | `#345B8E` | `bg-brand-primary` `text-brand-primary` | 主品牌蓝：主要按钮、重点文字、选中态 |
-| `brand.secondary` | `#7C9CB8` | `bg-brand-secondary` | 辅助蓝：导航、图标、辅助强调（沿用现网） |
-| `ink.DEFAULT` | `#263746` | `text-ink` | 三端统一主文字色 |
-| `ink.muted` | `#5A6B7C` | `text-ink-muted` | 次级文字（现网值，手册未定义，作为补充层级） |
-| `ink.faint` | `#9AA6B2` | `text-ink-faint` | 弱文字 / 占位（同上） |
-| `urgent.DEFAULT` | `#D87945` | `bg-urgent` `text-urgent` | 紧急 / 风险强调橙 |
-| `urgent.soft` | `#F0A868` | `bg-urgent-soft` | 橙块底色 / 描边 |
-| `urgent.ink` | `#C2410C` | `text-urgent-ink` | 橙底上的深色文字 |
-| `surface.desktop` | `#F2F0E8` | `bg-surface-desktop` | 桌面与平板暖纸底 |
-| `surface.mobile` | `#FAFBFD` | `bg-surface-mobile` | 手机明亮浅白底 |
-| `surface.card` | `#FFFFFF` | `bg-surface-card` | 卡片表面 |
-| `line.subtle` | `#E6EAF0` | `border-line-subtle` | 弱边界 |
+| `ink.DEFAULT` | `#263746` | `text-ink` | 主文字：标题、正文主体 |
+| `ink.muted` | `#5A6B7C` | `text-ink-muted` | 次级文字：说明、辅助信息、标签、占位 |
+| `ink.decor` | `#9AA6B2` | `text-ink-decor` | **仅装饰**：图标、分隔线、非必要点缀 |
 
-两条硬约束：
+### 硬规则
 
-- **紧急橙必须同时有文字或图标语义**，不能只靠颜色区分。
-- 表面底色允许按设备适配（暖纸 / 浅白），但**品牌语义必须三端一致**。
+- **可读文字一律用 `ink.muted`，不再用 `#9aa6b2`。**
+  项目方已确认：不采用 `#6B7887`（在三端底色上无法稳定满足普通文字 4.5:1）。
+- `#9aa6b2` 保留给非必要装饰，**不得用于正文、说明或重要标签**。
+- 判据不是「看起来淡不淡」，而是「这句话不读会不会影响理解」。会影响 → `muted`。
 
-## 3. 旧值映射表（阶段 5 执行依据）
+---
 
-统计范围：`src/**/*.{vue,js,css}`，2026-11-12 实测。
+## 2. 蓝色体系
 
-| 旧值 | 出现次数 | 涉及文件数 | 最集中的文件 | 目标 token | 备注 |
-|---|---|---|---|---|---|
-| `#7c9cb8` | 132 | 26 | Companion(22)、Knowledge(12)、Profile(11) | `brand.secondary` | 值不变，只换成 token 名 |
-| `#3a4a5c` | 104 | 24 | Profile(17)、AppNavbar(13)、Companion(10) | `ink.DEFAULT` | **值会变**（→ `#263746`），需视觉复核 |
-| `#5a6b7c` | 89 | 22 | AppNavbar(20)、Knowledge(8)、AccountPurge(7) | `ink.muted` | 值不变 |
-| `#9aa6b2` | 108 | 25 | Profile(18)、Companion(15)、Admin(13) | `ink.faint` | 值不变 |
-| `#e07a3f` | 29 | 16 | Home(5)、FavoriteButton(3)、Profile(3) | `urgent.DEFAULT` | **值会变**（→ `#D87945`） |
-| `#f0a868` | 8 | 5 | Home(3)、FavoriteButton(2)、CrisisSupport(1) | `urgent.soft` | 值不变 |
-| `#c2410c` | 9 | 3 | XiaomuModelPanel(5)、VoicePanel(2)、Wardrobe(2) | `urgent.ink` | 值不变 |
-| `#eef2f7` | 76 | 19 | Profile(15)、Admin(7)、Companion(7) | `line.subtle` | **值会变**（→ `#E6EAF0`） |
-| `#e0e6ec` | 35 | 14 | Companion(10)、Profile(4)、Upload(4) | `line.subtle` | 同上，三套边框灰需合并 |
-| `#e2e8f0` | 16 | 6 | Knowledge(4)、CardDetail(3)、Community(3) | `line.subtle` | 同上 |
-| `#f0f4f9` | 43 | 14 | AppNavbar(23)、Companion(5) | **待定** | 浅蓝底/悬停态，手册未给 token，需设计确认 |
-| `#a8c3d6` | 18 | 12 | Companion(5)、AppNavbar(2)、Upload(2) | **待定** | 渐变末端，与 `#7c9cb8` 配对使用 |
-| `#fafbfc` | 2 | 2 | App.vue、Companion | `surface.mobile` | 手机底色 |
-| `#f7f4ef` | 2 | 2 | home.css、style.css | `surface.desktop` | 现网实为 `#F7F4EF`，手册为 `#F2F0E8` |
+| Token | 值 | 用途 |
+|---|---|---|
+| `brand.primary` | `#345B8E` | 主要按钮、CTA、重要操作、选中状态、重要链接 |
+| `brand.secondary` | `#7C9CB8` | 地图路径、插画、非关键视觉辅助 |
 
-### 三处「值会变」的视觉风险
+### 硬规则
 
-替换后颜色会有细微变化，必须在阶段 5 逐页截图对比：
+- `#7C9CB8` **不承担小字号正文和主要操作的颜色任务**。
+- 主要操作按钮使用**纯色 `#345B8E`**，不再使用 `#7C9CB8 → #A8C3D6` 渐变。
+- `#A8C3D6` 不再用于交互按钮渐变（插画/装饰里可保留）。
+- **禁止把 132 处蓝色一次性批量替换**，按第 5.2 节逐项处理。
 
-1. 主文字 `#3a4a5c` → `#263746`：变深、偏冷，共 104 处，影响面最大；
-2. 紧急橙 `#e07a3f` → `#D87945`：饱和度更高、偏砖红，29 处；
-3. 边框灰三合一 → `#E6EAF0`：三套灰（`eef2f7` / `e0e6ec` / `e2e8f0`）合并为一套，127 处。
+---
 
-## 4. 阶段 5 的替换顺序（建议）
+## 3. 紧急色
 
-1. 先 `line.subtle`（只影响边框，风险最低，127 处）；
-2. 再 `brand.secondary` / `ink.faint` / `ink.muted`（值不变，纯改名，329 处）；
-3. 再 `urgent.*`（29 + 8 + 9 处，需逐页看橙色语义）；
-4. 最后 `ink.DEFAULT`（104 处，主文字，改完整体观感会变）；
-5. `#f0f4f9` / `#a8c3d6` 等「待定」项，等设计给出 token 后再动。
+| Token | 值 | 用途 |
+|---|---|---|
+| `urgent.DEFAULT` | `#D87945` | 紧急 / 风险强调：背景、描边、强调文字 |
+| `urgent.soft` | `#F0A868` | 浅暖底、描边 |
 
-每步单独提交，附「替换前后同视口截图」。
+### 硬规则
 
-## 5. 禁止事项
+- 只有**一档**紧急色，**不按号码分级**。120 与 110 同色。
+- **`#C2410C` 不是已批准 token**，`urgent.ink` 已从配置删除，不得再使用。
+- 紧急按钮优先「`#D87945` 背景 + 白色 20px 加粗文字」；
+  若无法满足大字条件，改用「浅暖底 + 深色文字 + 橙色强调元素」。
 
-- 禁止在组件里新增硬编码色值；新增样式一律走 token。
-- 禁止为了省事直接改 token 的值去「凑」某个页面 —— 那是设计决策，不是实现细节。
-- 旧键 `brand.blue / green / orange / ink / sub` 保留到阶段 5 结束后再删，避免中途出现「一半有 token 一半没有」的状态。
+---
+
+## 4. 表面与边界
+
+| Token | 值 | 用途 |
+|---|---|---|
+| `surface.desktop` | `#F2F0E8` | 平板 / 桌面暖纸底 |
+| `surface.mobile` | `#FAFBFD` | 手机明亮浅白底 |
+| `surface.card` | `#FFFFFF` | 卡片表面 |
+| `surface.brand.subtle` | `#F0F4F9` | 选中、悬停的浅蓝背景（新增） |
+| `line.subtle` | `#E6EAF0` | 弱边界、分隔线 |
+
+**注意**：`surface.brand.subtle` 是**背景**语义，不能拿来当边框或文字色。
+浅灰底（如 `bg-[#eef2f7]` 用作悬停底）不要并进 `line.subtle` —— 那会让底色明显变深。
+
+---
+
+## 5. 旧色值 → 新 Token：按用途分类
+
+### 5.1 `#9aa6b2`（约 108 处，24 文件）
+
+| 用途 | 数量级 | 处理 |
+|---|---|---|
+| `text-[...]` 承载可读信息（说明、计数、时间、占位、提示） | ~99 | → `#5A6B7C` |
+| 图标 / 分隔线 / 纯装饰 | ~9 | 保留 `#9AA6B2` |
+
+判定方式：逐个看该元素里的文字删掉后，页面信息是否缺失。缺失 → 改 `muted`。
+
+### 5.2 `#7c9cb8`（133 处，25 文件）
+
+| 用途 | 形态 | 处理 |
+|---|---|---|
+| 主按钮 / CTA 实底 | `bg-[#7c9cb8]` | → `#345B8E` |
+| 选中 / 聚焦边框 | `border-[#7c9cb8]` | → `#345B8E` |
+| 重要链接 / 可点文字 | `text-[#7c9cb8]` | → `#345B8E` |
+| 表单控件强调 | `accent-[#7c9cb8]` | → `#345B8E` |
+| 焦点环 | `ring-[#7c9cb8]` | → `#345B8E` |
+| 按钮渐变 | `from-[#7c9cb8] to-[#a8c3d6]` | 改**纯色** `#345B8E`，删除渐变 |
+| 头像 / 徽章 / 插画 / 图标 fill·stroke | `bg-`、`fill=`、`stroke=` | **保留** `#7C9CB8` |
+| 旧 CSS 交互态（`.like-btn`、`.login-btn`、评论提交） | css 声明 | → `#345B8E` |
+
+### 5.3 `#a8c3d6`（18 处，全部是渐变终点）
+
+| 用途 | 处理 |
+|---|---|
+| 与 `#7c9cb8` 组成按钮渐变 | 主操作按钮改纯色，渐变整体删除 |
+| 头像 / 徽章装饰渐变 | 保留 |
+
+### 5.4 `#c2410c`（9 处，3 个文件）
+
+全部在 `XiaomuModelPanel` / `XiaomuVoicePanel` / `XiaomuWardrobe` 的 scoped 样式里。
+`urgent.ink` 已删除 → 改用 `#D87945`（强调色），或用「浅暖底 + `#263746` 文字」。
+**不得保留 `#c2410c`。**
+
+### 5.5 `#f0f4f9`（40 处）
+
+值不变，语义化为 `surface.brand.subtle`。**这是改名，不是改色**，
+替换后视觉应零变化；若有变化，说明改错了地方。
+
+---
+
+## 6. 执行顺序
+
+1. 文字：`#9aa6b2` 按可读/装饰二分（**先做，收益最大**）
+2. 紧急：`#c2410c` 清零 + 120/110 统一
+3. 蓝色：按 5.2 表逐项（主操作 → primary；插画/头像 → 保留）
+4. 表面：`#f0f4f9` 语义化（零视觉变化）
+
+每步独立提交，附三端截图。
+
+---
+
+## 7. 验收
+
+- 三端底色（`#FAFBFD` / `#F2F0E8` / `#FFFFFF`）下，`ink.DEFAULT` 与 `ink.muted` 的正文对比度 ≥ 4.5:1
+- 主要按钮、CTA、选中状态全部使用 `brand.primary`，且**不依赖渐变**
+- 页面里不再出现 `#c2410c`
+- 装饰性蓝色（头像、插画、路径）仍为 `#7C9CB8`
+
+## 8. 禁止事项
+
+- 禁止新增未在此表登记的色值。
+- 禁止为了「看起来统一」而把浅色背景并进 `line.subtle`。
+- 禁止把 `brand.secondary` 用在小字号正文或主要操作上。

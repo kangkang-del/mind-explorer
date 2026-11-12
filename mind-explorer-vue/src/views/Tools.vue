@@ -21,14 +21,14 @@
           class="flex flex-col items-center justify-center min-h-[52px] sm:min-h-[56px] rounded-xl bg-urgent text-white no-underline font-bold leading-tight"
         >
           <span class="text-[11px] font-normal opacity-90">急救</span>
-          <span class="text-[18px] tabular-nums">120</span>
+          <span class="text-[20px] font-bold tabular-nums">120</span>
         </a>
         <a
           href="tel:110"
-          class="flex flex-col items-center justify-center min-h-[52px] sm:min-h-[56px] rounded-xl bg-urgent-ink text-white no-underline font-bold leading-tight"
+          class="flex flex-col items-center justify-center min-h-[52px] sm:min-h-[56px] rounded-xl bg-urgent text-white no-underline font-bold leading-tight"
         >
           <span class="text-[11px] font-normal opacity-90">报警</span>
-          <span class="text-[18px] tabular-nums">110</span>
+          <span class="text-[20px] font-bold tabular-nums">110</span>
         </a>
       </div>
 
