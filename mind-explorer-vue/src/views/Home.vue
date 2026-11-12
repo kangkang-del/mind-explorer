@@ -448,13 +448,18 @@ onUnmounted(() => {
   line-height: 1.3;
   letter-spacing: 0.5px;
   text-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+  /* 必须显式声明：全局 home.css 里还有一条 .hero-title{color:#4A4A4A}，
+     那是给旧版浅色 Hero 写的，会直接压在这个深色 Hero 上 ——
+     结果就是深灰字压深蓝底，对比度掉到 1.3:1，标题几乎看不见。 */
+  color: #fff;
 }
 .hero-subtitle {
   font-size: 15.5px;
-  opacity: 0.88;
   margin: 0;
   line-height: 1.7;
   max-width: 480px;
+  /* 同上：全局那条 .hero-subtitle{color:#8E908B} 会把副标题也压成灰色 */
+  color: rgba(255, 255, 255, 0.9);
 }
 .hero-action {
   display: flex;
