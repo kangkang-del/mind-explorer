@@ -2,7 +2,7 @@
   <nav class="navbar">
     <div class="nav-container">
       <RouterLink to="/" class="nav-brand">心灵探索</RouterLink>
-      <button class="nav-toggle" @click="toggleMenu">☰</button>
+      <button class="border-0 nav-toggle" @click="toggleMenu">☰</button>
       <div class="nav-links" :class="{ active: menuOpen }">
         <RouterLink to="/study" class="nav-link">开始学习</RouterLink>
         <RouterLink to="/health" class="nav-link">了解心理</RouterLink>
@@ -17,7 +17,7 @@
           </RouterLink>
           <button @click="auth.logout()">登出</button>
         </div>
-        <button v-else @click="showLoginModal = true" class="login-btn">登录</button>
+        <button v-else @click="showLoginModal = true" class="border-0 login-btn">登录</button>
       </div>
     </div>
   </nav>
@@ -26,22 +26,22 @@
     <div class="login-modal-content">
       <h3>{{ guestMode === 'login' ? '游客登录' : '游客注册' }}</h3>
 
-      <button @click="auth.login()" class="github-login-btn">🔗 GitHub 登录</button>
+      <button @click="auth.login()" class="border-0 github-login-btn">🔗 GitHub 登录</button>
       <div class="divider"><span>或</span></div>
 
       <input v-model="guestName" :placeholder="guestMode === 'login' ? '昵称' : '设置昵称'" class="guest-input min-h-[44px]" />
       <input v-if="guestMode === 'register'" v-model="guestDisplay" placeholder="显示名称（可选）" class="guest-input min-h-[44px]" />
       <input v-model="guestPwd" type="password" :placeholder="guestMode === 'login' ? '密码' : '设置密码（至少6位）'" class="guest-input min-h-[44px]" @keyup.enter="guestMode === 'login' ? guestSignIn() : guestSignUp()" />
 
-      <button v-if="guestMode === 'login'" @click="guestSignIn" class="guest-login-btn">👤 登录</button>
-      <button v-else @click="guestSignUp" class="guest-login-btn">👤 注册并登录</button>
+      <button v-if="guestMode === 'login'" @click="guestSignIn" class="border-0 guest-login-btn">👤 登录</button>
+      <button v-else @click="guestSignUp" class="border-0 guest-login-btn">👤 注册并登录</button>
 
       <p class="login-tip">
         <a href="#" @click.prevent="toggleGuestMode">
           {{ guestMode === 'login' ? '没有账号？去注册' : '已有账号？去登录' }}
         </a>
       </p>
-      <button @click="showLoginModal = false" class="close-btn">关闭</button>
+      <button @click="showLoginModal = false" class="border-0 close-btn">关闭</button>
     </div>
   </div>
 </template>

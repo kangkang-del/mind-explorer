@@ -4,11 +4,11 @@
 
     <div v-else-if="!card" class="text-center py-16">
       <p class="text-[#5a6b7c] text-[15px] m-0 mb-3">这条治愈瞬间不存在或已被移除</p>
-      <RouterLink to="/upload" class="text-[#7c9cb8] no-underline font-semibold">← 返回分享页</RouterLink>
+      <RouterLink to="/upload" class="text-[#345B8E] no-underline font-semibold">← 返回分享页</RouterLink>
     </div>
 
     <article v-else class="bg-white rounded-2xl border border-[#E6EAF0] p-6">
-      <RouterLink to="/upload" class="inline-block text-[13px] text-[#7c9cb8] no-underline mb-4">← 返回分享页</RouterLink>
+      <RouterLink to="/upload" class="inline-block text-[13px] text-[#345B8E] no-underline mb-4">← 返回分享页</RouterLink>
 
       <div class="flex items-center gap-2 mb-3">
         <span v-if="card.category" class="inline-block bg-[#f0f4f9] text-[#5a6b7c] text-[12px] px-3 py-1 rounded-full">{{ card.category }}</span>
@@ -42,7 +42,7 @@
         </button>
         <button
           @click="reportOpen = true"
-          class="ml-auto text-[13px] text-[#5A6B7C] hover:text-[#D87945] transition"
+          class="border-0 ml-auto text-[13px] text-[#5A6B7C] hover:text-[#D87945] transition"
         >
           ⚠️ 举报
         </button>

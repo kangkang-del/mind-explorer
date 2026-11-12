@@ -25,7 +25,7 @@
         v-for="o in RANGES" :key="o.days" type="button"
         class="text-[12px] px-3 py-1 rounded-full border transition"
         :class="days === o.days
-          ? 'bg-[#7c9cb8] border-[#7c9cb8] text-white'
+          ? 'bg-[#345B8E] border-[#345B8E] text-white'
           : 'bg-white border-[#E6EAF0] text-[#7a8a9a] hover:border-[#c5d8ea]'"
         @click="setRange(o.days)"
       >{{ o.label }}</button>
@@ -54,7 +54,7 @@
         <RouterLink
           v-if="!isLoggedIn"
           to="/companion"
-          class="inline-block mt-2 text-[13px] px-4 py-1.5 rounded-full bg-[#7c9cb8] text-white no-underline hover:opacity-90 transition"
+          class="inline-block mt-2 text-[13px] px-4 py-1.5 rounded-full bg-[#345B8E] text-white no-underline hover:opacity-90 transition"
         >回去登录</RouterLink>
       </div>
 
@@ -142,7 +142,7 @@
             <div class="flex flex-wrap items-center gap-2">
               <button
                 type="button"
-                class="text-[13px] px-4 py-2 rounded-full bg-gradient-to-r from-[#7c9cb8] to-[#a8c3d6] text-white font-semibold hover:opacity-90 transition"
+                class="border-0 text-[13px] px-4 py-2 rounded-full bg-[#345B8E] text-white font-semibold hover:opacity-90 transition"
                 @click="exportStorybook"
               >
                 📖 把这段做成故事书
@@ -164,12 +164,12 @@
     <!-- 底部：叙事控制（旁白开关 / 语速） -->
     <div v-if="phase === 'ready'" class="flex items-center gap-3 mt-3 text-[11.5px] text-[#5A6B7C]">
       <label class="flex items-center gap-1.5 cursor-pointer select-none">
-        <input type="checkbox" v-model="voiceOn" class="accent-[#7c9cb8]" />
+        <input type="checkbox" v-model="voiceOn" class="accent-[#345B8E]" />
         小木念旁白
       </label>
       <span class="text-[#e0e6ec]">|</span>
       <label class="flex items-center gap-1.5 cursor-pointer select-none">
-        <input type="checkbox" v-model="narrateMoments" class="accent-[#7c9cb8]" />
+        <input type="checkbox" v-model="narrateMoments" class="accent-[#345B8E]" />
         念出对话片段
       </label>
       <span class="ml-auto">{{ totalLines }} 段</span>

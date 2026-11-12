@@ -13,8 +13,8 @@
             v-for="cat in categories"
             :key="cat.key"
             @click="activeType = cat.key"
-            class="flex items-center text-left min-h-[44px] px-3 py-2 rounded-lg text-[14px] transition"
-            :class="activeType === cat.key ? 'bg-[#eef4f9] text-[#7c9cb8] font-semibold' : 'text-[#5a6b7c] hover:bg-[#f0f4f9]'"
+            class="border-0 flex items-center text-left min-h-[44px] px-3 py-2 rounded-lg text-[14px] transition"
+            :class="activeType === cat.key ? 'bg-[#eef4f9] text-[#345B8E] font-semibold' : 'text-[#5a6b7c] hover:bg-[#f0f4f9]'"
           >
             {{ cat.label }} <span class="text-[#b8b8b8]">{{ cat.count }}</span>
           </button>
@@ -30,7 +30,7 @@
             :key="cat.key"
             @click="activeType = cat.key"
             class="shrink-0 inline-flex items-center min-h-[44px] px-3.5 py-1.5 rounded-[20px] text-[13px] border transition"
-            :class="activeType === cat.key ? 'bg-[#eef4f9] text-[#7c9cb8] border-[#c5d8ea] font-semibold' : 'bg-white text-[#5a6b7c] border-[#E6EAF0]'"
+            :class="activeType === cat.key ? 'bg-[#eef4f9] text-[#345B8E] border-[#c5d8ea] font-semibold' : 'bg-white text-[#5a6b7c] border-[#E6EAF0]'"
           >
             {{ cat.label }}
           </button>
@@ -42,12 +42,12 @@
           <input
             v-model="search"
             placeholder="搜索知识卡片或心理疾病…"
-            class="w-full pl-9 pr-9 py-2.5 rounded-xl border border-[#E6EAF0] bg-white text-[16px] text-[#263746] outline-none transition focus:border-[#7c9cb8] focus:ring-2 focus:ring-[#7c9cb8]/20 placeholder:text-[#b8c2cc] min-h-[44px]"
+            class="w-full pl-9 pr-9 py-2.5 rounded-xl border border-[#E6EAF0] bg-white text-[16px] text-[#263746] outline-none transition focus:border-[#345B8E] focus:ring-2 focus:ring-[#345B8E]/20 placeholder:text-[#b8c2cc] min-h-[44px]"
           />
           <button
             v-if="search"
             @click="search = ''"
-            class="absolute right-3 top-1/2 -translate-y-1/2 text-[#b8c2cc] hover:text-[#5a6b7c] text-sm leading-none"
+            class="border-0 absolute right-3 top-1/2 -translate-y-1/2 text-[#b8c2cc] hover:text-[#5a6b7c] text-sm leading-none"
             aria-label="清空"
           >✕</button>
         </div>
@@ -62,7 +62,7 @@
           >
             <div v-if="item.type === 'health'" class="text-2xl mb-1.5">{{ item.icon }}</div>
             <h3 class="text-[16px] font-bold text-[#263746] m-0 leading-snug">{{ item.title }}</h3>
-            <span class="inline-block mt-1 text-[12px] text-[#7c9cb8] bg-[#eef4f9] px-2 py-0.5 rounded-md">{{ item.category }}</span>
+            <span class="inline-block mt-1 text-[12px] text-[#345B8E] bg-[#eef4f9] px-2 py-0.5 rounded-md">{{ item.category }}</span>
             <p class="text-[13px] text-[#5A6B7C] line-clamp-3 mt-2 m-0 leading-relaxed">{{ item.summary }}</p>
             <div v-if="item.type === 'card' && item.proponent" class="text-[12px] text-[#b8b8b8] mt-2">🧑‍🔬 {{ item.proponent }}</div>
           </article>
@@ -78,7 +78,7 @@
         <div class="relative bg-white rounded-2xl shadow-2xl w-[92%] max-w-2xl mt-[8vh] max-h-[82vh] flex flex-col">
           <div class="flex items-center justify-between px-5 py-4 border-b border-[#E6EAF0] shrink-0">
             <h3 class="text-lg font-bold text-[#263746] m-0">{{ detailTitle }}</h3>
-            <button @click="dialogVisible = false" class="text-[#5A6B7C] hover:text-[#263746] text-xl leading-none" aria-label="关闭">✕</button>
+            <button @click="dialogVisible = false" class="border-0 text-[#5A6B7C] hover:text-[#263746] text-xl leading-none" aria-label="关闭">✕</button>
           </div>
           <div class="px-5 py-4 overflow-y-auto">
             <div class="detail-content" v-html="detailHtml"></div>
@@ -97,7 +97,7 @@
             <!-- 同感 + 评论（仅知识卡片） -->
             <div v-if="detailType === 'card'" class="card-interact-section">
               <div class="like-area">
-                <button @click="toggleLike" class="like-btn" :class="{ liked: isLiked }" :disabled="liking">
+                <button @click="toggleLike" class="border-0 like-btn" :class="{ liked: isLiked }" :disabled="liking">
                   🤝 同感 {{ likeCount }} <span v-if="!auth.isLoggedIn" class="like-hint">（点一下，登录后同感）</span>
                 </button>
               </div>
@@ -105,12 +105,12 @@
               <h4 class="comments-title">评论 ({{ comments.length }})</h4>
               <div v-if="auth.isLoggedIn" class="comment-form">
                 <textarea v-model="newComment" rows="2" placeholder="写下你的想法..." class="comment-input min-h-[44px]"></textarea>
-                <button @click="submitComment" :disabled="submitting" class="comment-submit">{{ submitting ? '发表中…' : '发表评论' }}</button>
+                <button @click="submitComment" :disabled="submitting" class="border-0 comment-submit">{{ submitting ? '发表中…' : '发表评论' }}</button>
               </div>
               <div v-else class="login-options">
-                <button @click="auth.openLogin('register')" class="guest-btn">游客注册 / 登录</button>
+                <button @click="auth.openLogin('register')" class="border-0 guest-btn">游客注册 / 登录</button>
                 <span class="divider">或</span>
-                <button @click="auth.login()" class="github-btn">GitHub 登录</button>
+                <button @click="auth.login()" class="border-0 github-btn">GitHub 登录</button>
               </div>
 
               <div v-if="comments.length" class="comment-list">
@@ -308,15 +308,15 @@ function formatTime(time) {
   border: 1.5px solid #e2e8f0; color: #4a6a8a; font-size: 13px;
   text-decoration: none; transition: all 0.2s;
 }
-.study-link:hover { border-color: #7c9cb8; background: #eef4fa; }
+.study-link:hover { border-color: #345B8E; background: #eef4fa; }
 .card-interact-section { margin-top: 22px; padding-top: 18px; border-top: 1px solid #eef2f7; }
 .like-area { margin-bottom: 14px; }
 .like-btn {
   padding: 8px 20px; border: 2px solid #ddd; border-radius: 20px;
   background: #fff; font-size: 0.95rem; cursor: pointer; transition: all 0.2s;
 }
-.like-btn:hover:not(:disabled) { border-color: #7c9cb8; color: #4a6a8a; }
-.like-btn.liked { background: #7c9cb8; color: #fff; border-color: #7c9cb8; }
+.like-btn:hover:not(:disabled) { border-color: #345B8E; color: #4a6a8a; }
+.like-btn.liked { background: #345B8E; color: #fff; border-color: #345B8E; }
 .like-btn:disabled { opacity: 0.6; cursor: not-allowed; }
 .like-hint { font-size: 0.78rem; font-weight: normal; }
 .comments-title { margin: 0 0 10px; color: #263746; font-size: 15px; }
@@ -326,16 +326,16 @@ function formatTime(time) {
   font-size: 13px; color: #263746; outline: none; resize: vertical;
   min-height: 56px; box-sizing: border-box; font-family: inherit;
 }
-.comment-input:focus { border-color: #7c9cb8; }
+.comment-input:focus { border-color: #345B8E; }
 .comment-submit {
   margin-top: 8px; padding: 8px 18px; border: none; border-radius: 10px;
-  background: #7c9cb8; color: #fff; font-size: 13px; cursor: pointer;
+  background: #345B8E; color: #fff; font-size: 13px; cursor: pointer;
 }
 .comment-submit:disabled { opacity: 0.6; cursor: not-allowed; }
 .login-options { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; color: #5a6b7c; font-size: 13px; }
 .guest-btn {
   padding: 8px 16px; border: none; border-radius: 10px;
-  background: #7c9cb8; color: #fff; font-size: 13px; cursor: pointer;
+  background: #345B8E; color: #fff; font-size: 13px; cursor: pointer;
 }
 .github-btn {
   padding: 8px 16px; border: 1.5px solid #e2e8f0; border-radius: 10px;

@@ -17,14 +17,14 @@
       <!-- 分类过滤标签（可点击筛选） -->
       <div class="filter-bar">
         <button
-          class="filter-tag"
+          class="border-0 filter-tag"
           :class="{active: !selectedCategory}"
           @click="selectedCategory = ''"
         >
           全部 ({{ cards.length }})
         </button>
         <button
-          class="filter-tag"
+          class="border-0 filter-tag"
           v-for="cat in categories"
           :key="cat.name"
           :class="{active: selectedCategory === cat.name}"
@@ -38,7 +38,7 @@
       <div v-if="selectedCategory" class="filter-hint">
         当前筛选：<strong>{{ selectedCategory }}</strong>
         （共 {{ filteredCards.length }} 张）
-        <button class="clear-btn" @click="selectedCategory = ''">✕ 清除</button>
+        <button class="border-0 clear-btn" @click="selectedCategory = ''">✕ 清除</button>
       </div>
 
       <!-- 卡片网格 -->
@@ -71,14 +71,14 @@
       </div>
       <div class="filter-bar">
         <button
-          class="filter-tag"
+          class="border-0 filter-tag"
           :class="{ active: !userCategory }"
           @click="userCategory = ''"
         >
           全部 ({{ userCards.length }})
         </button>
         <button
-          class="filter-tag"
+          class="border-0 filter-tag"
           v-for="cat in userCategories"
           :key="cat.name"
           :class="{ active: userCategory === cat.name }"

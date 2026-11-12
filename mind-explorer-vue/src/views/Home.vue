@@ -33,8 +33,8 @@
         </div>
       </div>
 
-      <button class="carousel-arrow carousel-prev" @click="prevSlide" aria-label="上一张">‹</button>
-      <button class="carousel-arrow carousel-next" @click="nextSlide" aria-label="下一张">›</button>
+      <button class="border-0 carousel-arrow carousel-prev" @click="prevSlide" aria-label="上一张">‹</button>
+      <button class="border-0 carousel-arrow carousel-next" @click="nextSlide" aria-label="下一张">›</button>
 
       <div class="carousel-dots">
         <span
@@ -114,7 +114,7 @@
     <Teleport to="body">
       <div v-if="activePost" class="post-modal-overlay" @click.self="closeModal" @keydown.esc="closeModal" tabindex="-1">
         <div class="post-modal" role="dialog" aria-modal="true">
-          <button class="post-modal-close" @click="closeModal" aria-label="关闭">×</button>
+          <button class="border-0 post-modal-close" @click="closeModal" aria-label="关闭">×</button>
           <img v-if="activePost.image" :src="activePost.image" :alt="activePost.title" class="post-modal-img" />
           <div class="post-modal-body">
             <div class="post-modal-meta">
@@ -124,7 +124,7 @@
             <h3 class="post-modal-title">{{ activePost.title }}</h3>
             <p class="post-modal-content">{{ activePost.content }}</p>
             <div class="post-modal-actions">
-              <button @click="toggleLike(activePost)" class="post-like-btn" :class="{ liked: activePost.liked }">
+              <button @click="toggleLike(activePost)" class="border-0 post-like-btn" :class="{ liked: activePost.liked }">
                 <span class="like-icon">❤️</span>
                 <span class="like-count">{{ activePost.likes }}</span>
               </button>
@@ -672,7 +672,7 @@ onUnmounted(() => {
   top: 4px;
   bottom: 4px;
   width: 4px;
-  background: #7c9cb8;
+  background: #345B8E;
   border-radius: 2px;
 }
 .feature-subtitle {
@@ -682,7 +682,7 @@ onUnmounted(() => {
 }
 .feature-stats {
   font-size: 13px;
-  color: #7c9cb8;
+  color: #345B8E;
   display: flex;
   gap: 12px;
 }
@@ -768,7 +768,7 @@ onUnmounted(() => {
 }
 .feature-card-stats {
   margin-left: auto;
-  color: #7c9cb8;
+  color: #345B8E;
 }
 
 /* 文章详情 Modal */

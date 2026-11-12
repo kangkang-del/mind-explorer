@@ -42,7 +42,7 @@
         <div v-if="!b.earned" class="mt-2">
           <div class="h-1.5 rounded-full bg-[#eef2f7] overflow-hidden">
             <div
-              class="h-full rounded-full bg-[#7c9cb8] transition-all"
+              class="h-full rounded-full bg-[#345B8E] transition-all"
               :style="{ width: Math.round(b.progress * 100) + '%' }"
             ></div>
           </div>

@@ -65,7 +65,7 @@
       <!-- 侧翼停靠时的开关按钮 -->
       <button
         v-if="docked"
-        class="jelly-toggle"
+        class="border-0 jelly-toggle"
         type="button"
         aria-label="展开情绪水母"
         @click.stop="expand"
@@ -80,7 +80,7 @@
     <Transition name="popover">
       <div v-if="popoverOpen" class="jelly-popover" :style="popoverStyle">
         <p class="jelly-quote">{{ quotes[quoteIdx] }}</p>
-        <button class="jelly-next" type="button" @click.stop="nextQuote" aria-label="换一句">换一句 ↻</button>
+        <button class="border-0 jelly-next" type="button" @click.stop="nextQuote" aria-label="换一句">换一句 ↻</button>
       </div>
     </Transition>
   </Teleport>

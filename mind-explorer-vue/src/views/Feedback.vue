@@ -10,7 +10,7 @@
         <span class="text-[14px] font-semibold text-[#5a6b7c]">类型</span>
         <div class="flex gap-3 flex-wrap">
           <label v-for="t in types" :key="t.value" class="inline-flex items-center gap-1.5 min-h-[44px] px-3.5 py-1.5 border border-[#E6EAF0] rounded-[20px] cursor-pointer text-[14px] text-[#5a6b7c]">
-            <input type="radio" v-model="form.type" :value="t.value" class="accent-[#7c9cb8]" />
+            <input type="radio" v-model="form.type" :value="t.value" class="accent-[#345B8E]" />
             <span>{{ t.label }}</span>
           </label>
         </div>
@@ -22,12 +22,12 @@
           v-model="form.content"
           rows="5"
           placeholder="说说你的想法、遇到的问题，或想感谢的事…"
-          class="w-full p-3 border border-[#E6EAF0] rounded-lg resize-y text-[16px] focus:outline-none focus:border-[#7c9cb8] min-h-[44px]"
+          class="w-full p-3 border border-[#E6EAF0] rounded-lg resize-y text-[16px] focus:outline-none focus:border-[#345B8E] min-h-[44px]"
         ></textarea>
       </label>
 
       <label class="flex items-center gap-2 text-[14px] text-[#5a6b7c]">
-        <input type="checkbox" v-model="form.anonymous" class="accent-[#7c9cb8]" />
+        <input type="checkbox" v-model="form.anonymous" class="accent-[#345B8E]" />
         <span>匿名提交（不留下昵称信息）</span>
       </label>
 
@@ -37,7 +37,7 @@
       <button
         type="submit"
         :disabled="!form.content.trim() || submitting"
-        class="self-start px-7 py-2.5 min-h-[44px] bg-[#7c9cb8] bg-gradient-to-r from-[#7c9cb8] to-[#a8c3d6] text-white border-0 rounded-lg text-[15px] cursor-pointer transition hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
+        class="self-start px-7 py-2.5 min-h-[44px] bg-[#345B8E] text-white border-0 rounded-lg text-[15px] cursor-pointer transition hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
       >
         {{ submitting ? '提交中…' : '提交反馈' }}
       </button>

@@ -13,22 +13,22 @@
         <h3>{{ auth.loginMode === 'login' ? '登录' : '注册账号' }}</h3>
         <p class="modal-sub">{{ auth.loginMode === 'login' ? '欢迎回来，继续你的心灵之旅' : '注册后可同步收藏、对话与互动记录' }}</p>
 
-        <button @click="auth.login()" class="github-login-btn">🔗 GitHub 登录</button>
+        <button @click="auth.login()" class="border-0 github-login-btn">🔗 GitHub 登录</button>
         <div class="divider"><span>或</span></div>
 
         <input v-model="guestName" :placeholder="guestMode === 'login' ? '昵称' : '设置昵称（至少2位）'" class="guest-input min-h-[44px]" />
         <input v-if="guestMode === 'register'" v-model="guestDisplay" placeholder="显示名称（可选）" class="guest-input min-h-[44px]" />
         <input v-model="guestPwd" type="password" :placeholder="guestMode === 'login' ? '密码' : '设置密码（至少6位）'" class="guest-input min-h-[44px]" @keyup.enter="guestMode === 'login' ? guestSignIn() : guestSignUp()" />
 
-        <button v-if="guestMode === 'login'" @click="guestSignIn" :disabled="busy" class="guest-login-btn">👤 游客登录</button>
-        <button v-else @click="guestSignUp" :disabled="busy" class="guest-login-btn">👤 注册并登录</button>
+        <button v-if="guestMode === 'login'" @click="guestSignIn" :disabled="busy" class="border-0 guest-login-btn">👤 游客登录</button>
+        <button v-else @click="guestSignUp" :disabled="busy" class="border-0 guest-login-btn">👤 注册并登录</button>
 
         <p class="login-tip">
           <a href="#" @click.prevent="toggleGuestMode">
             {{ guestMode === 'login' ? '没有账号？去注册' : '已有账号？去登录' }}
           </a>
         </p>
-        <button @click="auth.closeLogin()" class="close-btn">关闭</button>
+        <button @click="auth.closeLogin()" class="border-0 close-btn">关闭</button>
       </div>
     </div>
   </Teleport>
@@ -124,16 +124,16 @@ async function guestSignIn() {
   margin-bottom: 12px; font-size: 14px; box-sizing: border-box; outline: none;
   transition: border-color 0.2s;
 }
-.guest-input:focus { border-color: #7c9cb8; }
+.guest-input:focus { border-color: #345B8E; }
 .guest-login-btn {
   width: 100%; padding: 12px; border: none; border-radius: 8px;
-  background: #7c9cb8; color: #fff; font-size: 15px; cursor: pointer;
+  background: #345B8E; color: #fff; font-size: 15px; cursor: pointer;
   margin-bottom: 8px; transition: opacity 0.2s;
 }
 .guest-login-btn:hover { opacity: 0.9; }
 .guest-login-btn:disabled { opacity: 0.6; cursor: not-allowed; }
 .login-tip { font-size: 12px; color: #999; margin: 8px 0 14px; }
-.login-tip a { color: #7c9cb8; text-decoration: none; }
+.login-tip a { color: #345B8E; text-decoration: none; }
 .close-btn {
   width: 100%; padding: 8px; border: 1px solid #e2e8f0; border-radius: 8px;
   background: #fff; color: #666; cursor: pointer; font-size: 14px;

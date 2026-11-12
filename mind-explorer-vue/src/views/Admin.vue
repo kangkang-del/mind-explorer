@@ -9,11 +9,11 @@
         type="password"
         placeholder="管理员密码"
         @keyup.enter="checkPwd"
-        class="w-full px-3 py-2.5 border border-[#E6EAF0] rounded-xl text-[16px] focus:outline-none focus:border-[#7c9cb8] mb-3 min-h-[44px]"
+        class="w-full px-3 py-2.5 border border-[#E6EAF0] rounded-xl text-[16px] focus:outline-none focus:border-[#345B8E] mb-3 min-h-[44px]"
       />
       <button
         @click="checkPwd"
-        class="w-full py-2.5 bg-gradient-to-r from-[#7c9cb8] to-[#a8c3d6] text-white rounded-xl text-[14px] font-semibold hover:opacity-90 transition"
+        class="border-0 w-full py-2.5 bg-[#345B8E] text-white rounded-xl text-[14px] font-semibold hover:opacity-90 transition"
       >
         进入
       </button>
@@ -24,7 +24,7 @@
     <section v-else>
       <div class="flex items-center justify-between mb-4">
         <h1 class="text-xl font-bold text-[#263746] m-0">🔐 审核后台</h1>
-        <button @click="logout" class="text-[13px] text-[#5A6B7C] hover:text-[#D87945] transition">退出</button>
+        <button @click="logout" class="border-0 text-[13px] text-[#5A6B7C] hover:text-[#D87945] transition">退出</button>
       </div>
 
       <div class="flex gap-2 mb-4 overflow-x-auto pb-1 md:flex-wrap md:overflow-visible md:pb-0">
@@ -33,7 +33,7 @@
           :key="t.key"
           @click="load(t.key)"
           class="bg-transparent px-4 py-2 rounded-xl text-[14px] border transition whitespace-nowrap"
-          :class="tab === t.key ? 'border-[#7c9cb8] bg-[#f0f4f9] text-[#263746] font-semibold' : 'border-[#E6EAF0] text-[#5A6B7C] hover:border-[#c5d8ea]'"
+          :class="tab === t.key ? 'border-[#345B8E] bg-[#f0f4f9] text-[#263746] font-semibold' : 'border-[#E6EAF0] text-[#5A6B7C] hover:border-[#c5d8ea]'"
         >
           {{ t.label }} ({{ counts[t.key] }})
         </button>
@@ -57,7 +57,7 @@
             <span class="text-[12px] text-[#5A6B7C] shrink-0">{{ fmt(r.created_at) }}</span>
           </div>
           <p v-if="r.detail" class="text-[13px] text-[#5a6b7c] leading-7 whitespace-pre-wrap m-0 mb-2">{{ r.detail }}</p>
-          <button @click="resolveReport(r.id)" class="px-4 py-1.5 rounded-lg text-[13px] font-semibold text-white bg-[#7c9cb8] hover:opacity-90 transition">标记已处理</button>
+          <button @click="resolveReport(r.id)" class="border-0 px-4 py-1.5 rounded-lg text-[13px] font-semibold text-white bg-[#345B8E] hover:opacity-90 transition">标记已处理</button>
         </article>
       </div>
 
@@ -80,7 +80,7 @@
           <button
             v-if="f.status !== 'done'"
             @click="resolveFeedback(f.id)"
-            class="px-4 py-1.5 rounded-lg text-[13px] font-semibold text-white bg-[#7c9cb8] hover:opacity-90 transition"
+            class="border-0 px-4 py-1.5 rounded-lg text-[13px] font-semibold text-white bg-[#345B8E] hover:opacity-90 transition"
           >
             标记已处理
           </button>
@@ -108,15 +108,15 @@
           <div v-if="c.status === 'approved'" class="flex gap-2 mt-1">
             <button
               @click="toggleFeature(c)"
-              class="px-4 py-1.5 rounded-lg text-[13px] font-semibold text-white transition"
-              :class="c.featured ? 'bg-[#e0a458] hover:opacity-90' : 'bg-[#7c9cb8] hover:opacity-90'"
+              class="border-0 px-4 py-1.5 rounded-lg text-[13px] font-semibold text-white transition"
+              :class="c.featured ? 'bg-[#e0a458] hover:opacity-90' : 'bg-[#345B8E] hover:opacity-90'"
             >
               {{ c.featured ? '⭐ 取消精选' : '✨ 设为精选' }}
             </button>
           </div>
           <div v-else-if="c.status === 'pending'" class="flex gap-2 mt-1">
-            <button @click="act(c.id, 'approve')" class="px-4 py-1.5 rounded-lg text-[13px] font-semibold text-white bg-[#5a9e7a] hover:opacity-90 transition">✅ 通过</button>
-            <button @click="act(c.id, 'reject')" class="px-4 py-1.5 rounded-lg text-[13px] font-semibold text-white bg-[#d98a8a] hover:opacity-90 transition">❌ 拒绝</button>
+            <button @click="act(c.id, 'approve')" class="border-0 px-4 py-1.5 rounded-lg text-[13px] font-semibold text-white bg-[#5a9e7a] hover:opacity-90 transition">✅ 通过</button>
+            <button @click="act(c.id, 'reject')" class="border-0 px-4 py-1.5 rounded-lg text-[13px] font-semibold text-white bg-[#d98a8a] hover:opacity-90 transition">❌ 拒绝</button>
           </div>
         </article>
       </div>
@@ -250,7 +250,7 @@ function typeText(t) {
 }
 function typeClass(t) {
   return {
-    suggest: 'bg-[#eef4f9] text-[#7c9cb8]',
+    suggest: 'bg-[#eef4f9] text-[#345B8E]',
     issue: 'bg-[#fee2e2] text-[#991b1b]',
     thanks: 'bg-[#dcfce7] text-[#166534]',
   }[t] || 'bg-[#eef2f7] text-[#5A6B7C]'

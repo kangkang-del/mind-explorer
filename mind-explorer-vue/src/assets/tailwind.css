@@ -31,12 +31,23 @@ img {
   display: none;
 }
 
+/* ---------- 原生控件复位 ----------
+   关闭 preflight 的代价：<button> 会带浏览器默认的灰底和 2px 边框，
+   在浅色卡片里看起来像禁用态。这里在 base 层统一清掉；
+   工具类（bg-* / border-*）优先级更高，需要样式的按钮照常覆盖。 */
+@layer base {
+  button {
+    background-color: transparent;
+    border: 0;
+  }
+}
+
 /* ---------- 键盘可达性 ----------
    只对键盘焦点画描边（focus-visible），鼠标点击不触发。
    用 :where() 把特异性压到 0，避免盖掉组件自己的焦点样式。 */
 @layer base {
   :where(a, button, select, summary, [tabindex]:not([tabindex="-1"])):focus-visible {
-    outline: 2px solid #7c9cb8;
+    outline: 2px solid #345B8E;
     outline-offset: 2px;
   }
 }

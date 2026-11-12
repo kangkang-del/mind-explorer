@@ -8,7 +8,7 @@
       <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl">
         <div class="flex items-center justify-between mb-3">
           <h3 class="text-lg font-bold text-[#263746] m-0">⚠️ 举报内容</h3>
-          <button @click="$emit('close')" class="text-[#5A6B7C] text-[18px] leading-none hover:text-[#5a6b7c]">✕</button>
+          <button @click="$emit('close')" class="border-0 text-[#5A6B7C] text-[18px] leading-none hover:text-[#5a6b7c]">✕</button>
         </div>
         <p class="text-[13px] text-[#5A6B7C] m-0 mb-4">感谢你帮助维护温暖安全的社区。我们会尽快核实处理。</p>
 
@@ -30,7 +30,7 @@
           rows="3"
           maxlength="300"
           placeholder="补充说明（选填）"
-          class="w-full px-3 py-2 border border-[#E6EAF0] rounded-xl text-[16px] resize-y focus:outline-none focus:border-[#7c9cb8] mb-1 min-h-[44px]"
+          class="w-full px-3 py-2 border border-[#E6EAF0] rounded-xl text-[16px] resize-y focus:outline-none focus:border-[#345B8E] mb-1 min-h-[44px]"
         ></textarea>
         <p class="text-right text-[12px] text-[#b9c4cf] m-0 mb-4">{{ detail.length }}/300</p>
 
@@ -38,7 +38,7 @@
           <button
             @click="submit"
             :disabled="!reason || submitting"
-            class="flex-1 py-2.5 bg-gradient-to-r from-[#D87945] to-[#f0a868] text-white rounded-lg text-[14px] font-semibold disabled:opacity-50 hover:opacity-90 transition"
+            class="border-0 flex-1 py-2.5 bg-gradient-to-r from-[#D87945] to-[#f0a868] text-white rounded-lg text-[14px] font-semibold disabled:opacity-50 hover:opacity-90 transition"
           >
             {{ submitting ? '提交中…' : '提交举报' }}
           </button>

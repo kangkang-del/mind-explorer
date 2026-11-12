@@ -52,7 +52,7 @@
       <p class="text-[13px] text-[#7a5a44] leading-7 m-0 mb-3">
         你不需要一个人扛着这些。寻求帮助不是软弱，而是对自己温柔的勇气。
       </p>
-      <RouterLink to="/companion" class="inline-flex items-center px-5 py-2 min-h-[44px] bg-[#7c9cb8] bg-gradient-to-r from-[#7c9cb8] to-[#a8c3d6] text-white rounded-xl text-[14px] font-semibold no-underline hover:opacity-90 transition">
+      <RouterLink to="/companion" class="inline-flex items-center px-5 py-2 min-h-[44px] bg-[#345B8E] text-white rounded-xl text-[14px] font-semibold no-underline hover:opacity-90 transition">
         现在就和「小木」聊聊
       </RouterLink>
     </section>
@@ -66,13 +66,13 @@
           v-for="(ex, key) in exercises"
           :key="key"
           class="bg-white rounded-2xl border p-4 transition"
-          :class="breathing.active === key ? 'border-[#7c9cb8] shadow-sm' : 'border-[#E6EAF0]'"
+          :class="breathing.active === key ? 'border-[#345B8E] shadow-sm' : 'border-[#E6EAF0]'"
         >
           <h3 class="text-[14px] font-semibold text-[#263746] m-0 mb-1">{{ ex.name }}</h3>
           <p class="text-[12px] text-[#5A6B7C] leading-6 m-0 mb-3">{{ ex.desc }}</p>
           <button
             @click="startBreathing(key)"
-            class="px-5 py-2 min-h-[44px] rounded-lg text-[13px] font-semibold transition"
+            class="border-0 px-5 py-2 min-h-[44px] rounded-lg text-[13px] font-semibold transition"
             :class="breathing.active === key && breathing.running
               ? 'bg-[#eef2f7] text-[#5a6b7c]'
               : 'bg-[#f0f4f9] text-[#5a6b7c] hover:bg-[#e3ebf2]'"
@@ -93,7 +93,7 @@
           ></div>
           <span class="relative text-[34px] font-bold text-white tabular-nums">{{ breathing.remaining }}</span>
         </div>
-        <button @click="stopBreathing" class="text-[13px] text-[#5A6B7C] hover:text-[#D87945] transition">结束</button>
+        <button @click="stopBreathing" class="border-0 text-[13px] text-[#5A6B7C] hover:text-[#D87945] transition">结束</button>
       </div>
     </section>
 
@@ -113,7 +113,7 @@
               :key="i"
               v-model="groundInputs[si][i - 1]"
               :placeholder="'第 ' + i + ' 项…'"
-              class="w-full px-3 py-2 border border-[#E6EAF0] rounded-xl text-[16px] focus:outline-none focus:border-[#7c9cb8] min-h-[44px]"
+              class="w-full px-3 py-2 border border-[#E6EAF0] rounded-xl text-[16px] focus:outline-none focus:border-[#345B8E] min-h-[44px]"
             />
           </div>
         </div>

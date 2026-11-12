@@ -16,7 +16,7 @@
           :key="m.key"
           @click="pick(m.key)"
           class="bg-transparent flex flex-col items-center gap-1 py-3 rounded-xl border transition"
-          :class="selected === m.key ? 'border-[#7c9cb8] bg-[#f0f4f9] scale-[1.03]' : 'border-[#E6EAF0] hover:border-[#c5d8ea]'"
+          :class="selected === m.key ? 'border-[#345B8E] bg-[#f0f4f9] scale-[1.03]' : 'border-[#E6EAF0] hover:border-[#c5d8ea]'"
         >
           <span class="text-[26px] leading-none">{{ m.emoji }}</span>
           <span class="text-[12px] text-[#5a6b7c]">{{ m.label }}</span>
@@ -27,7 +27,7 @@
         rows="2"
         maxlength="120"
         placeholder="想多说一点吗？（可选）"
-        class="w-full px-3 py-2 border border-[#E6EAF0] rounded-xl text-[16px] resize-none focus:outline-none focus:border-[#7c9cb8] mb-3 min-h-[44px]"
+        class="w-full px-3 py-2 border border-[#E6EAF0] rounded-xl text-[16px] resize-none focus:outline-none focus:border-[#345B8E] mb-3 min-h-[44px]"
       ></textarea>
       <div class="flex items-center justify-between">
         <span class="text-[12px] text-[#5A6B7C]">{{ savedTip }}</span>
@@ -36,7 +36,7 @@
           <button
             @click="save"
             :disabled="!selected || saving"
-            class="px-5 py-2 min-h-[44px] bg-[#7c9cb8] bg-gradient-to-r from-[#7c9cb8] to-[#a8c3d6] text-white rounded-xl text-[14px] font-semibold disabled:opacity-50 transition hover:opacity-90"
+            class="border-0 px-5 py-2 min-h-[44px] bg-[#345B8E] text-white rounded-xl text-[14px] font-semibold disabled:opacity-50 transition hover:opacity-90"
           >
             {{ saving ? '保存中…' : '保存今天的心情' }}
           </button>

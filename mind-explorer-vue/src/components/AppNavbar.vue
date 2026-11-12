@@ -78,8 +78,8 @@
         >
           <span v-if="auth.isLoggedIn && auth.guest" class="inline-flex items-center justify-center w-9 h-9 rounded-full bg-gradient-to-br from-[#e0a868] to-[#f0c990] text-white text-[13px]">🏠</span>
           <img v-else-if="auth.isLoggedIn && auth.user?.avatar" :src="auth.user.avatar" class="w-9 h-9 rounded-full object-cover" />
-          <span v-else-if="auth.isLoggedIn" class="inline-flex items-center justify-center w-9 h-9 rounded-full bg-[#7c9cb8] bg-gradient-to-br from-[#7c9cb8] to-[#a8c3d6] text-white text-[13px]">🐙</span>
-          <span v-else class="inline-flex items-center justify-center w-9 h-9 rounded-full bg-[#7c9cb8] bg-gradient-to-br from-[#7c9cb8] to-[#a8c3d6] text-white text-[13px]">访客</span>
+          <span v-else-if="auth.isLoggedIn" class="inline-flex items-center justify-center w-9 h-9 rounded-full bg-[#7C9CB8] bg-gradient-to-br from-[#7C9CB8] to-[#A8C3D6] text-white text-[13px]">🐙</span>
+          <span v-else class="inline-flex items-center justify-center w-9 h-9 rounded-full bg-[#7C9CB8] bg-gradient-to-br from-[#7C9CB8] to-[#A8C3D6] text-white text-[13px]">访客</span>
         </button>
         <div v-if="userMenuOpen" class="absolute right-0 top-[46px] min-w-[160px] bg-white border border-[#E6EAF0] rounded-xl shadow-lg p-1.5 flex flex-col z-50">
           <div v-if="auth.isLoggedIn" class="px-3 py-2 text-[13px] text-[#5A6B7C] border-b border-[#E6EAF0] mb-1">
@@ -91,7 +91,7 @@
           <RouterLink to="/tools" class="inline-flex items-center min-h-[44px] px-3 rounded-md text-[14px] text-[#5a6b7c] no-underline hover:bg-[#f0f4f9]" @click="userMenuOpen=false">自助工具</RouterLink>
           <RouterLink to="/admin" class="inline-flex items-center min-h-[44px] px-3 rounded-md text-[14px] text-[#5a6b7c] no-underline hover:bg-[#f0f4f9]" @click="userMenuOpen=false">审核后台</RouterLink>
           <RouterLink to="/feedback" class="inline-flex items-center min-h-[44px] px-3 rounded-md text-[14px] text-[#5a6b7c] no-underline hover:bg-[#f0f4f9]" @click="userMenuOpen=false">反馈与建议</RouterLink>
-          <button v-if="!auth.isLoggedIn" class="inline-flex items-center min-h-[44px] px-3 rounded-md text-left text-[14px] text-[#7c9cb8] font-semibold bg-transparent border-0 cursor-pointer hover:bg-[#f0f4f9]" @click="openLogin()">登录 / 注册</button>
+          <button v-if="!auth.isLoggedIn" class="inline-flex items-center min-h-[44px] px-3 rounded-md text-left text-[14px] text-[#345B8E] font-semibold bg-transparent border-0 cursor-pointer hover:bg-[#f0f4f9]" @click="openLogin()">登录 / 注册</button>
           <button v-else class="inline-flex items-center min-h-[44px] px-3 rounded-md text-left text-[14px] text-[#c97b7b] bg-transparent border-0 cursor-pointer hover:bg-[#fdf2f2]" @click="auth.logout()">退出登录</button>
         </div>
       </div>
@@ -179,7 +179,7 @@
             </template>
             <template v-else>
               <button
-                class="w-full flex items-center min-h-[48px] px-3 py-3 rounded-xl text-left text-[16px] text-[#7c9cb8] font-semibold bg-transparent border-0 cursor-pointer transition hover:bg-[#f0f4f9] active:bg-[#e6eef5]"
+                class="w-full flex items-center min-h-[48px] px-3 py-3 rounded-xl text-left text-[16px] text-[#345B8E] font-semibold bg-transparent border-0 cursor-pointer transition hover:bg-[#f0f4f9] active:bg-[#e6eef5]"
                 @click="openLogin()"
               >
                 <span class="text-[19px] mr-3 w-6 text-center">🔑</span>登录 / 注册

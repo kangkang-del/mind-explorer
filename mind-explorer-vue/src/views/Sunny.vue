@@ -14,14 +14,14 @@
         v-model="draft.content"
         rows="3"
         placeholder="分享一个温暖时刻、一件善意小事，或此刻想说的话…（将以你的名字发布）"
-        class="w-full p-3 border border-[#E6EAF0] rounded-lg resize-y text-[16px] focus:outline-none focus:border-[#7c9cb8] min-h-[44px]"
+        class="w-full p-3 border border-[#E6EAF0] rounded-lg resize-y text-[16px] focus:outline-none focus:border-[#345B8E] min-h-[44px]"
       ></textarea>
       <div class="flex items-center justify-between mt-3 flex-wrap gap-3">
         <p class="text-[12px] text-[#5A6B7C] m-0">发布人：{{ meName }}</p>
         <button
           @click="publish"
           :disabled="!draft.content.trim() || publishing"
-          class="px-5 py-2 min-h-[44px] bg-gradient-to-r from-[#7c9cb8] to-[#a8c3d6] text-white rounded-lg text-[14px] disabled:opacity-50 disabled:cursor-not-allowed transition hover:opacity-90"
+          class="border-0 px-5 py-2 min-h-[44px] bg-[#345B8E] text-white rounded-lg text-[14px] disabled:opacity-50 disabled:cursor-not-allowed transition hover:opacity-90"
         >
           {{ publishing ? '发布中…' : '发布' }}
         </button>
@@ -40,7 +40,7 @@
           <div class="flex items-center gap-2 mb-1 flex-wrap">
             <span v-if="post.type === 'auto'" class="text-[11px] text-[#D87945] bg-[#fff3e0] px-2 py-0.5 rounded-md">✨ 今日晴天</span>
             <span v-else-if="post.type === 'xiaomu'" class="text-[11px] text-[#5a8a6a] bg-[#e6efe9] px-2 py-0.5 rounded-md">🌿 小木</span>
-            <span v-else class="text-[11px] text-[#7c9cb8] bg-[#eef4f9] px-2 py-0.5 rounded-md">💛 用户分享</span>
+            <span v-else class="text-[11px] text-[#345B8E] bg-[#eef4f9] px-2 py-0.5 rounded-md">💛 用户分享</span>
             <span class="text-[11px] text-[#5A6B7C]">{{ post.author }}</span>
           </div>
           <h3 class="text-[16px] font-bold text-[#263746] m-0 leading-snug">{{ post.title }}</h3>
@@ -49,7 +49,7 @@
           <div class="flex items-center gap-4 mt-3 text-[13px] text-[#5A6B7C]">
             <FavoriteButton :type="post.type === 'xiaomu' ? 'quote' : 'post'" :id="post.id" :title="post.title" :summary="(post.content||'').slice(0,60)" />
             <button @click="toggleLike(post)" :class="post.liked ? 'text-[#D87945]' : ''" class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] px-1 transition">❤️ {{ post.likes }}</button>
-            <button @click="post.showComment = !post.showComment" class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] px-1 transition">💬 {{ post.comments.length }}</button>
+            <button @click="post.showComment = !post.showComment" class="border-0 inline-flex items-center justify-center min-h-[44px] min-w-[44px] px-1 transition">💬 {{ post.comments.length }}</button>
           </div>
 
           <div v-if="post.showComment" class="mt-3 border-t border-[#E6EAF0] pt-3">
@@ -60,9 +60,9 @@
               <input
                 v-model="post.draftComment"
                 placeholder="说点温暖的话…"
-                class="flex-1 px-2 py-1 border border-[#E6EAF0] rounded text-[16px] focus:outline-none focus:border-[#7c9cb8] min-h-[44px]"
+                class="flex-1 px-2 py-1 border border-[#E6EAF0] rounded text-[16px] focus:outline-none focus:border-[#345B8E] min-h-[44px]"
               />
-              <button @click="addComment(post)" class="px-4 py-1 min-h-[44px] bg-[#7c9cb8] text-white rounded text-[13px] shrink-0">发送</button>
+              <button @click="addComment(post)" class="border-0 px-4 py-1 min-h-[44px] bg-[#345B8E] text-white rounded text-[13px] shrink-0">发送</button>
             </div>
           </div>
         </div>

@@ -28,7 +28,7 @@
 
         <button
           @click="store.dismissNew()"
-          class="w-full py-2.5 bg-gradient-to-r from-[#7c9cb8] to-[#a8c3d6] text-white rounded-xl text-[14px] font-semibold hover:opacity-90 transition"
+          class="border-0 w-full py-2.5 bg-[#345B8E] text-white rounded-xl text-[14px] font-semibold hover:opacity-90 transition"
         >
           太棒了
         </button>

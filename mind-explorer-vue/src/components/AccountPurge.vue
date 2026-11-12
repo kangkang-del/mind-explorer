@@ -36,7 +36,7 @@
 
         <!-- 社区足迹（可选，默认不勾） -->
         <label class="flex items-start gap-2.5 mt-4 cursor-pointer select-none">
-          <input type="checkbox" v-model="includeCommunity" class="mt-0.5 accent-[#7c9cb8]" />
+          <input type="checkbox" v-model="includeCommunity" class="mt-0.5 accent-[#345B8E]" />
           <span class="text-[13px] text-[#5a6b7c] leading-6">
             同时处理我在社区的足迹（帖子 / 治愈瞬间 / 评论 / 认同）
             <span class="block text-[12px] text-[#5A6B7C] mt-0.5">
@@ -55,7 +55,7 @@
           >取消</button>
           <button
             type="button"
-            class="flex-1 text-[14px] py-2.5 rounded-full text-white font-semibold transition"
+            class="border-0 flex-1 text-[14px] py-2.5 rounded-full text-white font-semibold transition"
             :class="typedOk ? 'bg-[#c98a8a] hover:opacity-90' : 'bg-[#dcdcdc] cursor-not-allowed'"
             :disabled="!typedOk"
             @click="goFinal"
@@ -94,7 +94,7 @@
           >再想想</button>
           <button
             type="button"
-            class="flex-1 text-[14px] py-2.5 rounded-full text-white font-semibold transition"
+            class="border-0 flex-1 text-[14px] py-2.5 rounded-full text-white font-semibold transition"
             :class="(ack && !busy) ? 'bg-[#c98a8a] hover:opacity-90' : 'bg-[#dcdcdc] cursor-not-allowed'"
             :disabled="!ack || busy"
             @click="doPurge"
@@ -121,7 +121,7 @@
       </p>
       <RouterLink
         to="/"
-        class="text-[14px] px-6 py-2.5 rounded-full bg-[#7c9cb8] text-white no-underline hover:opacity-90 transition"
+        class="text-[14px] px-6 py-2.5 rounded-full bg-[#345B8E] text-white no-underline hover:opacity-90 transition"
         @click="leaveFarewell"
       >回到首页</RouterLink>
     </div>

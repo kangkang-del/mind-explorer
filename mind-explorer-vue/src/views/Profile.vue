@@ -19,7 +19,7 @@
         <button
           v-if="!auth.currentUser"
           @click="auth.openLogin('register')"
-          class="px-4 py-1.5 bg-[#7c9cb8] text-white border-0 rounded-md text-[13px] cursor-pointer hover:opacity-90"
+          class="px-4 py-1.5 bg-[#345B8E] text-white border-0 rounded-md text-[13px] cursor-pointer hover:opacity-90"
         >
           登录 / 注册
         </button>
@@ -41,7 +41,7 @@
         <p class="text-[20px] font-bold text-[#263746] m-0">{{ checkinStats.streak }} 天</p>
       </div>
       <div class="bg-white rounded-2xl border border-[#E6EAF0] p-4 text-center">
-        <p class="text-[28px] font-bold text-[#7c9cb8] m-0">📅</p>
+        <p class="text-[28px] font-bold text-[#345B8E] m-0">📅</p>
         <p class="text-[12px] text-[#5A6B7C] mt-1 m-0">累计打卡</p>
         <p class="text-[20px] font-bold text-[#263746] m-0">{{ checkinStats.total }} 天</p>
       </div>
@@ -52,7 +52,7 @@
       </div>
       <div class="bg-white rounded-2xl border border-[#E6EAF0] p-4 text-center">
         <RouterLink to="/upload" class="no-underline">
-          <p class="text-[28px] font-bold text-[#7c9cb8] m-0">🌱</p>
+          <p class="text-[28px] font-bold text-[#345B8E] m-0">🌱</p>
           <p class="text-[12px] text-[#5A6B7C] mt-1 m-0">我的投稿</p>
           <p class="text-[20px] font-bold text-[#263746] m-0">写一条</p>
         </RouterLink>
@@ -82,7 +82,7 @@
             <p class="text-[14px] text-[#263746] font-semibold m-0 truncate">
               {{ c.name }}<span v-if="c.relation" class="text-[12px] text-[#5A6B7C] font-normal ml-2">{{ c.relation }}</span>
             </p>
-            <p v-if="c.phone" class="text-[13px] text-[#7c9cb8] m-0">{{ c.phone }}</p>
+            <p v-if="c.phone" class="text-[13px] text-[#345B8E] m-0">{{ c.phone }}</p>
           </div>
           <button
             @click="trusted.remove(c.id)"
@@ -101,7 +101,7 @@
             v-model="tcForm.name"
             maxlength="20"
             placeholder="如：妈妈 / 阿琳"
-            class="w-full px-2.5 py-1.5 border border-[#E6EAF0] rounded-lg text-[16px] focus:outline-none focus:border-[#7c9cb8] min-h-[44px]"
+            class="w-full px-2.5 py-1.5 border border-[#E6EAF0] rounded-lg text-[16px] focus:outline-none focus:border-[#345B8E] min-h-[44px]"
           />
         </div>
         <div class="md:col-span-4">
@@ -110,7 +110,7 @@
             v-model="tcForm.phone"
             maxlength="40"
             placeholder="方便时联系到 TA 的方式"
-            class="w-full px-2.5 py-1.5 border border-[#E6EAF0] rounded-lg text-[16px] focus:outline-none focus:border-[#7c9cb8] min-h-[44px]"
+            class="w-full px-2.5 py-1.5 border border-[#E6EAF0] rounded-lg text-[16px] focus:outline-none focus:border-[#345B8E] min-h-[44px]"
           />
         </div>
         <div class="md:col-span-2">
@@ -119,14 +119,14 @@
             v-model="tcForm.relation"
             maxlength="20"
             placeholder="如：家人"
-            class="w-full px-2.5 py-1.5 border border-[#E6EAF0] rounded-lg text-[16px] focus:outline-none focus:border-[#7c9cb8] min-h-[44px]"
+            class="w-full px-2.5 py-1.5 border border-[#E6EAF0] rounded-lg text-[16px] focus:outline-none focus:border-[#345B8E] min-h-[44px]"
           />
         </div>
         <div class="md:col-span-2">
           <button
             type="submit"
             :disabled="!tcForm.name.trim()"
-            class="w-full py-1.5 min-h-[44px] bg-[#7c9cb8] text-white border-0 rounded-lg text-[13px] font-semibold disabled:opacity-50 hover:opacity-90 transition"
+            class="w-full py-1.5 min-h-[44px] bg-[#345B8E] text-white border-0 rounded-lg text-[13px] font-semibold disabled:opacity-50 hover:opacity-90 transition"
           >
             添加
           </button>
@@ -143,7 +143,7 @@
           v-for="d in heatmap"
           :key="d.date"
           class="w-3.5 h-3.5 rounded-sm"
-          :class="d.checked ? 'bg-[#7c9cb8]' : 'bg-[#eef2f7]'"
+          :class="d.checked ? 'bg-[#345B8E]' : 'bg-[#eef2f7]'"
           :title="d.date + (d.checked ? ' ✓' : '')"
         ></div>
       </div>
@@ -160,7 +160,7 @@
           class="flex items-center gap-2 py-2 border-b border-[#f3f6f9] last:border-0"
         >
           <span class="text-[12px] px-2 py-0.5 rounded-full bg-[#f0f4f9] text-[#5a6b7c] shrink-0">{{ typeLabel(f.type) }}</span>
-          <a v-if="f.link" :href="f.link" class="flex-1 text-[14px] text-[#263746] no-underline truncate hover:text-[#7c9cb8] transition">{{ f.title || '未命名' }}</a>
+          <a v-if="f.link" :href="f.link" class="flex-1 text-[14px] text-[#263746] no-underline truncate hover:text-[#345B8E] transition">{{ f.title || '未命名' }}</a>
           <span v-else class="flex-1 text-[14px] text-[#263746] truncate">{{ f.title || '未命名' }}</span>
         </li>
       </ul>

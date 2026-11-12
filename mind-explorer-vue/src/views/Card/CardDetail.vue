@@ -44,7 +44,7 @@
 
         <!-- 同感按钮 -->
         <div class="like-area">
-          <button @click="toggleLike" class="like-btn" :class="{ liked: isLiked }" :disabled="liking">
+          <button @click="toggleLike" class="border-0 like-btn" :class="{ liked: isLiked }" :disabled="liking">
             🤝 同感 {{ likeCount }} <span v-if="!auth.isLoggedIn" class="like-hint">（点一下，登录后同感）</span>
           </button>
         </div>
@@ -57,13 +57,13 @@
               <span v-if="auth.user"><img :src="auth.user.avatar" class="user-avatar-sm" /> {{ auth.user.name }}</span>
               <span v-else>👤 游客：{{ auth.guest.name }}</span>
             </div>
-            <textarea v-model="newComment" rows="3" placeholder="写下你的想法..." class="w-full px-3 py-2 rounded-lg border border-[#E6EAF0] bg-white text-[16px] text-[#263746] outline-none transition focus:border-[#7c9cb8] focus:ring-2 focus:ring-[#7c9cb8]/20 placeholder:text-[#b8c2cc] resize-y min-h-[72px]"></textarea>
-            <button @click="submitComment" :disabled="submitting" class="mt-2 inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#7c9cb8] text-white text-sm font-medium transition hover:bg-[#6b8aa6] disabled:opacity-60 disabled:cursor-not-allowed">{{ submitting ? '发表中…' : '发表评论' }}</button>
+            <textarea v-model="newComment" rows="3" placeholder="写下你的想法..." class="w-full px-3 py-2 rounded-lg border border-[#E6EAF0] bg-white text-[16px] text-[#263746] outline-none transition focus:border-[#345B8E] focus:ring-2 focus:ring-[#345B8E]/20 placeholder:text-[#b8c2cc] resize-y min-h-[72px]"></textarea>
+            <button @click="submitComment" :disabled="submitting" class="border-0 mt-2 inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#345B8E] text-white text-sm font-medium transition hover:bg-[#6b8aa6] disabled:opacity-60 disabled:cursor-not-allowed">{{ submitting ? '发表中…' : '发表评论' }}</button>
           </div>
 
           <div v-else class="login-options">
             <p>参与评论：</p>
-            <button @click="auth.openLogin('register')" class="px-4 py-2 rounded-lg bg-[#7c9cb8] text-white text-sm font-medium transition hover:bg-[#6b8aa6]">游客注册 / 登录</button>
+            <button @click="auth.openLogin('register')" class="border-0 px-4 py-2 rounded-lg bg-[#345B8E] text-white text-sm font-medium transition hover:bg-[#6b8aa6]">游客注册 / 登录</button>
             <span class="divider">或</span>
             <button @click="auth.login()" class="px-4 py-2 rounded-lg border border-[#E6EAF0] bg-white text-[#5a6b7c] text-sm transition hover:bg-[#f0f4f9]">GitHub 登录</button>
           </div>
@@ -211,8 +211,8 @@ function formatTime(time) {
   padding: 8px 20px; border: 2px solid #ddd; border-radius: 20px;
   background: #fff; font-size: 1rem; cursor: pointer; transition: all 0.2s;
 }
-.like-btn:hover:not(:disabled) { border-color: #7c9cb8; color: #4a6a8a; }
-.like-btn.liked { background: #7c9cb8; color: #fff; border-color: #7c9cb8; }
+.like-btn:hover:not(:disabled) { border-color: #345B8E; color: #4a6a8a; }
+.like-btn.liked { background: #345B8E; color: #fff; border-color: #345B8E; }
 .like-btn:disabled { opacity: 0.6; cursor: not-allowed; }
 .like-hint { font-size: 0.8rem; font-weight: normal; }
 .divider { color: #999; margin: 0 4px; }
@@ -226,7 +226,7 @@ function formatTime(time) {
   border: 1.5px solid #e2e8f0; color: #4a6a8a; font-size: 0.92rem;
   text-decoration: none; transition: all 0.2s;
 }
-.study-link:hover { border-color: #7c9cb8; background: #eef4fa; transform: translateY(-1px); }
+.study-link:hover { border-color: #345B8E; background: #eef4fa; transform: translateY(-1px); }
 .current-user { margin-bottom: 8px; color: #666; font-size: 0.9rem; }
 .user-avatar-sm { width: 24px; height: 24px; border-radius: 50%; vertical-align: middle; }
 .guest-avatar { background: #e0e0e0; color: #666; display: flex; align-items: center; justify-content: center; font-weight: bold; }

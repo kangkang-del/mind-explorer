@@ -27,13 +27,13 @@
               <span class="text-[#263746]">
                 {{ c.name }}<span v-if="c.relation" class="text-[#5A6B7C]">（{{ c.relation }}）</span>
               </span>
-              <a v-if="c.phone" :href="'tel:' + c.phone" class="text-[#7c9cb8] no-underline font-medium">📞 {{ c.phone }}</a>
+              <a v-if="c.phone" :href="'tel:' + c.phone" class="text-[#345B8E] no-underline font-medium">📞 {{ c.phone }}</a>
               <span v-else class="text-[#5A6B7C]">未留电话</span>
             </li>
           </ul>
           <p v-else class="text-[12px] text-[#5A6B7C] m-0">
             还没有设置。在
-            <RouterLink to="/profile" class="text-[#7c9cb8] no-underline" @click="crisis.close()">个人中心</RouterLink>
+            <RouterLink to="/profile" class="text-[#345B8E] no-underline" @click="crisis.close()">个人中心</RouterLink>
             添加信任的人，危机时更容易伸手。
           </p>
         </div>
@@ -42,7 +42,7 @@
           <RouterLink
             to="/companion"
             @click="crisis.close()"
-            class="flex-1 py-2.5 bg-gradient-to-r from-[#7c9cb8] to-[#a8c3d6] text-white rounded-lg text-[14px] font-semibold hover:opacity-90 transition text-center no-underline"
+            class="flex-1 py-2.5 bg-[#345B8E] text-white rounded-lg text-[14px] font-semibold hover:opacity-90 transition text-center no-underline"
           >
             继续和小木聊聊
           </RouterLink>

@@ -42,7 +42,7 @@
         </svg>
         <span class="hidden md:inline">{{ prefs.voiceOn ? '朗读中' : '朗读' }}</span>
       </button>
-      <button v-if="messages.length" @click="clearChat" class="text-[12px] text-[#5A6B7C] hover:text-[#D87945] transition px-2 py-1 shrink-0">清空</button>
+      <button v-if="messages.length" @click="clearChat" class="border-0 text-[12px] text-[#5A6B7C] hover:text-[#D87945] transition px-2 py-1 shrink-0">清空</button>
     </header>
 
     <!-- 引导入口（陪伴深度）——
@@ -51,7 +51,7 @@
     <div v-if="!compact" class="mb-2 shrink-0">
       <div v-if="showGuidesHint" class="flex items-center gap-2 bg-[#f0f4f9] rounded-xl px-3 py-1.5 mb-2">
         <span class="text-[12px] text-[#5a7d9a] leading-5 flex-1">小木准备了几件可以一起做的事，点下面试试 👇</span>
-        <button @click="dismissGuidesHint" class="inline-flex items-center justify-center w-11 h-11 shrink-0 text-[#5A6B7C] hover:text-[#5a7d9a] text-[16px] leading-none">×</button>
+        <button @click="dismissGuidesHint" class="border-0 inline-flex items-center justify-center w-11 h-11 shrink-0 text-[#5A6B7C] hover:text-[#5a7d9a] text-[16px] leading-none">×</button>
       </div>
       <!-- 快捷功能：手册要求单行横向滚动，不折行、不挤压输入区 -->
       <div class="flex flex-nowrap gap-2 overflow-x-auto no-scrollbar pb-1">
@@ -80,18 +80,18 @@
           :key="m.key"
           @click="pickEmotion(m)"
           class="bg-transparent flex flex-col items-center gap-0.5 py-2 rounded-xl border transition"
-          :class="pickedEmotion === m.key ? 'border-[#7c9cb8] bg-[#f0f4f9] scale-[1.03]' : 'border-[#E6EAF0] hover:border-[#c5d8ea]'"
+          :class="pickedEmotion === m.key ? 'border-[#345B8E] bg-[#f0f4f9] scale-[1.03]' : 'border-[#E6EAF0] hover:border-[#c5d8ea]'"
         >
           <span class="text-[22px] leading-none">{{ m.emoji }}</span>
           <span class="text-[11px] text-[#5a6b7c]">{{ m.label }}</span>
         </button>
       </div>
       <div v-if="pickedEmotion" class="flex items-center gap-2 flex-wrap">
-        <input v-model="moodNote" placeholder="想给今天的心情留句话？（可选）" class="flex-1 min-w-[160px] px-3 py-2 border border-[#E6EAF0] rounded-lg text-[16px] focus:outline-none focus:border-[#7c9cb8] min-h-[44px]" />
+        <input v-model="moodNote" placeholder="想给今天的心情留句话？（可选）" class="flex-1 min-w-[160px] px-3 py-2 border border-[#E6EAF0] rounded-lg text-[16px] focus:outline-none focus:border-[#345B8E] min-h-[44px]" />
         <button
           @click="logMood"
           :disabled="moodLogging"
-          class="px-4 py-2 rounded-lg bg-[#7c9cb8] bg-gradient-to-r from-[#7c9cb8] to-[#a8c3d6] text-white text-[13px] font-semibold disabled:opacity-50 transition hover:opacity-90"
+          class="border-0 px-4 py-2 rounded-lg bg-[#345B8E] text-white text-[13px] font-semibold disabled:opacity-50 transition hover:opacity-90"
         >
           {{ moodLogging ? '记入中…' : '记入心情 + 打卡' }}
         </button>
@@ -106,7 +106,7 @@
       <div v-if="greeting" class="flex items-start gap-2 bg-gradient-to-r from-[#fff7ec] to-[#fef2f5] border border-[#f6dcc4] rounded-2xl px-4 py-3">
         <span class="text-[20px] shrink-0">🌅</span>
         <p class="flex-1 text-[13.5px] text-[#7a6a58] leading-7 m-0">{{ greeting }}</p>
-        <button @click="dismissGreeting" class="text-[#b9a890] hover:text-[#8a7a66] text-[18px] leading-none shrink-0" aria-label="关闭">×</button>
+        <button @click="dismissGreeting" class="border-0 text-[#b9a890] hover:text-[#8a7a66] text-[18px] leading-none shrink-0" aria-label="关闭">×</button>
       </div>
 
       <!-- 欢迎语 -->
@@ -146,7 +146,7 @@
           v-show="m.content || m.thinking || !m.scene"
           class="max-w-[78%] px-4 py-2.5 rounded-2xl text-[14px] leading-relaxed whitespace-pre-wrap break-words"
           :class="m.role === 'user'
-            ? 'bg-[#7c9cb8] bg-gradient-to-r from-[#7c9cb8] to-[#a8c3d6] text-white rounded-br-sm'
+            ? 'bg-[#345B8E] text-white rounded-br-sm'
             : 'bg-white border border-[#e6efe9] text-[#263746] rounded-bl-sm'"
         >
           <span v-if="m.role === 'assistant' && !m.content && m.thinking" class="text-[#5A6B7C]">小木正在听…</span>
@@ -184,26 +184,26 @@
       <div class="bg-white rounded-2xl max-w-lg w-full p-5 shadow-xl max-h-[88vh] overflow-y-auto">
         <div class="flex items-center justify-between mb-3">
           <h3 class="text-[16px] font-bold text-[#263746] m-0">🧠 换个角度看一看</h3>
-          <button @click="guide = ''" class="text-[#5A6B7C] hover:text-[#263746] text-xl leading-none">×</button>
+          <button @click="guide = ''" class="border-0 text-[#5A6B7C] hover:text-[#263746] text-xl leading-none">×</button>
         </div>
         <p class="text-[12.5px] text-[#5A6B7C] leading-6 m-0 mb-3">当脑中那句反复的话让你难受，试着把它摊开，和小木一起看看它是不是全部的真相。</p>
         <div class="space-y-2.5">
-          <textarea v-model="cbt.situation" rows="2" placeholder="发生了什么？（情境）" class="w-full px-3 py-2 border border-[#E6EAF0] rounded-xl text-[16px] resize-none focus:outline-none focus:border-[#7c9cb8] min-h-[44px]"></textarea>
-          <textarea v-model="cbt.thought" rows="2" placeholder="脑中冒出的想法是……（自动思维）" class="w-full px-3 py-2 border border-[#E6EAF0] rounded-xl text-[16px] resize-none focus:outline-none focus:border-[#7c9cb8] min-h-[44px]"></textarea>
+          <textarea v-model="cbt.situation" rows="2" placeholder="发生了什么？（情境）" class="w-full px-3 py-2 border border-[#E6EAF0] rounded-xl text-[16px] resize-none focus:outline-none focus:border-[#345B8E] min-h-[44px]"></textarea>
+          <textarea v-model="cbt.thought" rows="2" placeholder="脑中冒出的想法是……（自动思维）" class="w-full px-3 py-2 border border-[#E6EAF0] rounded-xl text-[16px] resize-none focus:outline-none focus:border-[#345B8E] min-h-[44px]"></textarea>
           <div class="flex flex-wrap gap-1.5">
             <button v-for="m in MOODS" :key="m.key" @click="cbt.emotion = m.key"
               class="bg-transparent px-2.5 py-1 rounded-full text-[12px] border transition"
-              :class="cbt.emotion === m.key ? 'border-[#7c9cb8] bg-[#f0f4f9] text-[#5a7d9a]' : 'border-[#E6EAF0] text-[#7a8a9a]'">
+              :class="cbt.emotion === m.key ? 'border-[#345B8E] bg-[#f0f4f9] text-[#5a7d9a]' : 'border-[#E6EAF0] text-[#7a8a9a]'">
               {{ m.emoji }} {{ m.label }}
             </button>
           </div>
-          <textarea v-model="cbt.evidenceFor" rows="2" placeholder="支持这个想法的证据……" class="w-full px-3 py-2 border border-[#E6EAF0] rounded-xl text-[16px] resize-none focus:outline-none focus:border-[#7c9cb8] min-h-[44px]"></textarea>
-          <textarea v-model="cbt.evidenceAgainst" rows="2" placeholder="不支持它的证据……（哪怕一点点）" class="w-full px-3 py-2 border border-[#E6EAF0] rounded-xl text-[16px] resize-none focus:outline-none focus:border-[#7c9cb8] min-h-[44px]"></textarea>
-          <textarea v-model="cbt.alternative" rows="2" placeholder="更平衡、更善意的想法是……" class="w-full px-3 py-2 border border-[#E6EAF0] rounded-xl text-[16px] resize-none focus:outline-none focus:border-[#7c9cb8] min-h-[44px]"></textarea>
+          <textarea v-model="cbt.evidenceFor" rows="2" placeholder="支持这个想法的证据……" class="w-full px-3 py-2 border border-[#E6EAF0] rounded-xl text-[16px] resize-none focus:outline-none focus:border-[#345B8E] min-h-[44px]"></textarea>
+          <textarea v-model="cbt.evidenceAgainst" rows="2" placeholder="不支持它的证据……（哪怕一点点）" class="w-full px-3 py-2 border border-[#E6EAF0] rounded-xl text-[16px] resize-none focus:outline-none focus:border-[#345B8E] min-h-[44px]"></textarea>
+          <textarea v-model="cbt.alternative" rows="2" placeholder="更平衡、更善意的想法是……" class="w-full px-3 py-2 border border-[#E6EAF0] rounded-xl text-[16px] resize-none focus:outline-none focus:border-[#345B8E] min-h-[44px]"></textarea>
         </div>
         <div class="flex items-center gap-2 mt-3">
           <button @click="submitCbtForm" :disabled="cbtLoading"
-            class="flex-1 py-2.5 bg-[#7c9cb8] bg-gradient-to-r from-[#7c9cb8] to-[#a8c3d6] text-white rounded-lg text-[14px] font-semibold disabled:opacity-50 transition hover:opacity-90">
+            class="border-0 flex-1 py-2.5 bg-[#345B8E] text-white rounded-lg text-[14px] font-semibold disabled:opacity-50 transition hover:opacity-90">
             {{ cbtLoading ? '小木在读…' : '请小木陪我看看' }}
           </button>
           <button @click="guide = ''" class="bg-transparent px-4 py-2.5 rounded-lg text-[14px] text-[#5a6b7c] border border-[#E6EAF0] hover:bg-[#f0f4f9] transition">稍后</button>
@@ -216,16 +216,16 @@
       <div class="bg-white rounded-2xl max-w-md w-full p-5 shadow-xl">
         <div class="flex items-center justify-between mb-3">
           <h3 class="text-[16px] font-bold text-[#263746] m-0">🌙 睡前一刻</h3>
-          <button @click="guide = ''" class="text-[#5A6B7C] hover:text-[#263746] text-xl leading-none">×</button>
+          <button @click="guide = ''" class="border-0 text-[#5A6B7C] hover:text-[#263746] text-xl leading-none">×</button>
         </div>
         <p class="text-[13px] text-[#5a6b7c] leading-7 m-0 mb-3">
           先把注意力放到呼吸上，慢慢吸气、慢慢呼气。然后从脚到头，感受身体一点点松弛下来，把今天的重量交给床。
         </p>
         <p class="text-[13px] text-[#5a6b7c] m-0 mb-2">今天，有三件让你有一点点暖的小事吗？</p>
         <div class="space-y-2 mb-4">
-          <input v-for="i in 3" :key="i" v-model="bedtime.gratitude[i - 1]" :placeholder="'第 ' + i + ' 件小确幸…'" class="w-full px-3 py-2 border border-[#E6EAF0] rounded-xl text-[16px] focus:outline-none focus:border-[#7c9cb8] min-h-[44px]" />
+          <input v-for="i in 3" :key="i" v-model="bedtime.gratitude[i - 1]" :placeholder="'第 ' + i + ' 件小确幸…'" class="w-full px-3 py-2 border border-[#E6EAF0] rounded-xl text-[16px] focus:outline-none focus:border-[#345B8E] min-h-[44px]" />
         </div>
-        <button @click="finishBedtime" class="w-full py-2.5 bg-[#7c9cb8] bg-gradient-to-r from-[#7c9cb8] to-[#a8c3d6] text-white rounded-lg text-[14px] font-semibold hover:opacity-90 transition">
+        <button @click="finishBedtime" class="border-0 w-full py-2.5 bg-[#345B8E] text-white rounded-lg text-[14px] font-semibold hover:opacity-90 transition">
           完成 · 和小木说晚安
         </button>
       </div>
@@ -236,7 +236,7 @@
       <div class="bg-white rounded-2xl max-w-lg w-full p-5 shadow-xl max-h-[85vh] overflow-y-auto">
         <div class="flex items-center justify-between mb-3">
           <h3 class="text-[16px] font-bold text-[#263746] m-0">📖 我的思录</h3>
-          <button @click="guide = ''" class="text-[#5A6B7C] hover:text-[#263746] text-xl leading-none">×</button>
+          <button @click="guide = ''" class="border-0 text-[#5A6B7C] hover:text-[#263746] text-xl leading-none">×</button>
         </div>
         <p v-if="!cbtHistory.length" class="text-[13px] text-[#5A6B7C] py-6 text-center m-0">还没有思维记录。做完一次「换个角度看」，这里会留下你的思录，方便回看。</p>
         <div v-else class="space-y-3">
@@ -244,7 +244,7 @@
             <div class="flex items-center gap-2 mb-1.5">
               <span class="text-[11px] text-[#5A6B7C]">{{ fmtCbtTime(r.at) }}</span>
               <span v-if="r.emotion" class="text-[11px] px-1.5 py-0.5 rounded-full bg-[#eef4f9] text-[#5a7d9a]">{{ moodLabelOf(r.emotion) }}</span>
-              <button @click="deleteCbtRecord(idx)" class="ml-auto text-[11px] text-[#b8c2cc] hover:text-[#D87945] transition">删除</button>
+              <button @click="deleteCbtRecord(idx)" class="border-0 ml-auto text-[11px] text-[#b8c2cc] hover:text-[#D87945] transition">删除</button>
             </div>
             <p v-if="r.thought" class="text-[13px] text-[#263746] m-0 mb-1"><b>想法：</b>{{ r.thought }}</p>
             <p v-if="r.alternative" class="text-[13px] text-[#4a8a5e] m-0 mb-1"><b>更平衡：</b>{{ r.alternative }}</p>
@@ -308,12 +308,12 @@
           rows="1"
           @keydown.enter.exact.prevent="send"
           placeholder="和小木说点什么…"
-          class="flex-1 max-h-32 px-4 py-3 border border-[#E6EAF0] rounded-2xl resize-none text-[16px] focus:outline-none focus:border-[#7c9cb8] min-h-[44px]"
+          class="flex-1 max-h-32 px-4 py-3 border border-[#E6EAF0] rounded-2xl resize-none text-[16px] focus:outline-none focus:border-[#345B8E] min-h-[44px]"
         ></textarea>
         <button
           @click="send"
           :disabled="!input.trim() || sending"
-          class="px-5 py-3 bg-[#7c9cb8] bg-gradient-to-r from-[#7c9cb8] to-[#a8c3d6] text-white rounded-2xl text-[14px] font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition hover:opacity-90 shrink-0"
+          class="border-0 px-5 py-3 bg-[#345B8E] text-white rounded-2xl text-[14px] font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition hover:opacity-90 shrink-0"
         >
           {{ sending ? '…' : '发送' }}
         </button>
@@ -478,7 +478,7 @@ const MOODS = [
   { key: 'grateful', label: '温暖', emoji: '🌤️' },
 ]
 const guides = [
-  { key: 'mood', emoji: '🌤️', label: '此刻心情', desc: '点一个情绪，小木来接住你，并可记入今天的心情', color: '#7c9cb8', bg: '#eef4f9' },
+  { key: 'mood', emoji: '🌤️', label: '此刻心情', desc: '点一个情绪，小木来接住你，并可记入今天的心情', color: '#345B8E', bg: '#F0F4F9' },
   { key: 'recap', emoji: '📊', label: '本周复盘', desc: '基于近7天心情，小木陪你回顾这一周', color: '#5a8a6a', bg: '#e6efe9' },
   { key: 'cbt', emoji: '🧠', label: '换个角度看', desc: 'CBT思维记录，和小木一起做认知重构', color: '#9a6ab5', bg: '#f3eef8' },
   { key: 'bedtime', emoji: '🌙', label: '睡前一刻', desc: '入睡前的小小收尾仪式', color: '#4a6a8a', bg: '#eef4fa' },

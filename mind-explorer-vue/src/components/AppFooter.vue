@@ -7,10 +7,10 @@
       </div>
 
       <div class="flex flex-wrap gap-x-5 gap-y-2">
-        <RouterLink to="/knowledge" class="inline-flex items-center min-h-[44px] min-w-[44px] text-[#5a6b7c] no-underline hover:text-[#7c9cb8]">了解心理学知识</RouterLink>
-        <RouterLink to="/companion" class="inline-flex items-center min-h-[44px] min-w-[44px] text-[#5a6b7c] no-underline hover:text-[#7c9cb8]">同行者</RouterLink>
-        <RouterLink to="/sunny" class="inline-flex items-center min-h-[44px] min-w-[44px] text-[#5a6b7c] no-underline hover:text-[#7c9cb8]">心灵晴天</RouterLink>
-        <RouterLink to="/feedback" class="inline-flex items-center min-h-[44px] min-w-[44px] text-[#5a6b7c] no-underline hover:text-[#7c9cb8]">反馈与建议</RouterLink>
+        <RouterLink to="/knowledge" class="inline-flex items-center min-h-[44px] min-w-[44px] text-[#5a6b7c] no-underline hover:text-[#345B8E]">了解心理学知识</RouterLink>
+        <RouterLink to="/companion" class="inline-flex items-center min-h-[44px] min-w-[44px] text-[#5a6b7c] no-underline hover:text-[#345B8E]">同行者</RouterLink>
+        <RouterLink to="/sunny" class="inline-flex items-center min-h-[44px] min-w-[44px] text-[#5a6b7c] no-underline hover:text-[#345B8E]">心灵晴天</RouterLink>
+        <RouterLink to="/feedback" class="inline-flex items-center min-h-[44px] min-w-[44px] text-[#5a6b7c] no-underline hover:text-[#345B8E]">反馈与建议</RouterLink>
       </div>
 
       <!-- 心理援助热线（陪伴型站点的伦理底线） -->

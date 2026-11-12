@@ -5,7 +5,7 @@
       <p class="text-[#5A6B7C] text-[14px] mt-1 m-0">
         这里收集彼此生命里微小的光。提交后会经小木团队审核，通过即出现在社区「用户贡献」里。
       </p>
-      <RouterLink to="/study" class="inline-flex items-center min-h-[44px] text-[13px] text-[#7c9cb8] no-underline mt-1 hover:underline">看看大家分享的治愈瞬间 →</RouterLink>
+      <RouterLink to="/study" class="inline-flex items-center min-h-[44px] text-[13px] text-[#345B8E] no-underline mt-1 hover:underline">看看大家分享的治愈瞬间 →</RouterLink>
     </header>
 
     <!-- 未登录 -->
@@ -13,7 +13,7 @@
       <p class="text-[#5a6b7c] text-[15px] m-0 mb-4">登录后即可分享你的治愈瞬间</p>
       <button
         @click="auth.openLogin('register')"
-        class="px-6 py-2.5 bg-gradient-to-r from-[#7c9cb8] to-[#a8c3d6] text-white rounded-xl text-[14px] font-semibold hover:opacity-90 transition"
+        class="border-0 px-6 py-2.5 bg-[#345B8E] text-white rounded-xl text-[14px] font-semibold hover:opacity-90 transition"
       >
         登录 / 注册
       </button>
@@ -28,7 +28,7 @@
             v-model="form.title"
             maxlength="60"
             placeholder="一句话概括这个瞬间，如：楼下小猫今天蹭了蹭我"
-            class="w-full px-3 py-2 border border-[#E6EAF0] rounded-xl text-[16px] focus:outline-none focus:border-[#7c9cb8] min-h-[44px]"
+            class="w-full px-3 py-2 border border-[#E6EAF0] rounded-xl text-[16px] focus:outline-none focus:border-[#345B8E] min-h-[44px]"
           />
         </div>
 
@@ -41,7 +41,7 @@
               type="button"
               @click="form.category = c"
               class="bg-transparent inline-flex items-center min-h-[44px] px-3.5 py-1.5 rounded-full text-[13px] border transition"
-              :class="form.category === c ? 'border-[#7c9cb8] bg-[#f0f4f9] text-[#263746]' : 'border-[#E6EAF0] text-[#5A6B7C] hover:border-[#c5d8ea]'"
+              :class="form.category === c ? 'border-[#345B8E] bg-[#f0f4f9] text-[#263746]' : 'border-[#E6EAF0] text-[#5A6B7C] hover:border-[#c5d8ea]'"
             >
               {{ c }}
             </button>
@@ -55,7 +55,7 @@
             rows="6"
             maxlength="2000"
             placeholder="慢慢写下来吧，发生了什么、你当时的心情、它为什么打动了你……"
-            class="w-full px-3 py-2 border border-[#E6EAF0] rounded-xl text-[16px] resize-y focus:outline-none focus:border-[#7c9cb8] min-h-[44px]"
+            class="w-full px-3 py-2 border border-[#E6EAF0] rounded-xl text-[16px] resize-y focus:outline-none focus:border-[#345B8E] min-h-[44px]"
           ></textarea>
           <p class="text-right text-[12px] text-[#b9c4cf] m-0 mt-1">{{ form.content.length }}/2000</p>
         </div>
@@ -65,7 +65,7 @@
           <input
             v-model="form.image"
             placeholder="粘贴一张图片网址，让这一刻更具体（选填）"
-            class="w-full px-3 py-2 border border-[#E6EAF0] rounded-xl text-[16px] focus:outline-none focus:border-[#7c9cb8] min-h-[44px]"
+            class="w-full px-3 py-2 border border-[#E6EAF0] rounded-xl text-[16px] focus:outline-none focus:border-[#345B8E] min-h-[44px]"
           />
         </div>
 
@@ -75,7 +75,7 @@
             v-model="form.source"
             maxlength="200"
             placeholder="如：某本书 / 一位朋友 / 自己的日记（选填）"
-            class="w-full px-3 py-2 border border-[#E6EAF0] rounded-xl text-[16px] focus:outline-none focus:border-[#7c9cb8] min-h-[44px]"
+            class="w-full px-3 py-2 border border-[#E6EAF0] rounded-xl text-[16px] focus:outline-none focus:border-[#345B8E] min-h-[44px]"
           />
         </div>
 
@@ -85,7 +85,7 @@
         <button
           type="submit"
           :disabled="submitting"
-          class="w-full py-3 bg-gradient-to-r from-[#7c9cb8] to-[#a8c3d6] text-white rounded-xl text-[15px] font-semibold disabled:opacity-50 transition hover:opacity-90"
+          class="border-0 w-full py-3 bg-[#345B8E] text-white rounded-xl text-[15px] font-semibold disabled:opacity-50 transition hover:opacity-90"
         >
           {{ submitting ? '提交中…' : '提交治愈瞬间' }}
         </button>

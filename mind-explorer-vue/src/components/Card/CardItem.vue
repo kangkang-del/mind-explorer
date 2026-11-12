@@ -14,7 +14,7 @@
       <div class="flex items-center gap-2">
         <button
           v-if="card.isUserCard"
-          class="hug-btn"
+          class="border-0 hug-btn"
           :class="{ hugged }"
           :disabled="hugging"
           @click="onHug"
