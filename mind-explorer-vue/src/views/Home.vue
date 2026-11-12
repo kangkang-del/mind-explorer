@@ -1,13 +1,12 @@
 <template>
   <section class="home-main">
-    <!-- 核心转化路径：同行者·小木 CTA 入口（深色重色锚点 + 对角线布局，按钮在右下符合 F 形阅读与拇指自然落点） -->
+    <!-- 核心转化路径：同行者·小木 CTA 入口（浅色山川 Hero + 深蓝文字，主 CTA 纯色 #345B8E） -->
     <section class="xiaomu-hero">
       <!-- 桌面 12 栅格 7:5；1024–1279 收成 6:6；平板同样 6:6；手机单列 -->
       <div class="hero-content">
         <div class="hero-text">
-          <span class="hero-eyebrow">24h 在这听你说</span>
           <h1 class="hero-title">不想一个人扛着吗？</h1>
-          <p class="hero-subtitle">小木，研究心理学与哲学的同行者。<br />陪你理一理、缓一缓、慢下来。</p>
+          <p class="hero-subtitle">在这里，探索内心的世界，找到属于自己的方向。</p>
           <div class="hero-action">
             <RouterLink to="/companion" class="hero-cta-btn">
               <span>陪小木聊聊</span>
@@ -35,8 +34,44 @@
           </RouterLink>
         </nav>
       </div>
-      <div class="hero-orb" aria-hidden="true"></div>
-      <div class="hero-orb hero-orb-2" aria-hidden="true"></div>
+      <!-- 山川底景：INNER ATLAS 视觉方向的占位插画（正式插画资产另行评审） -->
+      <svg class="hero-mountains" viewBox="0 0 1200 160" preserveAspectRatio="none" aria-hidden="true">
+        <path d="M0 118 L150 62 L290 112 L430 40 L580 108 L720 66 L880 116 L1030 58 L1200 110 L1200 160 L0 160 Z" fill="#C9DAEB" opacity="0.9" />
+        <path d="M0 138 L120 96 L260 132 L420 84 L560 126 L740 92 L900 130 L1060 98 L1200 132 L1200 160 L0 160 Z" fill="#A9C2DC" opacity="0.92" />
+        <path d="M0 152 L180 118 L360 146 L540 112 L760 144 L960 116 L1200 146 L1200 160 L0 160 Z" fill="#8FB0CE" />
+      </svg>
+      <!-- 等高线与路径节点：分册一 §7.2「路线图」边缘装饰，不是任务进度系统 -->
+      <svg class="hero-contours" viewBox="0 0 520 300" fill="none" aria-hidden="true">
+        <ellipse cx="380" cy="150" rx="240" ry="120" stroke="#9AA6B2" stroke-opacity="0.35" />
+        <ellipse cx="380" cy="150" rx="185" ry="90" stroke="#9AA6B2" stroke-opacity="0.3" />
+        <ellipse cx="380" cy="150" rx="130" ry="62" stroke="#9AA6B2" stroke-opacity="0.25" />
+        <path d="M60 268 C 160 236, 250 208, 322 162" stroke="#9AA6B2" stroke-opacity="0.45" stroke-dasharray="2 8" stroke-linecap="round" />
+        <circle cx="322" cy="162" r="5" fill="#9AA6B2" fill-opacity="0.55" />
+        <circle cx="210" cy="220" r="4" fill="#9AA6B2" fill-opacity="0.45" />
+        <circle cx="118" cy="252" r="3.5" fill="#9AA6B2" fill-opacity="0.4" />
+      </svg>
+    </section>
+
+    <!-- 快速开始（交接文档 §4.3）：三张低门槛行动卡，手机端展示；桌面入口在 Hero 路标 -->
+    <section class="quick-start" aria-label="从此刻开始">
+      <h2 class="quick-start-title">从此刻开始</h2>
+      <div class="quick-start-cards">
+        <RouterLink to="/companion" class="qs-card">
+          <span class="qs-icon" aria-hidden="true">💬</span>
+          <span class="qs-title">找个人聊聊</span>
+          <span class="qs-desc">和小木说说现在的感受</span>
+        </RouterLink>
+        <RouterLink to="/tools" class="qs-card">
+          <span class="qs-icon" aria-hidden="true">🌿</span>
+          <span class="qs-title">先缓一缓</span>
+          <span class="qs-desc">使用呼吸等自助工具</span>
+        </RouterLink>
+        <RouterLink to="/mood" class="qs-card">
+          <span class="qs-icon" aria-hidden="true">📝</span>
+          <span class="qs-title">记录一下</span>
+          <span class="qs-desc">写下现在的心情</span>
+        </RouterLink>
+      </div>
     </section>
 
     <!-- 轮播图：心理晴天每日推送/治愈图片 -->
@@ -129,6 +164,26 @@
       </div>
     </section>
 
+    <!-- 心理知识推荐（交接文档 §4.5）：来自现有知识库，横向滑动露出下一张，必须提供查看全部 -->
+    <section class="knowledge-strip" aria-label="心理知识推荐">
+      <div class="ks-head">
+        <h2 class="ks-title">认识自己，从了解心理开始。</h2>
+        <RouterLink to="/knowledge" class="ks-more">查看全部 →</RouterLink>
+      </div>
+      <div class="ks-row">
+        <RouterLink v-for="k in knowledgePicks" :key="k.id" to="/knowledge" class="ks-card">
+          <span class="ks-tag">{{ k.category }}</span>
+          <span class="ks-name">{{ k.title }}</span>
+        </RouterLink>
+      </div>
+    </section>
+
+    <!-- 结束引导（交接文档 §4.7）；页脚热线卡在全局 AppFooter，不在此重复 -->
+    <section class="home-ending" aria-label="结束引导">
+      <p class="home-ending-title">每一次探索，都是更好的开始。</p>
+      <p class="home-ending-sub">不用急着找到答案，慢慢来就好。</p>
+    </section>
+
     <!-- 文章详情 Modal -->
     <Teleport to="body">
       <div v-if="activePost" class="post-modal-overlay" @click.self="closeModal" @keydown.esc="closeModal" tabindex="-1">
@@ -158,6 +213,7 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
+import cardsRaw from '../data/cards.json'
 import { communityApi } from '../api/community'
 import { userCardsApi } from '../api/userCards'
 import { useAuthStore } from '../stores/auth'
@@ -212,6 +268,9 @@ function catLabel(k) {
 }
 
 // 轮播（0012：从「治愈瞬间 + 每日推送图」按日种子选取；无候选时回退静态图）
+// 心理知识推荐（交接文档 §4.5）：取自现有知识库前 8 条，横向滑动露出下一张
+const knowledgePicks = cardsRaw.slice(0, 8)
+
 // 路线图路标：桌面首屏的四个入口（同行者 / 知识 / 日记 / 工具）
 const heroMarkers = [
   { to: '/companion', icon: '💬', title: '同行者', desc: '和小木说说心里话' },
@@ -438,17 +497,36 @@ onUnmounted(() => {
   width: 100%;
 }
 
-/* 小木 CTA Hero（核心转化锚点，深色重色 + 对角线布局） */
+/* 小木 CTA Hero（核心转化锚点，浅色山川场景 + 深蓝文字，视觉方向 A「心灵地貌」） */
 .xiaomu-hero {
   position: relative;
   width: 100%;
   margin: 0 auto 28px;
-  padding: 56px 40px 52px;
-  background: linear-gradient(135deg, #2d4258 0%, #3a5068 60%, #2c3e54 100%);
+  padding: 56px 40px 96px;
+  background: linear-gradient(180deg, #DFEBF7 0%, #EFF5FB 46%, #FDFBF3 100%);
   border-radius: 24px;
   overflow: hidden;
-  color: #fff;
-  box-shadow: 0 14px 44px rgba(45, 66, 88, 0.28);
+  color: #263746;
+  box-shadow: 0 10px 30px rgba(52, 91, 142, 0.1);
+}
+.hero-mountains {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  height: 118px;
+  z-index: 0;
+  pointer-events: none;
+}
+.hero-contours {
+  position: absolute;
+  top: -36px;
+  right: -48px;
+  width: 520px;
+  height: 300px;
+  z-index: 0;
+  pointer-events: none;
 }
 .hero-content {
   position: relative;
@@ -475,18 +553,6 @@ onUnmounted(() => {
 .hero-text {
   min-width: 0;
 }
-.hero-eyebrow {
-  display: inline-block;
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 1.5px;
-  padding: 6px 12px;
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  border-radius: 999px;
-  margin-bottom: 16px;
-  backdrop-filter: blur(4px);
-}
 .hero-title {
   font-size: 32px;
   font-weight: 700;
@@ -495,19 +561,16 @@ onUnmounted(() => {
   letter-spacing: 0.5px;
   /* 原全局 .hero-title 带 max-width:640px，删掉全局规则后由这里接管 */
   max-width: 640px;
-  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
-  /* 必须显式声明：全局 home.css 里还有一条 .hero-title{color:#4A4A4A}，
-     那是给旧版浅色 Hero 写的，会直接压在这个深色 Hero 上 ——
-     结果就是深灰字压深蓝底，对比度掉到 1.3:1，标题几乎看不见。 */
-  color: #fff;
+  /* 交接文档 §4.2.1：深蓝文字（显式声明，防全局旧规则回压） */
+  color: #263746;
 }
 .hero-subtitle {
   font-size: 15.5px;
   margin: 0;
   line-height: 1.7;
   max-width: 480px;
-  /* 同上：全局那条 .hero-subtitle{color:#8E908B} 会把副标题也压成灰色 */
-  color: rgba(255, 255, 255, 0.9);
+  /* 交接文档 §4.2.1：辅助文字用次级可读色 */
+  color: #5A6B7C;
   /* 原全局 .hero-subtitle 带 letter-spacing:0.04em */
   letter-spacing: 0.04em;
 }
@@ -532,16 +595,16 @@ onUnmounted(() => {
   gap: 10px;
   min-height: 64px;
   padding: 12px 14px;
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: #FFFFFF;
+  border: 1px solid #E6EAF0;
   border-radius: 14px;
-  color: #fff;
+  color: #263746;
   text-decoration: none;
+  box-shadow: 0 4px 14px rgba(52, 91, 142, 0.08);
   transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
 }
 .hero-marker:hover {
-  background: rgba(255, 255, 255, 0.14);
-  border-color: rgba(255, 255, 255, 0.32);
+  border-color: rgba(52, 91, 142, 0.35);
   transform: translateY(-2px);
 }
 .hero-marker-icon {
@@ -563,25 +626,11 @@ onUnmounted(() => {
 .hero-marker-desc {
   font-size: 11.5px;
   line-height: 1.4;
-  opacity: 0.72;
+  color: #5A6B7C;
 }
-/* 手机上路标只留标题：说明文字在窄屏会折成两行，把卡片挤得很难看 */
+/* 手机端（分册三）：Hero 不放路标，改用下方「从此刻开始」三卡 */
 @media (max-width: 767px) {
-  .hero-marker-desc {
-    display: none;
-  }
-  .hero-marker {
-    min-height: 56px;
-  }
-}
-/* 手机上路标只留标题：说明文字在窄屏会折成两行，把卡片挤得很难看 */
-@media (max-width: 767px) {
-  .hero-marker-desc {
-    display: none;
-  }
-  .hero-marker {
-    min-height: 56px;
-  }
+  .hero-markers { display: none; }
 }
 .hero-marker-arrow {
   margin-left: auto;
@@ -593,20 +642,22 @@ onUnmounted(() => {
   display: inline-flex;
   align-items: center;
   gap: 12px;
-  background: linear-gradient(135deg, #D87945 0%, #f0a868 100%);
+  /* 主操作一律纯色 color.brand.primary #345B8E，不用渐变；
+     此前误用紧急色 #D87945 做渐变，已纠正 */
+  background: #345B8E;
   color: #fff;
   padding: 16px 30px;
   border-radius: 14px;
   font-size: 16px;
   font-weight: 700;
   text-decoration: none;
-  transition: transform 0.25s ease, box-shadow 0.25s ease;
-  box-shadow: 0 8px 24px rgba(224, 122, 63, 0.4);
+  transition: transform 0.25s ease, box-shadow 0.25s ease, background 0.25s ease;
+  box-shadow: 0 8px 24px rgba(52, 91, 142, 0.32);
 }
 .hero-cta-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 14px 32px rgba(224, 122, 63, 0.55);
-  background: linear-gradient(135deg, #e98a4f 0%, #f5b378 100%);
+  box-shadow: 0 14px 32px rgba(52, 91, 142, 0.42);
+  background: #2C4E7E;
 }
 .hero-arrow {
   font-size: 20px;
@@ -617,35 +668,15 @@ onUnmounted(() => {
 }
 .hero-hint {
   font-size: 12px;
-  opacity: 0.6;
+  color: #5A6B7C;
   margin: 0;
-}
-.hero-orb {
-  position: absolute;
-  top: -80px;
-  right: -80px;
-  width: 320px;
-  height: 320px;
-  background: radial-gradient(circle, rgba(224, 122, 63, 0.18) 0%, transparent 60%);
-  border-radius: 50%;
-  z-index: 1;
-  pointer-events: none;
-}
-.hero-orb-2 {
-  top: auto;
-  bottom: -120px;
-  left: -80px;
-  right: auto;
-  width: 240px;
-  height: 240px;
-  background: radial-gradient(circle, rgba(168, 213, 186, 0.16) 0%, transparent 60%);
 }
 @media (max-width: 768px) {
   .xiaomu-hero {
-    padding: 36px 24px 32px;
+    padding: 34px 22px 88px;
   }
   .hero-title {
-    font-size: 24px;
+    font-size: 26px; /* 交接文档 §4.2.1：标题 25–28px */
   }
   .hero-action {
     align-items: flex-start;
@@ -774,6 +805,131 @@ onUnmounted(() => {
 }
 .carousel-dots span.active {
   background: #fff;
+}
+
+/* ---------- 快速开始 / 知识推荐 / 结束引导（交接文档 §4.3 §4.5 §4.7，手机端） ---------- */
+.quick-start,
+.knowledge-strip,
+.home-ending { display: none; }
+@media (max-width: 767px) {
+  /* 分册三：精选/知识/晴天整合为一个次级探索区，不平铺成多个门户模块
+     ⇒ 手机端隐藏通栏轮播，保留今日精选 + 知识推荐 */
+  .carousel { display: none; }
+  .quick-start,
+  .knowledge-strip,
+  .home-ending { display: block; }
+}
+.quick-start { padding: 2px 0 6px; }
+.quick-start-title {
+  font-size: 17px;
+  font-weight: 700;
+  color: #263746;
+  margin: 0 0 10px;
+}
+.quick-start-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+.qs-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 6px;
+  min-height: 100px;
+  padding: 14px 8px;
+  background: #FFFFFF;
+  border: 1px solid #E6EAF0;
+  border-radius: 14px;
+  text-decoration: none;
+  box-shadow: 0 4px 14px rgba(52, 91, 142, 0.06);
+}
+.qs-icon {
+  width: 38px;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 19px;
+  background: #F0F4F9;
+  border-radius: 50%;
+}
+.qs-title {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #263746;
+}
+.qs-desc {
+  font-size: 11px;
+  color: #5A6B7C;
+  line-height: 1.4;
+}
+.knowledge-strip { margin-top: 28px; }
+.ks-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+.ks-title {
+  font-size: 17px;
+  font-weight: 700;
+  color: #263746;
+  margin: 0;
+}
+.ks-more {
+  font-size: 13px;
+  color: #345B8E;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.ks-row {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding-bottom: 6px;
+  scroll-snap-type: x mandatory;
+}
+.ks-card {
+  flex: 0 0 46%;
+  max-width: 180px;
+  min-height: 84px;
+  scroll-snap-align: start;
+  background: #FFFFFF;
+  border: 1px solid #E6EAF0;
+  border-radius: 14px;
+  padding: 12px;
+  text-decoration: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.ks-tag {
+  font-size: 11px;
+  color: #5A6B7C;
+}
+.ks-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #263746;
+  line-height: 1.45;
+}
+.home-ending {
+  text-align: center;
+  padding: 36px 16px 8px;
+}
+.home-ending-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #263746;
+  margin: 0 0 6px;
+}
+.home-ending-sub {
+  font-size: 13px;
+  color: #5A6B7C;
+  margin: 0;
 }
 
 /* 今日精选 */
