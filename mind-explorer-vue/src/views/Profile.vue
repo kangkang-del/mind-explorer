@@ -205,22 +205,22 @@
 
     <!-- 功能区 -->
     <section v-if="!auth.currentUser" class="grid grid-cols-1 md:grid-cols-2 gap-3">
-      <RouterLink to="/mood" class="flex items-center gap-2.5 p-4 bg-white border border-[#E6EAF0] rounded-xl no-underline hover:shadow-sm transition">
+      <RouterLink to="/mood" class="flex items-center gap-2.5 p-4 bg-white border border-[#E6EAF0] rounded-xl no-underline text-[#263746] hover:shadow-sm transition">
         <span class="text-[22px]">🌤️</span>
         <span class="text-[15px] font-semibold text-[#263746]">心情日记</span>
         <span class="ml-auto text-[13px] text-[#5A6B7C]">→</span>
       </RouterLink>
-      <RouterLink to="/tools" class="flex items-center gap-2.5 p-4 bg-white border border-[#E6EAF0] rounded-xl no-underline hover:shadow-sm transition">
+      <RouterLink to="/tools" class="flex items-center gap-2.5 p-4 bg-white border border-[#E6EAF0] rounded-xl no-underline text-[#263746] hover:shadow-sm transition">
         <span class="text-[22px]">🧰</span>
         <span class="text-[15px] font-semibold text-[#263746]">自助工具箱</span>
         <span class="ml-auto text-[13px] text-[#5A6B7C]">→</span>
       </RouterLink>
-      <RouterLink to="/upload" class="flex items-center gap-2.5 p-4 bg-white border border-[#E6EAF0] rounded-xl no-underline hover:shadow-sm transition">
+      <RouterLink to="/upload" class="flex items-center gap-2.5 p-4 bg-white border border-[#E6EAF0] rounded-xl no-underline text-[#263746] hover:shadow-sm transition">
         <span class="text-[22px]">🌱</span>
         <span class="text-[15px] font-semibold text-[#263746]">分享治愈瞬间</span>
         <span class="ml-auto text-[13px] text-[#5A6B7C]">→</span>
       </RouterLink>
-      <RouterLink to="/feedback" class="flex items-center gap-2.5 p-4 bg-white border border-[#E6EAF0] rounded-xl no-underline hover:shadow-sm transition">
+      <RouterLink to="/feedback" class="flex items-center gap-2.5 p-4 bg-white border border-[#E6EAF0] rounded-xl no-underline text-[#263746] hover:shadow-sm transition">
         <span class="text-[22px]">✉️</span>
         <span class="text-[15px] font-semibold text-[#263746]">反馈建议</span>
         <span class="ml-auto text-[13px] text-[#5A6B7C]">→</span>

@@ -1,46 +1,58 @@
 <template>
   <section class="home-main">
-    <!-- 核心转化路径：同行者·小木 CTA 入口（浅色山川 Hero + 深蓝文字，主 CTA 纯色 #345B8E） -->
+    <!-- 核心转化 Hero（2026-11-13 阶段5 视觉参考定稿）：
+         全宽插画背景 + 左侧叠字 + 暖橙 CTA；桌面/手机双文案由 CSS 切换 -->
     <section class="xiaomu-hero">
-      <!-- 桌面 12 栅格 7:5；1024–1279 收成 6:6；平板同样 6:6；手机单列 -->
-      <div class="hero-content">
+      <div class="hero-inner">
         <div class="hero-text">
-          <h1 class="hero-title">不想一个人扛着吗？</h1>
-          <p class="hero-subtitle">在这里，探索内心的世界，找到属于自己的方向。</p>
-          <div class="hero-action">
-            <RouterLink to="/companion" class="hero-cta-btn">
-              <span>陪小木聊聊</span>
-              <span class="hero-arrow">→</span>
-            </RouterLink>
-            <p class="hero-hint">免费 · 无需注册 · 随时可走</p>
-          </div>
+          <!-- 桌面文案 -->
+          <span class="hero-copy copy-desk">
+            <h1 class="hero-title">在探索中，<br />遇见<span class="hero-hl">更好的自己</span></h1>
+            <p class="hero-subtitle">这是一段关于心灵成长的旅程，<br />你并不孤单。</p>
+            <div class="hero-action">
+              <RouterLink to="/companion" class="hero-cta-btn">
+                <span class="hero-cta-ico" aria-hidden="true">⚡</span>
+                <span>开始探索</span>
+                <span class="hero-arrow">→</span>
+              </RouterLink>
+              <p class="hero-hint">免费 · 无需注册 · 随时可走</p>
+            </div>
+          </span>
+          <!-- 手机文案 -->
+          <span class="hero-copy copy-mob">
+            <h1 class="hero-title">不想一个人<span class="hero-hl">扛着</span>吗？</h1>
+            <p class="hero-subtitle">在这里，探索内心的世界，<br />找到属于自己的方向。</p>
+            <div class="hero-action">
+              <RouterLink to="/companion" class="hero-cta-btn">
+                <span class="hero-cta-ico" aria-hidden="true">💬</span>
+                <span>陪小木聊聊</span>
+                <span class="hero-arrow">→</span>
+              </RouterLink>
+              <p class="hero-hint">免费 · 无需注册 · 随时可走</p>
+            </div>
+          </span>
         </div>
-
-        <!-- 路线图：四个入口路标（同行者 / 知识 / 日记 / 工具）。
-             这是「首屏就知道产品能做什么」的关键，不是装饰。 -->
-        <nav class="hero-markers" aria-label="快速开始">
-          <RouterLink
-            v-for="m in heroMarkers"
-            :key="m.to"
-            :to="m.to"
-            class="hero-marker"
-          >
-            <span class="hero-marker-icon" aria-hidden="true">{{ m.icon }}</span>
-            <span class="hero-marker-body">
-              <span class="hero-marker-title">{{ m.title }}</span>
-              <span class="hero-marker-desc">{{ m.desc }}</span>
-            </span>
-            <span class="hero-marker-arrow" aria-hidden="true">→</span>
-          </RouterLink>
-        </nav>
       </div>
-      <!-- 插画 = 用户 2026-11-12 提供的占位资产（正式资产仍需评审）。
-           桌面走 CSS 背景（左文右景）；手机端用下面这个上层画幅做 §4.2.2「上下分层」，
-           画中的路牌与山径就是分册一 §7.2「路线图」的地图隐喻 -->
-      <div class="hero-art" aria-hidden="true">
-        <img :src="heroAtlas" alt="" />
-      </div>
+      <!-- 插画 = 用户 2026-11-12 提供的占位资产；桌面/手机同为全宽背景，
+           手机取景偏右（人物+小木+路牌），由 background-position 控制 -->
     </section>
+
+    <!-- 白色浮条：四个核心入口（阶段5 参考稿），叠压 Hero 底边；手机端用下方「从此刻开始」三卡 -->
+    <nav class="hero-dock" aria-label="快速开始">
+      <RouterLink
+        v-for="m in heroMarkers"
+        :key="m.to"
+        :to="m.to"
+        class="dock-item"
+      >
+        <span class="dock-icon" :class="m.tone" aria-hidden="true">{{ m.icon }}</span>
+        <span class="dock-body">
+          <span class="dock-title">{{ m.title }}</span>
+          <span class="dock-desc">{{ m.desc }}</span>
+        </span>
+        <span class="dock-arrow" aria-hidden="true">›</span>
+      </RouterLink>
+    </nav>
 
     <!-- 快速开始（交接文档 §4.3）：三张低门槛行动卡，手机端展示；桌面入口在 Hero 路标 -->
     <section class="quick-start" aria-label="从此刻开始">
@@ -64,38 +76,14 @@
       </div>
     </section>
 
-    <!-- 轮播图：心理晴天每日推送/治愈图片 -->
-    <section class="carousel" @mouseenter="pauseAuto" @mouseleave="resumeAuto">
-      <div class="carousel-track" :style="trackStyle">
-        <div v-for="(slide, i) in slides" :key="i" class="carousel-slide">
-          <img :src="slide.image" :alt="slide.title" class="carousel-image" loading="lazy" />
-          <div class="carousel-overlay">
-            <span class="carousel-tag">治愈瞬间 · {{ catLabel(slide.category) }}</span>
-            <h2 class="carousel-title">{{ slide.title }}</h2>
-            <p class="carousel-desc">{{ slide.content }}</p>
-          </div>
-        </div>
-      </div>
-
-      <button class="border-0 carousel-arrow carousel-prev" @click="prevSlide" aria-label="上一张">‹</button>
-      <button class="border-0 carousel-arrow carousel-next" @click="nextSlide" aria-label="下一张">›</button>
-
-      <div class="carousel-dots">
-        <span
-          v-for="(_, i) in slides"
-          :key="i"
-          :class="{ active: current === i }"
-          @click="goTo(i)"
-          :aria-label="`第 ${i + 1} 张`"
-        ></span>
-      </div>
-    </section>
+    <!-- （2026-11-13 阶段5）通栏轮播退役：首页行动优先，不做内容门户；
+         治愈瞬间内容改由「心灵晴天」页承载 -->
 
     <!-- 今日精选：中间内容、两边空白 -->
     <section class="today-feature">
       <div class="feature-header">
         <div class="feature-title-group">
-          <h2 class="feature-title">今日精选</h2>
+          <h2 class="feature-title"><span aria-hidden="true">🌱</span> 今日精选</h2>
           <p class="feature-subtitle">来自心灵晴天的每日推送，每天自动换新</p>
         </div>
       </div>
@@ -200,19 +188,14 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import cardsRaw from '../data/cards.json'
-import heroAtlas from '../assets/hero-atlas.jpg'
 import { communityApi } from '../api/community'
-import { userCardsApi } from '../api/userCards'
 import { useAuthStore } from '../stores/auth'
 import FavoriteButton from '../components/FavoriteButton.vue'
 
 const auth = useAuthStore()
 const activePost = ref(null)
 const posts = ref([])
-const carouselPool = ref([]) // 治愈瞬间带图卡片池（user_cards approved + image）
 const loading = ref(true)
-const current = ref(0)
-let timer = null
 
 // ---------- 0012：每日换新工具（北京时间的日种子，同日稳定、跨天自动换） ----------
 function dayKey() {
@@ -254,47 +237,16 @@ function catLabel(k) {
   return map[k] || k || '日常'
 }
 
-// 轮播（0012：从「治愈瞬间 + 每日推送图」按日种子选取；无候选时回退静态图）
 // 心理知识推荐（交接文档 §4.5）：取自现有知识库前 8 条，横向滑动露出下一张
 const knowledgePicks = cardsRaw.slice(0, 8)
 
-// 路线图路标：桌面首屏的四个入口（同行者 / 知识 / 日记 / 工具）
+// 白色浮条：桌面首屏的四个入口（2026-11-13 阶段5 视觉参考稿文案）
 const heroMarkers = [
-  { to: '/companion', icon: '💬', title: '同行者', desc: '和小木说说心里话' },
-  { to: '/knowledge', icon: '📚', title: '心理知识', desc: '读懂那些行为与偏差' },
-  { to: '/mood', icon: '☁️', title: '心情日记', desc: '记下此刻的感受' },
-  { to: '/tools', icon: '🧰', title: '自助工具', desc: '呼吸练习与紧急求助' },
+  { to: '/companion', icon: '💬', tone: 'tone-blue', title: '与同行者聊天', desc: '分享心事，获得支持' },
+  { to: '/knowledge', icon: '📚', tone: 'tone-sky', title: '探索知识库', desc: '学习心理健康知识' },
+  { to: '/mood', icon: '💛', tone: 'tone-warm', title: '记录心情日记', desc: '留下此刻的心情' },
+  { to: '/tools', icon: '🧰', tone: 'tone-slate', title: '使用自助工具', desc: '练习情绪管理' },
 ]
-
-const slides = computed(() => {
-  if (carouselPool.value.length) {
-    return dailyPick(carouselPool.value, 5)
-  }
-  // 兜底：站点刚上线、还没有治愈内容图时使用
-  return [
-    {
-      image: 'https://picsum.photos/seed/heal1/1200/420',
-      title: '周末心灵疗愈之旅',
-      content: '找回内心的宁静与美好',
-      category: 'nature',
-      author: '小木',
-    },
-    {
-      image: 'https://picsum.photos/seed/heal2/1200/420',
-      title: '在微光中前行',
-      content: '每一缕阳光都是温柔的力量',
-      category: 'nature',
-      author: '小木',
-    },
-    {
-      image: 'https://picsum.photos/seed/heal3/1200/420',
-      title: '与自然温柔相拥',
-      content: '让心灵在绿意中慢慢舒展',
-      category: 'nature',
-      author: '小木',
-    },
-  ]
-})
 
 // 今日精选（0012：从「心灵晴天」每日推送里按日种子选 3 条，每天自动换新）
 const featuredPosts = computed(() => {
@@ -302,46 +254,6 @@ const featuredPosts = computed(() => {
   const picked = dailyPick(pushPosts, 3)
   return picked.length ? picked : posts.value.slice(0, 3)
 })
-
-const trackStyle = computed(() => ({
-  transform: `translateX(-${current.value * 100}%)`,
-}))
-
-function nextSlide() {
-  if (!slides.value.length) return
-  current.value = (current.value + 1) % slides.value.length
-}
-function prevSlide() {
-  if (!slides.value.length) return
-  current.value = (current.value - 1 + slides.value.length) % slides.value.length
-}
-function goTo(i) {
-  current.value = i
-}
-
-function prefersReducedMotion() {
-  return typeof window !== 'undefined'
-    && !!window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches
-}
-
-function startAuto() {
-  stopAuto()
-  // 用户要求减少动态效果时不再自动轮播，改为手动切换
-  if (prefersReducedMotion()) return
-  timer = setInterval(nextSlide, 5000)
-}
-function stopAuto() {
-  if (timer) {
-    clearInterval(timer)
-    timer = null
-  }
-}
-function pauseAuto() {
-  stopAuto()
-}
-function resumeAuto() {
-  startAuto()
-}
 
 async function loadPosts() {
   loading.value = true
@@ -402,40 +314,6 @@ async function ensureTodayPush() {
   }
 }
 
-// 0012：拉取「治愈瞬间」图池供首页轮播按日换新。
-// 数据源 = 治愈瞬间带图卡（user_cards approved，用户上传/小木名义）+ 心灵晴天每日图帖
-// （community_posts auto 推送的 dog/cat/nature 等）。两源都统一成 {image,title,content,category,author}。
-async function loadCarousel() {
-  try {
-    const [cards, posts] = await Promise.all([
-      userCardsApi.getApproved(80),
-      communityApi.getPosts(),
-    ])
-    const cardItems = cards
-      .filter((c) => c.image && c.image.trim())
-      .map((c) => ({
-        image: c.image,
-        title: c.title,
-        content: c.content,
-        category: c.category || '暖心',
-        author: c.author_name || '匿名',
-      }))
-    const postItems = posts
-      .filter((p) => p.image && (p.is_auto_push || p.type === 'auto'))
-      .map((p) => ({
-        image: p.image,
-        title: p.title,
-        content: p.content,
-        category: p.category || 'general',
-        author: p.username || '系统推送',
-      }))
-    carouselPool.value = [...cardItems, ...postItems]
-  } catch (e) {
-    console.warn('加载治愈瞬间轮播池失败（使用静态兜底图）', e)
-    carouselPool.value = []
-  }
-}
-
 function openModal(post) {
   activePost.value = post
   if (typeof document !== 'undefined') document.body.style.overflow = 'hidden'
@@ -467,15 +345,13 @@ async function toggleLike(post) {
 
 onMounted(async () => {
   document.addEventListener('keydown', onKeyDown)
-  await Promise.all([loadPosts(), loadCarousel()])
+  await loadPosts()
   await ensureTodayPush()
-  startAuto()
 })
 
 onUnmounted(() => {
   document.removeEventListener('keydown', onKeyDown)
   if (typeof document !== 'undefined') document.body.style.overflow = ''
-  stopAuto()
 })
 </script>
 
@@ -484,74 +360,53 @@ onUnmounted(() => {
   width: 100%;
 }
 
-/* 小木 CTA Hero（核心转化锚点，插画背景 + 深蓝文字；插画 = 用户 2026-11-12 提供的占位资产） */
+/* ---------- Hero（2026-11-13 阶段5 视觉参考定稿）：全宽插画 + 左侧叠字 + 暖橙 CTA ----------
+   全宽破栏手法与原 carousel 相同：left 50% + translateX(-50%) + 100vw，不破坏 App 容器留白模型 */
 .xiaomu-hero {
   position: relative;
-  width: 100%;
-  margin: 0 auto 28px;
-  padding: 56px 40px 64px;
-  /* 桌面：左侧文字区用白色渐变让白（最左 0.95 保证 4.5:1+），
-     插画主体（人物/小木/日出/远山）在右侧中景与路标后面透出来 */
-  background-color: #DFEBF7;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100vw;
+  margin: 0 0 0;
+  padding: 88px 0 132px;
+  background-color: #EAF1F8;
+  /* 左侧暖白渐变保证深蓝文字对比度 ≥4.5:1，插画主体（人物/路牌/日出）在右半透出 */
   background-image:
-    linear-gradient(88deg, rgba(250, 251, 253, 0.96) 0%, rgba(250, 251, 253, 0.86) 30%, rgba(250, 251, 253, 0.45) 52%, rgba(250, 251, 253, 0.06) 74%),
+    linear-gradient(90deg, rgba(253, 251, 246, 0.92) 0%, rgba(253, 251, 246, 0.72) 26%, rgba(253, 251, 246, 0.28) 52%, rgba(253, 251, 246, 0) 74%),
     url('../assets/hero-atlas.jpg');
-  background-size: auto, cover;
-  background-position: left, center 30%;
+  background-size: cover, cover;
+  background-position: center, 78% 30%;
   background-repeat: no-repeat;
-  border-radius: 24px;
   overflow: hidden;
   color: #263746;
-  box-shadow: 0 10px 30px rgba(52, 91, 142, 0.1);
 }
-/* 手机端专用画幅：桌面走背景，这里默认隐藏 */
-.hero-art {
-  display: none;
+.hero-inner {
+  max-width: 1136px;
+  margin: 0 auto;
+  padding: 0 clamp(16px, 2.5vw, 32px);
 }
-.hero-content {
-  position: relative;
-  z-index: 2;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 28px;
-  align-items: center;
-}
-/* 平板与 1024–1279 小桌面：6:6（手册允许，避免 7:5 在窄宽度下过窄） */
-@media (min-width: 768px) {
-  .hero-content {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    gap: 36px;
-  }
-}
-/* ≥1280 完整桌面：12 栅格 7:5 */
-@media (min-width: 1280px) {
-  .hero-content {
-    grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
-    gap: 48px;
-  }
-}
-.hero-text {
-  min-width: 0;
-}
+.hero-copy { display: block; }
+.copy-mob { display: none; }
 .hero-title {
-  font-size: 32px;
+  font-size: 44px;
   font-weight: 700;
-  margin: 0 0 14px;
-  line-height: 1.3;
-  letter-spacing: 0.5px;
-  /* 原全局 .hero-title 带 max-width:640px，删掉全局规则后由这里接管 */
-  max-width: 640px;
-  /* 交接文档 §4.2.1：深蓝文字（显式声明，防全局旧规则回压） */
+  margin: 0 0 18px;
+  line-height: 1.28;
+  letter-spacing: 1px;
   color: #263746;
+  max-width: 640px;
+}
+/* 手绘感下划线（阶段5 参考稿）：SVG 波浪线垫在文字底部 */
+.hero-hl {
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 12' preserveAspectRatio='none'%3E%3Cpath d='M2 9 Q 40 3 80 7 T 160 6 T 198 8' fill='none' stroke='%23EE8B3E' stroke-width='5' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat left 100% / 100% 10px;
+  padding-bottom: 8px;
 }
 .hero-subtitle {
-  font-size: 15.5px;
+  font-size: 16px;
   margin: 0;
-  line-height: 1.7;
+  line-height: 1.75;
   max-width: 480px;
-  /* 交接文档 §4.2.1：辅助文字用次级可读色 */
-  color: #5A6B7C;
-  /* 原全局 .hero-subtitle 带 letter-spacing:0.04em */
+  color: #45566B;
   letter-spacing: 0.04em;
 }
 .hero-action {
@@ -559,85 +414,32 @@ onUnmounted(() => {
   flex-direction: column;
   align-items: flex-start;
   gap: 10px;
-  margin-top: 22px;
+  margin-top: 26px;
 }
-
-/* 路线图路标：桌面首屏的四个入口 */
-.hero-markers {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-  min-width: 0;
-}
-.hero-marker {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-height: 64px;
-  padding: 12px 14px;
-  background: #FFFFFF;
-  border: 1px solid #E6EAF0;
-  border-radius: 14px;
-  color: #263746;
-  text-decoration: none;
-  box-shadow: 0 4px 14px rgba(52, 91, 142, 0.08);
-  transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
-}
-.hero-marker:hover {
-  border-color: rgba(52, 91, 142, 0.35);
-  transform: translateY(-2px);
-}
-.hero-marker-icon {
-  font-size: 20px;
-  line-height: 1;
-  flex: none;
-}
-.hero-marker-body {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-}
-.hero-marker-title {
-  font-size: 14px;
-  font-weight: 600;
-  line-height: 1.3;
-}
-.hero-marker-desc {
-  font-size: 11.5px;
-  line-height: 1.4;
-  color: #5A6B7C;
-}
-/* 手机端（分册三）：Hero 不放路标，改用下方「从此刻开始」三卡 */
-@media (max-width: 767px) {
-  .hero-markers { display: none; }
-}
-.hero-marker-arrow {
-  margin-left: auto;
-  opacity: 0.6;
-  font-size: 14px;
-  flex: none;
-}
+/* 暖橙 CTA（brand.accent，2026-11-13 参考稿定稿；与紧急色 #D87945 语义区分：
+   accent 只用于首页主 CTA/温暖行动，urgent 只用于危机与紧急求助） */
 .hero-cta-btn {
   display: inline-flex;
   align-items: center;
-  gap: 12px;
-  /* 主操作一律纯色 color.brand.primary #345B8E，不用渐变；
-     此前误用紧急色 #D87945 做渐变，已纠正 */
-  background: #345B8E;
+  gap: 10px;
+  background: #EE8B3E;
   color: #fff;
-  padding: 16px 30px;
-  border-radius: 14px;
+  padding: 15px 32px;
+  border-radius: 999px;
   font-size: 16px;
   font-weight: 700;
   text-decoration: none;
   transition: transform 0.25s ease, box-shadow 0.25s ease, background 0.25s ease;
-  box-shadow: 0 8px 24px rgba(52, 91, 142, 0.32);
+  box-shadow: 0 8px 24px rgba(238, 139, 62, 0.35);
 }
 .hero-cta-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 14px 32px rgba(52, 91, 142, 0.42);
-  background: #2C4E7E;
+  box-shadow: 0 14px 32px rgba(238, 139, 62, 0.45);
+  background: #E07D2C;
+}
+.hero-cta-ico {
+  font-size: 17px;
+  line-height: 1;
 }
 .hero-arrow {
   font-size: 20px;
@@ -647,183 +449,149 @@ onUnmounted(() => {
   transform: translateX(4px);
 }
 .hero-hint {
-  font-size: 12px;
-  color: #5A6B7C;
+  font-size: 13px;
+  color: #45566B;
   margin: 0;
-}
-@media (max-width: 768px) {
-  /* 交接文档 §4.2.2「上下分层」：上部 150px 画幅（object-position 取人物/小木中带），
-     下部文字落在纯浅底上——不用背景渐变兜底，人物不会被文字区盖住 */
-  .xiaomu-hero {
-    padding: 158px 22px 30px;
-    background-image: none;
-    background-color: #F4F8FC;
-  }
-  .hero-art {
-    display: block;
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 150px;
-    overflow: hidden;
-  }
-  .hero-art img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    object-position: 32% 68%;
-  }
-  .hero-title {
-    font-size: 26px; /* 交接文档 §4.2.1：标题 25–28px */
-  }
-  .hero-action {
-    align-items: flex-start;
-    width: 100%;
-  }
 }
 
-/* 轮播图 */
-/* 通栏轮播：铺满整屏宽度（两侧到边），下方内容区才居中留白 */
-.carousel {
+/* 白色浮条：四个核心入口，叠压 Hero 底边（阶段5 参考稿） */
+.hero-dock {
   position: relative;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 100vw;
-  height: 360px;
-  overflow: hidden;
-  margin-bottom: 32px;
+  z-index: 3;
+  max-width: 1136px;
+  margin: -72px auto 34px;
+  padding: 0 clamp(16px, 2.5vw, 32px);
 }
-.carousel-track {
-  display: flex;
-  height: 100%;
-  transition: transform 0.5s ease;
-}
-.carousel-slide {
-  min-width: 100%;
-  position: relative;
-  /* 图片没加载出来（网络慢、404、被拦截）时不能整块塌掉：
-     给一层深色底，保证叠在上面的白字始终可读。
-     这条是兜底，不是装饰 —— 之前图片一失败就变成「白字压浅灰」，完全看不见。 */
-  background: linear-gradient(135deg, #2d4258 0%, #3a5068 100%);
-}
-.carousel-image {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-/* 轮播高度固定：精选内容不该在首屏里无限长，也不能随图片尺寸跳动 */
-.carousel-slide {
-  height: 250px;
-}
-@media (min-width: 768px) {
-  .carousel-slide {
-    height: 320px;
-  }
-}
-.carousel-overlay {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  /* 通栏轮播的左右箭头贴在视口边缘，文字必须让开，否则会被压住 */
-  padding: 48px 76px 48px;
-  background: linear-gradient(to top, rgba(0, 0, 0, 0.55), rgba(0, 0, 0, 0.1), transparent);
-  color: #fff;
-}
-.carousel-tag {
-  display: inline-block;
-  background: rgba(255, 255, 255, 0.25);
-  padding: 4px 12px;
+.dock-item {  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 20px 22px;
+  background: #FFFFFF;
   border-radius: 20px;
-  font-size: 12px;
-  backdrop-filter: blur(4px);
+  box-shadow: 0 12px 32px rgba(52, 91, 142, 0.12);
+  text-decoration: none;
+  color: #263746;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
-.carousel-title {
-  font-size: 32px;
-  font-weight: 700;
-  margin: 12px 0 8px;
-  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
-  display: -webkit-box;
-  -webkit-line-clamp: 1;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
+.dock-item:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 16px 40px rgba(52, 91, 142, 0.18);
 }
-.carousel-desc {
-  font-size: 16px;
-  opacity: 0.95;
-  margin: 0;
-  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
+.dock-item + .dock-item {
+  border-left: 1px solid #E6EAF0;
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
 }
-.carousel-arrow {
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  background: rgba(255, 255, 255, 0.85);
-  border: none;
+.hero-dock {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+}
+.dock-icon {
   width: 44px;
   height: 44px;
-  border-radius: 50%;
-  cursor: pointer;
-  font-size: 22px;
-  color: #263746;
   display: flex;
   align-items: center;
   justify-content: center;
-  line-height: 1;
-  transition: background 0.2s;
-}
-.carousel-arrow:hover {
-  background: #fff;
-}
-.carousel-prev {
-  left: 16px;
-}
-.carousel-next {
-  right: 16px;
-}
-.carousel-dots {
-  position: absolute;
-  bottom: 18px;
-  left: 50%;
-  transform: translateX(-50%);
-  display: flex;
-  gap: 8px;
-}
-.carousel-dots span {
-  width: 8px;
-  height: 8px;
+  font-size: 21px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.5);
-  cursor: pointer;
-  transition: background 0.2s;
+  flex: none;
 }
-.carousel-dots span.active {
-  background: #fff;
+.tone-blue { background: #EAF2FB; }
+.tone-sky  { background: #E6F1F5; }
+.tone-warm { background: #FDEFE2; }
+.tone-slate { background: #EDF1F6; }
+.dock-body {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+.dock-title {
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.3;
+  color: #263746;
+}
+.dock-desc {
+  font-size: 13px;
+  line-height: 1.4;
+  color: #5A6B7C;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.dock-arrow {
+  margin-left: auto;
+  font-size: 20px;
+  color: #9AA6B2;
+  flex: none;
+  transition: transform 0.2s ease, color 0.2s ease;
+}
+.dock-item:hover .dock-arrow {
+  color: #EE8B3E;
+  transform: translateX(3px);
+}
+/* 平板（768–1023）：浮条折 2×2 */
+@media (max-width: 1023px) {
+  .hero-dock {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+  .dock-item + .dock-item {
+    border-left: 0;
+    border-radius: 20px;
+  }
+}
+
+/* 手机（<768）：全宽插画叠字（取景偏右对准人物/小木/路牌），浮条隐藏 */
+@media (max-width: 767px) {
+  .xiaomu-hero {
+    padding: 128px 0 96px;
+    background-image:
+      linear-gradient(180deg, rgba(253, 251, 246, 0.94) 0%, rgba(253, 251, 246, 0.72) 30%, rgba(253, 251, 246, 0.24) 58%, rgba(253, 251, 246, 0) 80%),
+      url('../assets/hero-atlas.jpg');
+    background-position: center, 62% 52%;
+  }
+  .copy-desk { display: none; }
+  .copy-mob { display: block; }
+  .hero-title {
+    font-size: 27px;
+    letter-spacing: 0.5px;
+  }
+  .hero-subtitle { font-size: 15px; }
+  .hero-action { margin-top: 18px; }
+  .hero-cta-btn {
+    padding: 12px 24px;
+    font-size: 15px;
+  }
+  .hero-dock { display: none; }
 }
 
 /* ---------- 快速开始 / 知识推荐 / 结束引导（交接文档 §4.3 §4.5 §4.7，手机端） ---------- */
+/* 手机端内容收敛（阶段5 参考稿）：Hero → 从此刻开始 → 今日精选（一大两小）→ 公告条 → 结束引导；
+   通栏轮播已删除，知识推荐不再在手机端平铺 */
 .quick-start,
 .knowledge-strip,
 .home-ending { display: none; }
 @media (max-width: 767px) {
-  /* 分册三：精选/知识/晴天整合为一个次级探索区，不平铺成多个门户模块
-     ⇒ 手机端隐藏通栏轮播，保留今日精选 + 知识推荐 */
-  .carousel { display: none; }
   .quick-start,
-  .knowledge-strip,
   .home-ending { display: block; }
 }
-.quick-start { padding: 2px 0 6px; }
+/* 「从此刻开始」= 参考稿里叠压 Hero 底边的白色大圆角卡 */
+.quick-start {
+  position: relative;
+  z-index: 3;
+  margin: -64px 0 8px;
+  padding: 20px 16px 18px;
+  background: #FFFFFF;
+  border-radius: 24px;
+  box-shadow: 0 12px 32px rgba(52, 91, 142, 0.12);
+}
 .quick-start-title {
   font-size: 17px;
   font-weight: 700;
   color: #263746;
-  margin: 0 0 10px;
+  margin: 0 0 14px;
 }
 .quick-start-cards {
   display: grid;
@@ -835,32 +603,34 @@ onUnmounted(() => {
   flex-direction: column;
   align-items: center;
   text-align: center;
-  gap: 6px;
-  min-height: 100px;
+  gap: 8px;
+  min-height: 120px;
   padding: 14px 8px;
-  background: #FFFFFF;
+  background: #F7F9FC;
   border: 1px solid #E6EAF0;
-  border-radius: 14px;
+  border-radius: 16px;
   text-decoration: none;
-  box-shadow: 0 4px 14px rgba(52, 91, 142, 0.06);
+  color: #263746;
 }
 .qs-icon {
-  width: 38px;
-  height: 38px;
+  width: 44px;
+  height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 19px;
-  background: #F0F4F9;
+  font-size: 21px;
+  background: #EAF2FB;
   border-radius: 50%;
 }
+.qs-card:nth-child(2) .qs-icon { background: #E8F3EC; }
+.qs-card:nth-child(3) .qs-icon { background: #EFEBFA; }
 .qs-title {
-  font-size: 13.5px;
-  font-weight: 600;
+  font-size: 15px;
+  font-weight: 700;
   color: #263746;
 }
 .qs-desc {
-  font-size: 11px;
+  font-size: 15px;
   color: #5A6B7C;
   line-height: 1.4;
 }
@@ -904,9 +674,10 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   gap: 6px;
+  color: #263746;
 }
 .ks-tag {
-  font-size: 11px;
+  font-size: 12px;
   color: #5A6B7C;
 }
 .ks-name {
@@ -973,8 +744,8 @@ onUnmounted(() => {
   align-items: start;
 }
 .feature-main {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
   gap: 16px;
 }
 .feature-loading,
@@ -986,11 +757,12 @@ onUnmounted(() => {
   background: #fff;
   border: 1px dashed #e0e6ec;
   border-radius: 16px;
+  grid-column: 1 / -1;
 }
 .feature-card {
   display: flex;
-  gap: 16px;
-  padding: 16px;
+  flex-direction: column;
+  padding: 12px;
   background: #fff;
   border: 1px solid #eef2f7;
   border-radius: 16px;
@@ -1005,8 +777,8 @@ onUnmounted(() => {
   transform: translateY(-2px);
 }
 .feature-card-img {
-  width: 180px;
-  height: 120px;
+  width: 100%;
+  height: 110px;
   object-fit: cover;
   border-radius: 12px;
   flex-shrink: 0;
@@ -1014,13 +786,14 @@ onUnmounted(() => {
 .feature-card-body {
   flex: 1;
   min-width: 0;
+  padding: 12px 4px 4px;
 }
 .feature-card-tag {
   display: inline-block;
-  font-size: 11px;
-  color: #D87945;
-  background: #fff3e0;
-  padding: 2px 8px;
+  font-size: 12px;
+  color: #B4531F;
+  background: #FDEFE2;
+  padding: 2px 10px;
   border-radius: 12px;
 }
 .feature-card-title {
@@ -1217,7 +990,7 @@ onUnmounted(() => {
   color: #263746;
 }
 
-/* 平板及以下（<=1024px）：两栏折叠为单栏，公告信息落到内容下方 */
+/* 平板及以下（<=1024px）：精选网格折叠为单列，公告信息落到内容下方 */
 @media (max-width: 1024px) {
   .feature-grid {
     grid-template-columns: 1fr;
@@ -1226,79 +999,68 @@ onUnmounted(() => {
   .feature-sidebar {
     position: static;
   }
-  .feature-stats {
-    width: 100%;
-  }
-  .carousel {
-    height: 300px;
+  .feature-main {
+    grid-template-columns: repeat(3, 1fr);
   }
 }
 
-/* 手机（<=768px） */
+/* 手机（<=768px）：精选一大两小 + 公告横条（阶段5 参考稿） */
 @media (max-width: 768px) {
-  .carousel {
-    height: 240px;
-  }
-  .carousel-title {
-    font-size: 22px;
-  }
-  .carousel-desc {
-    font-size: 14px;
-  }
-  .carousel-overlay {
-    padding: 28px 24px 32px;
-  }
   .feature-header {
     align-items: flex-start;
   }
-  .feature-card {
-    flex-direction: column;
+  .feature-main {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
   }
-  .feature-card-img {
-    width: 100%;
-    height: 160px;
+  /* 首卡全宽（图上文下），其余两张半宽 */
+  .feature-card:first-of-type {
+    grid-column: 1 / -1;
+  }
+  .feature-card:first-of-type .feature-card-img {
+    height: 170px;
+  }
+  .feature-card:not(:first-of-type) .feature-card-img {
+    height: 92px;
+  }
+  .feature-card-meta {
+    display: none;
+  }
+  /* 公告收成单行横条：喇叭标题 + 第一条内容 + 箭头感 */
+  .notice-box {
+    padding: 14px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .notice-title {
+    margin: 0;
+    font-size: 14px;
+    white-space: nowrap;
+    text-align: left;
+  }
+  .notice-list {
+    flex: 1;
+    min-width: 0;
+    margin: 0;
+  }
+  .notice-list li {
+    padding: 0;
+    border-bottom: none;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .notice-list li:not(:first-child) {
+    display: none;
+  }
+  .notice-list li strong {
+    font-weight: 600;
   }
 }
 
 /* 超小屏（<=480px） */
 @media (max-width: 480px) {
-  .carousel {
-    height: 200px;
-  }
-  .carousel-title {
-    font-size: 18px;
-  }
-  .carousel-desc {
-    font-size: 13px;
-  }
-  .carousel-overlay {
-    padding: 20px 16px 24px;
-  }
-  .carousel-slide {
-    height: 220px;
-  }
-  /* 手机上箭头竖直居中会压住底部标题，移到顶部 */
-  .carousel-arrow {
-    top: 12px;
-    transform: none;
-  }
-  /* 手机上箭头竖直居中会压住底部标题，移到顶部 */
-  .carousel-arrow {
-    top: 12px;
-    transform: none;
-  }
-  .carousel-arrow {
-    /* 触控目标不能小于 44：原来这里缩到 34，手机上很难点中 */
-    width: 44px;
-    height: 44px;
-    font-size: 18px;
-  }
-  .carousel-prev {
-    left: 10px;
-  }
-  .carousel-next {
-    right: 10px;
-  }
   .feature-title {
     font-size: 19px;
   }
