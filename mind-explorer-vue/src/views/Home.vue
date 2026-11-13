@@ -10,7 +10,7 @@
             <h1 class="hero-title">在探索中，<br />遇见<span class="hero-hl">更好的自己</span></h1>
             <p class="hero-subtitle">这是一段关于心灵成长的旅程，<br />你并不孤单。</p>
             <div class="hero-action">
-              <RouterLink to="/companion" class="hero-cta-btn">
+              <RouterLink to="/companion" class="hero-cta-btn" @click="playSound('tap')">
                 <span class="hero-cta-ico" aria-hidden="true">⚡</span>
                 <span>开始探索</span>
                 <span class="hero-arrow">→</span>
@@ -23,7 +23,7 @@
             <h1 class="hero-title">不想一个人<span class="hero-hl">扛着</span>吗？</h1>
             <p class="hero-subtitle">在这里，探索内心的世界，<br />找到属于自己的方向。</p>
             <div class="hero-action">
-              <RouterLink to="/companion" class="hero-cta-btn">
+              <RouterLink to="/companion" class="hero-cta-btn" @click="playSound('tap')">
                 <span class="hero-cta-ico" aria-hidden="true">💬</span>
                 <span>陪小木聊聊</span>
                 <span class="hero-arrow">→</span>
@@ -44,6 +44,7 @@
         :key="m.to"
         :to="m.to"
         class="dock-item"
+        @click="playSound('tap')"
       >
         <span class="dock-icon" :class="m.tone" aria-hidden="true">{{ m.icon }}</span>
         <span class="dock-body">
@@ -58,17 +59,17 @@
     <section class="quick-start" aria-label="从此刻开始">
       <h2 class="quick-start-title">从此刻开始</h2>
       <div class="quick-start-cards">
-        <RouterLink to="/companion" class="qs-card">
+        <RouterLink to="/companion" class="qs-card" @click="playSound('tap')">
           <span class="qs-icon" aria-hidden="true">💬</span>
           <span class="qs-title">找个人聊聊</span>
           <span class="qs-desc">和小木说说现在的感受</span>
         </RouterLink>
-        <RouterLink to="/tools" class="qs-card">
+        <RouterLink to="/tools" class="qs-card" @click="playSound('tap')">
           <span class="qs-icon" aria-hidden="true">🌿</span>
           <span class="qs-title">先缓一缓</span>
           <span class="qs-desc">使用呼吸等自助工具</span>
         </RouterLink>
-        <RouterLink to="/mood" class="qs-card">
+        <RouterLink to="/mood" class="qs-card" @click="playSound('tap')">
           <span class="qs-icon" aria-hidden="true">📝</span>
           <span class="qs-title">记录一下</span>
           <span class="qs-desc">写下现在的心情</span>
@@ -93,7 +94,7 @@
         <div class="feature-main">
           <p v-if="loading" class="feature-loading">正在加载今日精选… ☀️</p>
 
-          <article v-for="post in featuredPosts" :key="post.id" class="feature-card" role="button" tabindex="0" @click="openModal(post)" @keydown.enter="openModal(post)">
+          <article v-for="post in featuredPosts" :key="post.id" class="feature-card" role="button" tabindex="0" @click="playSound('tap'); openModal(post)" @keydown.enter="openModal(post)">
             <img v-if="post.image" :src="post.image" :alt="post.title" class="feature-card-img" loading="lazy" />
             <div class="feature-card-body">
               <span class="feature-card-tag">{{ catLabel(post.category) }}</span>
@@ -145,7 +146,7 @@
         <RouterLink to="/knowledge" class="ks-more">查看全部 →</RouterLink>
       </div>
       <div class="ks-row">
-        <RouterLink v-for="k in knowledgePicks" :key="k.id" to="/knowledge" class="ks-card">
+        <RouterLink v-for="k in knowledgePicks" :key="k.id" to="/knowledge" class="ks-card" @click="playSound('tap')">
           <span class="ks-tag">{{ k.category }}</span>
           <span class="ks-name">{{ k.title }}</span>
         </RouterLink>
@@ -190,6 +191,7 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import cardsRaw from '../data/cards.json'
 import { communityApi } from '../api/community'
 import { useAuthStore } from '../stores/auth'
+import { play as playSound } from '../audio/soundManager'
 import FavoriteButton from '../components/FavoriteButton.vue'
 
 const auth = useAuthStore()

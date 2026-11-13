@@ -200,6 +200,51 @@
       <XiaomuWardrobe :open="wardrobeOpen" standalone @close="wardrobeOpen = false" />
     </section>
 
+    <!-- 声音反馈（规范 V1.0）：默认关、用户主动开；关时音量/试听无效 -->
+    <section class="bg-white border border-[#E6EAF0] rounded-2xl p-5 mb-5">
+      <h2 class="text-[15px] font-bold text-[#263746] m-0 mb-1">🔊 声音反馈</h2>
+      <p class="text-[13px] text-[#5A6B7C] leading-6 m-0 mb-3">
+        轻柔的交互音效，让每一次操作都有温柔的回应。默认关闭，开启后才会播放。
+      </p>
+      <div class="flex flex-wrap items-center gap-2.5">
+        <button
+          type="button"
+          @click="toggleSound"
+          :aria-pressed="soundOn ? 'true' : 'false'"
+          class="inline-flex items-center gap-2 min-h-[44px] px-4 rounded-lg border text-[14px] font-semibold transition"
+          :class="soundOn
+            ? 'border-[#a8cbb4] bg-[#f5faf7] text-[#4a8a5e]'
+            : 'border-[#E6EAF0] bg-white text-[#5a6b7c] hover:border-[#c5d8ea]'"
+        >
+          <span class="w-2 h-2 rounded-full" :class="soundOn ? 'bg-[#5a9e7a]' : 'bg-[#c2ccd6]'"></span>
+          {{ soundOn ? '交互音效已开启' : '交互音效已关闭' }}
+        </button>
+        <span class="text-[13px] text-[#5A6B7C]">音效风格：轻柔自然（默认）</span>
+      </div>
+      <div class="flex items-center gap-3 mt-3" :class="soundOn ? '' : 'opacity-50'">
+        <label class="text-[13px] text-[#263746] shrink-0" for="sound-vol">音量</label>
+        <input
+          id="sound-vol"
+          type="range" min="0" max="100" step="1"
+          :value="soundVol"
+          :disabled="!soundOn"
+          @input="onSoundVol"
+          class="flex-1 accent-[#EE8B3E] min-h-[44px]"
+        />
+        <span class="text-[13px] text-[#5A6B7C] w-10 text-right">{{ soundVol }}%</span>
+      </div>
+      <div class="flex flex-wrap items-center gap-2 mt-3">
+        <span class="text-[13px] text-[#263746]">试听：</span>
+        <button
+          v-for="s in soundList" :key="s.key" type="button"
+          :disabled="!soundOn"
+          @click="trySound(s.key)"
+          class="min-h-[36px] px-3 rounded-lg border border-[#E6EAF0] bg-white text-[13px] text-[#5a6b7c] transition enabled:hover:border-[#ee8b3e] enabled:hover:text-[#C2661F] disabled:cursor-not-allowed disabled:opacity-50"
+        >{{ s.label }}</button>
+        <span v-if="!soundOn" class="text-[12px] text-[#b8c2cc]">开启后才能试听</span>
+      </div>
+    </section>
+
     <!-- 彻底删除（批次 P）—— 只有已登录才有数据可删 -->
     <AccountPurge v-if="auth.currentUser" />
 
@@ -241,6 +286,13 @@ import BadgeWall from '../components/BadgeWall.vue'
 import AccountPurge from '../components/AccountPurge.vue'   // 批次 P：彻底删除
 import XiaomuWardrobe from '../companion/components/XiaomuWardrobe.vue'
 import { useXiaomuPrefs } from '../companion/composables/useXiaomuPrefs'
+import {
+  isEnabled as soundIsEnabled,
+  getVolume as soundGetVolume,
+  setEnabled as soundSetEnabled,
+  setVolume as soundSetVolume,
+  preview as soundPreview,
+} from '../audio/soundManager'
 
 const auth = useAuthStore()
 // 小木桌宠开关（模块单例，与 App.vue 共用同一份 prefs）
@@ -248,6 +300,26 @@ const prefs = useXiaomuPrefs()
 const wardrobeOpen = ref(false)
 function togglePet() {
   prefs.petOn = !prefs.petOn
+}
+
+// 声音反馈（规范 V1.0）：默认关；总开关关闭时音量与试听无效
+const soundOn = ref(soundIsEnabled())
+const soundVol = ref(Math.round(soundGetVolume() * 100))
+const soundList = [
+  { key: 'tap', label: '👉 轻触' },
+  { key: 'success', label: '🔔 完成' },
+  { key: 'transition', label: '🍃 切换' },
+  { key: 'companion', label: '🌿 小木' },
+]
+function toggleSound() {
+  soundSetEnabled(!soundOn.value)
+  soundOn.value = soundIsEnabled()
+}
+function onSoundVol() {
+  soundSetVolume(soundVol.value / 100)
+}
+function trySound(name) {
+  soundPreview(name)
 }
 const badgesStore = useBadgeStore()
 const trusted = useTrustedContactsStore()

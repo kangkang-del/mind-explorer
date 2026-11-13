@@ -34,10 +34,11 @@
  *   ② **回落**：云端失败时用系统音色把**剩余文本**接着念完（首块失败＝整段）；
  *   ③ **例外**：`bad-key` **不回落** —— Key 错了就直说，静默回落会让用户以为 Key 生效了。
  */
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import { useXiaomuPrefs } from './useXiaomuPrefs'
 import { synthesize, synthesizeViaServer, getKey, ZHIPU_VOICES } from '../../utils/cloudTts'
 import { useIdentity } from '../../composables/useIdentity'
+import { setSuppressed as soundSuppress } from '../../audio/soundManager'
 
 const hasSS =
   typeof window !== 'undefined' &&
@@ -479,6 +480,9 @@ export function useXiaomuVoice() {
   }
 
   if (hasSS) loadVoices()
+
+  // 声音规范 V1.0：朗读期间抑制普通交互音效（开始朗读立即压掉在响的音效）
+  watch(speaking, (on) => soundSuppress(on))
 
   shared = {
     supported: hasSS,

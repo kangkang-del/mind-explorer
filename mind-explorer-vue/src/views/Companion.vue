@@ -372,6 +372,7 @@ import { useXiaomuIat } from '../companion/composables/useXiaomuIat'
 import { IAT_UI_ENABLED } from '../companion/core/features'
 // 视口高度与键盘状态：聊天页高度按真实可见高度算，而不是 100vh
 import { viewportHeight, keyboardOpen, bindViewport } from '../composables/useViewport'
+import { play as playSound } from '../audio/soundManager'
 // M7：她自己画东西 —— 流式切分器（纯 reducer）+ 卡片 + 全局开关
 import { createSceneStream } from '../companion/core/sceneStream'
 import { useScenePref } from '../composables/useScenePref'
@@ -622,7 +623,9 @@ async function pushAssistant(text) {
   }
   sending.value = false
   saveHistory()
-  speakReply(text)   // M6-1：复盘/CBT/睡前这类非流式回复，打完后也念出来
+  // 声音规范 V1.0：非流式回复同样「念出来就不播提示音，没念就播一次」
+  const willSpeak = speakReply(text)   // M6-1：复盘/CBT/睡前这类非流式回复，打完后也念出来
+  if (!willSpeak) playSound('companion')
 }
 
 // 本周情绪复盘（结构化卡片）
@@ -845,6 +848,7 @@ async function send() {
 async function sendText(text) {
   if (!text || sending.value) return
   voice.stop()   // M6-1：用户又开口了 → 掐断上一句播报
+  playSound('tap')   // 声音规范 V1.0：聊天发送消息（send 与引导模块都走这里，只触发一次）
 
   messages.push({ role: 'user', content: text })
   sending.value = true
@@ -909,7 +913,10 @@ async function sendText(text) {
 
       sending.value = false
       saveHistory()
-      speakReply(activeAssistant.content)   // M6-1：回完就念出来。content 已经是纯文字
+      // 声音规范 V1.0：一次完整回复最多一次陪伴提示音；
+      // 正在朗读时不出声（朗读本身就是回应），speakReply 同步返回是否真的开了朗读
+      const willSpeak = speakReply(activeAssistant.content)   // M6-1：回完就念出来。content 已经是纯文字
+      if (!willSpeak) playSound('companion')
     },
   })
 }
@@ -963,7 +970,9 @@ async function localFallback(text) {
   }
   sending.value = false
   saveHistory()
-  speakReply(reply)   // M6-1：本地降级语录同样念出来
+  // 声音规范 V1.0：本地降级回复同样一次回复最多一次陪伴提示音
+  const willSpeak = speakReply(reply)   // M6-1：本地降级语录同样念出来
+  if (!willSpeak) playSound('companion')
 }
 
 // 挂载时：若已登录，从服务端恢复对话（跨设备连续性）；失败则保留本地 localStorage

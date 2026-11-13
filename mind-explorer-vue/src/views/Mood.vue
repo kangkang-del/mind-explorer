@@ -79,6 +79,7 @@ import { useIdentity } from '../composables/useIdentity'
 import { useBadgeStore } from '../stores/badges'
 import { useCrisisStore } from '../stores/crisisStore'
 import { detectCrisis } from '../lib/crisis'
+import { play as playSound } from '../audio/soundManager'
 
 const auth = useAuthStore()
 const ident = useIdentity()   // [S2] 只为 mood.* 带令牌，不改变任何读取逻辑
@@ -110,6 +111,7 @@ function fmt(iso) {
   return `${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
 }
 function pick(k) {
+  playSound('tap')   // 声音规范 V1.0：心情选择
   selected.value = k
 }
 
@@ -165,6 +167,8 @@ async function save() {
   if (res.ok) {
     // 心情备注命中高危词 → 弹援助资源（服务端标记 or 前端即时检测，二者取一即可）
     if (res.crisis || detectCrisis(note.value)) crisisStore.open()
+    // 声音规范 V1.0：保存成功播完成音；⚠️ 命中危机场景时保持安静，不加任何音效
+    if (!(res.crisis || detectCrisis(note.value))) playSound('success')
     savedTip.value = '已记下 ☀️'
     note.value = ''
     selected.value = ''
