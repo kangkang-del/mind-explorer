@@ -228,11 +228,12 @@
           type="range" min="0" max="100" step="1"
           :value="soundVol"
           :disabled="!soundOn"
-          @input="onSoundVol"
+          @input="onSoundVol($event)"
           class="flex-1 accent-[#EE8B3E] min-h-[44px]"
         />
         <span class="text-[13px] text-[#5A6B7C] w-10 text-right">{{ soundVol }}%</span>
       </div>
+      <p v-if="!soundOn" class="text-[12px] text-[#b8c2cc] m-0 mt-1">先开启交互音效，才能调节音量与试听。</p>
       <div class="flex flex-wrap items-center gap-2 mt-3">
         <span class="text-[13px] text-[#263746]">试听：</span>
         <button
@@ -315,7 +316,12 @@ function toggleSound() {
   soundSetEnabled(!soundOn.value)
   soundOn.value = soundIsEnabled()
 }
-function onSoundVol() {
+function onSoundVol(e) {
+  // 🔴 必须把新值写回 ref：不写回的话音量永远用初始值，且 :value 会在
+  // 任意重渲染时把滑条 DOM 拉回旧位置 —— 表现就是「拖了又弹回去，按不了」
+  const v = Math.round(Number(e && e.target ? e.target.value : soundVol.value))
+  if (Number.isNaN(v)) return
+  soundVol.value = Math.min(100, Math.max(0, v))
   soundSetVolume(soundVol.value / 100)
 }
 function trySound(name) {
